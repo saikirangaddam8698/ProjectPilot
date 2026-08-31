@@ -1,0 +1,175 @@
+<script setup>
+import { ref } from 'vue';
+import { useProjectStore } from '@/stores/project.store';
+import BaseModal from '@/components/ui/BaseModal.vue';
+import BaseButton from '@/components/ui/BaseButton.vue';
+import BaseInput from '@/components/ui/BaseInput.vue';
+
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
+  projectKey: {
+    type: String,
+    required: true
+  }
+});
+
+const emit = defineEmits(['update:modelValue', 'added', 'close']);
+
+const projectStore = useProjectStore();
+
+const form = ref({
+  name: '',
+  email: '',
+  role: 'Developer'
+});
+
+const errors = ref({
+  name: '',
+  email: ''
+});
+
+function validate() {
+  let valid = true;
+  if (!form.value.name.trim()) {
+    errors.value.name = 'Member name is required.';
+    valid = false;
+  } else {
+    errors.value.name = '';
+  }
+
+  if (!form.value.email.trim()) {
+    errors.value.email = 'Email address is required.';
+    valid = false;
+  } else if (!form.value.email.includes('@')) {
+    errors.value.email = 'Please enter a valid email address.';
+    valid = false;
+  } else {
+    errors.value.email = '';
+  }
+
+  return valid;
+}
+
+function handleSubmit() {
+  if (!validate()) return;
+
+  const added = projectStore.addMemberToProject(props.projectKey, {
+    name: form.value.name,
+    email: form.value.email,
+    role: form.value.role
+  });
+
+  emit('added', added);
+  handleClose();
+}
+
+function handleClose() {
+  form.value = { name: '', email: '', role: 'Developer' };
+  errors.value = { name: '', email: '' };
+  emit('update:modelValue', false);
+  emit('close');
+}
+</script>
+
+<template>
+  <BaseModal
+    :modelValue="modelValue"
+    @update:modelValue="$emit('update:modelValue', $event)"
+    @close="handleClose"
+    size="sm"
+    title="Add Team Member"
+    description="Assign a new team member to this project workspace."
+  >
+    <form @submit.prevent="handleSubmit" class="add-member-form">
+      <div class="form-group">
+        <label for="member-name" class="form-label required">Full Name</label>
+        <BaseInput
+          id="member-name"
+          v-model="form.name"
+          placeholder="e.g. Jordan Lee"
+          :error="errors.name"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="member-email" class="form-label required">Email Address</label>
+        <BaseInput
+          id="member-email"
+          v-model="form.email"
+          type="email"
+          placeholder="e.g. jordan.l@projectpilot.dev"
+          :error="errors.email"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="member-role" class="form-label">Project Role</label>
+        <select id="member-role" v-model="form.role" class="form-select">
+          <option value="Project Admin">Project Admin (Full Control)</option>
+          <option value="Senior Developer">Senior Developer</option>
+          <option value="Developer">Developer</option>
+          <option value="DevOps Engineer">DevOps Engineer</option>
+          <option value="QA Lead">QA Lead</option>
+          <option value="Viewer">Viewer (Read Only)</option>
+        </select>
+      </div>
+    </form>
+
+    <template #footer>
+      <BaseButton variant="ghost" size="md" @click="handleClose">
+        Cancel
+      </BaseButton>
+      <BaseButton variant="primary" size="md" @click="handleSubmit">
+        Add Member
+      </BaseButton>
+    </template>
+  </BaseModal>
+</template>
+
+<style scoped>
+.add-member-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: var(--color-danger-500);
+}
+
+.form-select {
+  height: 36px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.form-select:focus {
+  border-color: var(--border-focus);
+}
+</style>

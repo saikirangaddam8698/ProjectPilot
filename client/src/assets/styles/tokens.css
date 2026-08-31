@@ -1,0 +1,248 @@
+/**
+ * ProjectPilot Design System Tokens
+ * Linear / Jira modern developer-SaaS aesthetic
+ */
+
+:root {
+  /* ==========================================================================
+     Shared Core Tokens
+     ========================================================================== */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Typography Scale */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.8125rem;   /* 13px */
+  --text-base: 0.875rem;  /* 14px */
+  --text-md: 1rem;        /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* Spacing Scale */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+
+  /* Border Radii */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* Layout Dimensions */
+  --sidebar-width-expanded: 248px;
+  --sidebar-width-collapsed: 64px;
+  --header-height: 56px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Hierarchy */
+  --z-sidebar: 30;
+  --z-header: 40;
+  --z-backdrop: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --z-tooltip: 90;
+
+  /* Accent Branding (ProjectPilot Indigo / Violet) */
+  --color-primary-50: #EEF2FF;
+  --color-primary-100: #E0E7FF;
+  --color-primary-200: #C7D2FE;
+  --color-primary-300: #A5B4FC;
+  --color-primary-400: #818CF8;
+  --color-primary-500: #6366F1;
+  --color-primary-600: #4F46E5;
+  --color-primary-700: #4338CA;
+
+  /* Status Colors */
+  --color-success-50: #ECFDF5;
+  --color-success-500: #10B981;
+  --color-success-600: #059669;
+
+  --color-warning-50: #FFFBEB;
+  --color-warning-500: #F59E0B;
+  --color-warning-600: #D97706;
+
+  --color-danger-50: #FEF2F2;
+  --color-danger-500: #EF4444;
+  --color-danger-600: #DC2626;
+
+  --color-info-50: #F0F9FF;
+  --color-info-500: #0EA5E9;
+  --color-info-600: #0284C7;
+
+  --color-ai-gradient-1: #6366F1;
+  --color-ai-gradient-2: #8B5CF6;
+}
+
+/* ==========================================================================
+   Dark Theme (Default & Preferred for Developer SaaS)
+   ========================================================================== */
+:root[data-theme='dark'],
+.dark {
+  /* Surfaces */
+  --bg-app: #0B0D10;
+  --bg-surface: #111418;
+  --bg-surface-elevated: #171B21;
+  --bg-surface-hover: #1E232B;
+  --bg-surface-active: #252B35;
+  --bg-surface-subtle: rgba(255, 255, 255, 0.03);
+
+  /* Borders */
+  --border-subtle: #1F242D;
+  --border-default: #2A313D;
+  --border-strong: #3A4353;
+  --border-focus: #6366F1;
+
+  /* Text & Content */
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --text-inverse: #111827;
+
+  /* Interactive States */
+  --btn-primary-bg: #4F46E5;
+  --btn-primary-hover: #4338CA;
+  --btn-primary-text: #FFFFFF;
+
+  --btn-secondary-bg: #171B21;
+  --btn-secondary-hover: #1E232B;
+  --btn-secondary-text: #E5E7EB;
+  --btn-secondary-border: #2A313D;
+
+  --btn-ghost-hover: rgba(255, 255, 255, 0.06);
+  --btn-ghost-text: #9CA3AF;
+  --btn-ghost-active-text: #F3F4F6;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7);
+  --shadow-drawer: -4px 0 24px rgba(0, 0, 0, 0.7);
+
+  /* Status Badges Dark */
+  --badge-neutral-bg: #1E232B;
+  --badge-neutral-text: #9CA3AF;
+  --badge-neutral-border: #2A313D;
+
+  --badge-primary-bg: rgba(99, 102, 241, 0.12);
+  --badge-primary-text: #A5B4FC;
+  --badge-primary-border: rgba(99, 102, 241, 0.3);
+
+  --badge-success-bg: rgba(16, 185, 129, 0.12);
+  --badge-success-text: #6EE7B7;
+  --badge-success-border: rgba(16, 185, 129, 0.3);
+
+  --badge-warning-bg: rgba(245, 158, 11, 0.12);
+  --badge-warning-text: #FCD34D;
+  --badge-warning-border: rgba(245, 158, 11, 0.3);
+
+  --badge-danger-bg: rgba(239, 68, 68, 0.12);
+  --badge-danger-text: #FCA5A5;
+  --badge-danger-border: rgba(239, 68, 68, 0.3);
+
+  --badge-info-bg: rgba(14, 165, 233, 0.12);
+  --badge-info-text: #7DD3FC;
+  --badge-info-border: rgba(14, 165, 233, 0.3);
+
+  /* Skeleton Shimmer */
+  --skeleton-base: #171B21;
+  --skeleton-highlight: #232933;
+}
+
+/* ==========================================================================
+   Light Theme
+   ========================================================================== */
+:root[data-theme='light'] {
+  /* Surfaces */
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-hover: #F1F5F9;
+  --bg-surface-active: #E2E8F0;
+  --bg-surface-subtle: #F8FAFC;
+
+  /* Borders */
+  --border-subtle: #E2E8F0;
+  --border-default: #CBD5E1;
+  --border-strong: #94A3B8;
+  --border-focus: #4F46E5;
+
+  /* Text & Content */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  /* Interactive States */
+  --btn-primary-bg: #4F46E5;
+  --btn-primary-hover: #4338CA;
+  --btn-primary-text: #FFFFFF;
+
+  --btn-secondary-bg: #FFFFFF;
+  --btn-secondary-hover: #F8FAFC;
+  --btn-secondary-text: #334155;
+  --btn-secondary-border: #CBD5E1;
+
+  --btn-ghost-hover: #F1F5F9;
+  --btn-ghost-text: #475569;
+  --btn-ghost-active-text: #0F172A;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-drawer: -4px 0 20px rgba(0, 0, 0, 0.1);
+
+  /* Status Badges Light */
+  --badge-neutral-bg: #F1F5F9;
+  --badge-neutral-text: #475569;
+  --badge-neutral-border: #E2E8F0;
+
+  --badge-primary-bg: #EEF2FF;
+  --badge-primary-text: #4338CA;
+  --badge-primary-border: #C7D2FE;
+
+  --badge-success-bg: #ECFDF5;
+  --badge-success-text: #065F46;
+  --badge-success-border: #A7F3D0;
+
+  --badge-warning-bg: #FFFBEB;
+  --badge-warning-text: #92400E;
+  --badge-warning-border: #FDE68A;
+
+  --badge-danger-bg: #FEF2F2;
+  --badge-danger-text: #991B1B;
+  --badge-danger-border: #FECACA;
+
+  --badge-info-bg: #F0F9FF;
+  --badge-info-text: #075985;
+  --badge-info-border: #BAE6FD;
+
+  /* Skeleton Shimmer */
+  --skeleton-base: #E2E8F0;
+  --skeleton-highlight: #F1F5F9;
+}
