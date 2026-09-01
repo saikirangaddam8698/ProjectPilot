@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useActivityStore, CURRENT_DEMO_USER } from './activity.store';
+import { useActivityStore } from './activity.store.js';
+import { projectsApi, membersApi } from '../services/api/index.js';
 
-// Master workspace member definitions
+// Master workspace member definitions fallback
 export const WORKSPACE_MEMBERS = [
   {
     id: 'm-1',
@@ -187,7 +188,11 @@ const INITIAL_PROJECTS = [
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref([...INITIAL_PROJECTS]);
+  const workspaceMembersList = ref([...WORKSPACE_MEMBERS]);
   const activeProjectKey = ref(null);
+  const isLoading = ref(false);
+  const error = ref(null);
+  const isInitialized = ref(false);
 
   // Search & Filter state
   const searchQuery = ref('');
@@ -226,8 +231,8 @@ export const useProjectStore = defineStore('project', () => {
     const memberMap = new Map();
 
     // 1. Seed with master directory
-    WORKSPACE_MEMBERS.forEach((m) => {
-      memberMap.set(m.id, { ...m, projectKeys: [...m.projectKeys] });
+    workspaceMembersList.value.forEach((m) => {
+      memberMap.set(m.id, { ...m, projectKeys: [...(m.projectKeys || [])] });
     });
 
     // 2. Synchronize with project.members arrays
@@ -258,7 +263,31 @@ export const useProjectStore = defineStore('project', () => {
     return Array.from(memberMap.values());
   });
 
-  // Actions
+  // Async API Actions
+  async function fetchProjects() {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const [fetchedProjects, fetchedMembers] = await Promise.all([
+        projectsApi.getAll(),
+        membersApi.getAll().catch(() => null)
+      ]);
+
+      if (Array.isArray(fetchedProjects) && fetchedProjects.length > 0) {
+        projects.value = fetchedProjects;
+      }
+      if (Array.isArray(fetchedMembers) && fetchedMembers.length > 0) {
+        workspaceMembersList.value = fetchedMembers;
+      }
+      isInitialized.value = true;
+    } catch (err) {
+      console.warn('Could not load projects from API, using cached data:', err.message);
+      error.value = err.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function getProjectByKey(key) {
     if (!key) return null;
     return (
@@ -270,7 +299,7 @@ export const useProjectStore = defineStore('project', () => {
     activeProjectKey.value = key ? key.toUpperCase() : null;
   }
 
-  function createProject({ name, key, description, status, leadName }) {
+  async function createProject({ name, key, description, status, leadName }) {
     const formattedKey = key ? key.trim().toUpperCase() : name.slice(0, 4).toUpperCase();
     const leadInitials = leadName
       ? leadName
@@ -281,6 +310,7 @@ export const useProjectStore = defineStore('project', () => {
           .slice(0, 2)
       : 'PM';
 
+    // Optimistic fallback object
     const newProject = {
       id: `proj-${Date.now()}`,
       key: formattedKey,
@@ -317,7 +347,20 @@ export const useProjectStore = defineStore('project', () => {
       createdAt: new Date().toISOString()
     };
 
-    projects.value.unshift(newProject);
+    try {
+      const created = await projectsApi.create({
+        name: name.trim(),
+        key: formattedKey,
+        description,
+        status: status || 'active',
+        leadName
+      });
+
+      projects.value.unshift(created || newProject);
+    } catch (err) {
+      console.warn('API project creation failed, using local state:', err.message);
+      projects.value.unshift(newProject);
+    }
 
     // Record activity in event store
     try {
@@ -340,21 +383,22 @@ export const useProjectStore = defineStore('project', () => {
     return newProject;
   }
 
-  function addMemberToProject(projectKey, { name, role, email, department, status, skills, capacity }) {
+  async function addMemberToProject(projectKey, { name, role, email, department, status, skills, capacity }) {
     const project = getProjectByKey(projectKey);
     if (!project) return null;
 
-    // Check if existing workspace member
     const existing = allWorkspaceMembers.value.find(
       (m) => m.email?.toLowerCase() === email?.toLowerCase() || m.name.toLowerCase() === name.toLowerCase()
     );
 
     const initials = name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+      ? name
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2)
+      : 'TM';
 
     const newMember = {
       id: existing?.id || `m-${Date.now()}`,
@@ -368,7 +412,22 @@ export const useProjectStore = defineStore('project', () => {
       capacity: capacity || existing?.capacity || 20
     };
 
-    // Check if already in project.members
+    try {
+      await projectsApi.addMember(projectKey, {
+        memberId: existing?.id,
+        name: newMember.name,
+        role: newMember.role,
+        email: newMember.email,
+        department: newMember.department,
+        status: newMember.status,
+        skills: newMember.skills,
+        capacity: newMember.capacity
+      });
+    } catch (err) {
+      console.warn('API add member failed, applying locally:', err.message);
+    }
+
+    // Update local project.members
     const alreadyMember = project.members.some((m) => m.id === newMember.id || m.email === newMember.email);
     if (!alreadyMember) {
       project.members.push(newMember);
@@ -395,7 +454,7 @@ export const useProjectStore = defineStore('project', () => {
     return newMember;
   }
 
-  function removeMemberFromProject(projectKey, memberId) {
+  async function removeMemberFromProject(projectKey, memberId) {
     const project = getProjectByKey(projectKey);
     if (!project) return false;
 
@@ -403,6 +462,13 @@ export const useProjectStore = defineStore('project', () => {
     if (memberIndex === -1) return false;
 
     const removedMember = project.members[memberIndex];
+
+    try {
+      await projectsApi.removeMember(projectKey, memberId);
+    } catch (err) {
+      console.warn('API remove member failed, applying locally:', err.message);
+    }
+
     project.members.splice(memberIndex, 1);
 
     // Record activity
@@ -439,10 +505,14 @@ export const useProjectStore = defineStore('project', () => {
     activeProjectKey,
     searchQuery,
     statusFilter,
+    isLoading,
+    error,
+    isInitialized,
     allProjects,
     filteredProjects,
     activeProject,
     allWorkspaceMembers,
+    fetchProjects,
     getProjectByKey,
     setActiveProjectKey,
     createProject,

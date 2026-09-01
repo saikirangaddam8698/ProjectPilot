@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { activitiesApi } from '../services/api/index.js';
 
 export const CURRENT_DEMO_USER = {
   id: 'm-1',
@@ -139,6 +140,9 @@ const INITIAL_ACTIVITIES = [
 
 export const useActivityStore = defineStore('activity', () => {
   const activities = ref([...INITIAL_ACTIVITIES]);
+  const isLoading = ref(false);
+  const error = ref(null);
+  const isInitialized = ref(false);
 
   // All activities sorted chronologically descending
   const allActivities = computed(() => {
@@ -147,11 +151,29 @@ export const useActivityStore = defineStore('activity', () => {
     );
   });
 
+  // Async API Actions
+  async function fetchActivities(params = {}) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const fetched = await activitiesApi.getAll(params);
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        activities.value = fetched;
+      }
+      isInitialized.value = true;
+    } catch (err) {
+      console.warn('Could not load activities from API, using cached data:', err.message);
+      error.value = err.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   /**
    * Record a new activity event.
    * Unidirectional sink called by domain stores upon successful state mutation.
    */
-  function recordActivity({
+  async function recordActivity({
     projectKey,
     type,
     action,
@@ -187,6 +209,25 @@ export const useActivityStore = defineStore('activity', () => {
     };
 
     activities.value.unshift(newActivity);
+
+    // Fire API write in background
+    try {
+      await activitiesApi.record({
+        projectKey,
+        actorId: newActivity.actorId,
+        type: newActivity.type,
+        action: newActivity.action,
+        targetType: newActivity.targetType,
+        targetId: newActivity.targetId,
+        targetKey: newActivity.targetKey,
+        targetTitle: newActivity.targetTitle,
+        message: newActivity.message,
+        metadata: newActivity.metadata
+      });
+    } catch (err) {
+      console.warn('API record activity failed, recorded locally:', err.message);
+    }
+
     return newActivity;
   }
 
@@ -267,7 +308,11 @@ export const useActivityStore = defineStore('activity', () => {
 
   return {
     activities,
+    isLoading,
+    error,
+    isInitialized,
     allActivities,
+    fetchActivities,
     recordActivity,
     getActivitiesByProject,
     getGlobalActivities

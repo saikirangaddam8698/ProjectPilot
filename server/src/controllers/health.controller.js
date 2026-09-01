@@ -7,10 +7,13 @@ export class HealthController {
    * Health Check Handler
    * GET /api/health or GET /api/v1/health
    */
-  static getHealth(req, res) {
-    const health = HealthService.getHealthStatus();
+  static async getHealth(req, res) {
+    const includeDb = req.query.db !== 'false';
+    const health = await HealthService.getHealthStatus(includeDb);
+    const statusCode = health.status === 'healthy' ? HTTP_STATUS.OK : HTTP_STATUS.OK;
+
     return ApiResponse.success(res, {
-      statusCode: HTTP_STATUS.OK,
+      statusCode,
       message: 'ProjectPilot Server is operational',
       data: health
     });
@@ -20,12 +23,25 @@ export class HealthController {
    * Detailed System Status Handler
    * GET /api/v1/health/system
    */
-  static getSystemInfo(req, res) {
-    const health = HealthService.getHealthStatus();
+  static async getSystemInfo(req, res) {
+    const health = await HealthService.getHealthStatus(false);
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'System diagnostics retrieved successfully',
       data: health.system
+    });
+  }
+
+  /**
+   * Database Health & Diagnostics Handler
+   * GET /api/v1/health/db
+   */
+  static async getDatabaseHealth(req, res) {
+    const dbHealth = await HealthService.getDatabaseHealth();
+    return ApiResponse.success(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: 'Database diagnostics retrieved successfully',
+      data: dbHealth
     });
   }
 }

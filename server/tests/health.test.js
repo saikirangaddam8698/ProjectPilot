@@ -5,12 +5,12 @@ import app from '../src/app.js';
 import { HTTP_STATUS, ERROR_CODES, APP_INFO } from '../src/utils/constants.js';
 
 test('ProjectPilot Backend Integration Tests', async (t) => {
-  await t.test('GET /api/health returns 200 and healthy status payload', async () => {
+  await t.test('GET /api/health returns 200 and health status payload', async () => {
     const res = await request(app).get('/api/health');
 
     assert.equal(res.status, HTTP_STATUS.OK);
     assert.equal(res.body.success, true);
-    assert.equal(res.body.data.status, 'healthy');
+    assert.ok(res.body.data.status === 'healthy' || res.body.data.status === 'degraded');
     assert.equal(res.body.data.app, APP_INFO.NAME);
     assert.ok(res.body.data.timestamp);
     assert.ok(typeof res.body.data.uptime.seconds === 'number');
@@ -28,12 +28,14 @@ test('ProjectPilot Backend Integration Tests', async (t) => {
     assert.ok(res.body.data.endpoints.health);
   });
 
-  await t.test('GET /api/v1/health returns 200 and health metrics', async () => {
+  await t.test('GET /api/v1/health returns 200 and health metrics with database info', async () => {
     const res = await request(app).get('/api/v1/health');
 
     assert.equal(res.status, HTTP_STATUS.OK);
     assert.equal(res.body.success, true);
-    assert.equal(res.body.data.status, 'healthy');
+    assert.ok(res.body.data.status === 'healthy' || res.body.data.status === 'degraded');
+    assert.ok(res.body.data.database);
+    assert.equal(res.body.data.database.provider, 'postgresql');
     assert.ok(res.body.data.system.memory.heapUsedMb > 0);
   });
 
@@ -44,6 +46,16 @@ test('ProjectPilot Backend Integration Tests', async (t) => {
     assert.equal(res.body.success, true);
     assert.ok(res.body.data.nodeVersion);
     assert.ok(res.body.data.platform);
+  });
+
+  await t.test('GET /api/v1/health/db returns 200 and database health details', async () => {
+    const res = await request(app).get('/api/v1/health/db');
+
+    assert.equal(res.status, HTTP_STATUS.OK);
+    assert.equal(res.body.success, true);
+    assert.equal(res.body.data.provider, 'postgresql');
+    assert.ok(res.body.data.status === 'connected' || res.body.data.status === 'disconnected');
+    assert.ok(typeof res.body.data.latencyMs === 'number');
   });
 
   await t.test('GET /api/v1/non-existent-route returns structured 404 error JSON', async () => {

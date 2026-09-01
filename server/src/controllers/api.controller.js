@@ -10,16 +10,23 @@ export class ApiController {
   static getApiRoot(req, res) {
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
-      message: `${APP_INFO.NAME} Root`,
+      message: `${APP_INFO.NAME} API v1`,
       data: {
         name: APP_INFO.NAME,
-        version: APP_INFO.VERSION,
+        version: 'v1',
         description: APP_INFO.DESCRIPTION,
         status: 'active',
         environment: config.env,
         endpoints: {
+          auth: `${config.apiPrefix}/auth`,
           health: `${config.apiPrefix}/health`,
-          system: `${config.apiPrefix}/health/system`
+          databaseHealth: `${config.apiPrefix}/health/db`,
+          system: `${config.apiPrefix}/health/system`,
+          projects: `${config.apiPrefix}/projects`,
+          tickets: `${config.apiPrefix}/tickets`,
+          sprints: `${config.apiPrefix}/sprints`,
+          members: `${config.apiPrefix}/members`,
+          activities: `${config.apiPrefix}/activities`
         }
       }
     });

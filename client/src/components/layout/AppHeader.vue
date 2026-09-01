@@ -1,13 +1,19 @@
 <script setup>
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useUiStore } from '@/stores/ui.store';
+import { useAuthStore } from '@/stores/auth.store';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const route = useRoute();
-const { theme, isDark, toggleTheme } = useTheme();
+const router = useRouter();
+const { isDark, toggleTheme } = useTheme();
 const uiStore = useUiStore();
+const authStore = useAuthStore();
+
+const isProfileMenuOpen = ref(false);
+const profileMenuRef = ref(null);
 
 const pageTitle = computed(() => {
   return route.meta?.title || 'Dashboard';
@@ -27,6 +33,51 @@ const projectSection = computed(() => {
 
 const isMac = computed(() => {
   return typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+});
+
+const user = computed(() => authStore.user);
+const member = computed(() => authStore.currentMember);
+
+const userName = computed(() => member.value?.name || user.value?.email?.split('@')[0] || 'User');
+const userEmail = computed(() => user.value?.email || 'user@projectpilot.dev');
+const userRole = computed(() => user.value?.role || 'DEVELOPER');
+const userAvatar = computed(() => member.value?.avatar || userName.value.slice(0, 2).toUpperCase());
+const userRoleTitle = computed(() => member.value?.role || userRole.value);
+
+function toggleProfileMenu() {
+  isProfileMenuOpen.value = !isProfileMenuOpen.value;
+}
+
+function closeProfileMenu() {
+  isProfileMenuOpen.value = false;
+}
+
+async function handleLogout() {
+  closeProfileMenu();
+  await authStore.logout();
+  router.push('/login');
+}
+
+function handleDocumentClick(e) {
+  if (profileMenuRef.value && !profileMenuRef.value.contains(e.target)) {
+    closeProfileMenu();
+  }
+}
+
+function handleKeyDown(e) {
+  if (e.key === 'Escape' && isProfileMenuOpen.value) {
+    closeProfileMenu();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick);
+  document.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocumentClick);
+  document.removeEventListener('keydown', handleKeyDown);
 });
 </script>
 
@@ -91,7 +142,7 @@ const isMac = computed(() => {
         <AppIcon :name="isDark ? 'sun' : 'moon'" :size="17" />
       </button>
 
-      <!-- Notification Trigger Placeholder -->
+      <!-- Notification Trigger -->
       <button
         type="button"
         class="icon-action-btn notification-btn"
@@ -104,15 +155,58 @@ const isMac = computed(() => {
 
       <div class="header-divider" aria-hidden="true"></div>
 
-      <!-- User Profile Placeholder -->
-      <div class="user-profile-menu">
-        <div class="avatar-container" title="Alex Morgan (Lead Architect)">
-          <div class="avatar-circle">AM</div>
-          <span class="avatar-status-dot" aria-hidden="true"></span>
-        </div>
-        <div class="user-meta-hidden-sm">
-          <span class="user-name">Alex Morgan</span>
-          <span class="user-role">Architect</span>
+      <!-- Authenticated User Profile Menu -->
+      <div ref="profileMenuRef" class="profile-dropdown-wrapper">
+        <button
+          type="button"
+          class="user-profile-menu"
+          :aria-expanded="isProfileMenuOpen"
+          aria-haspopup="true"
+          @click="toggleProfileMenu"
+        >
+          <div class="avatar-container">
+            <div class="avatar-circle">{{ userAvatar }}</div>
+            <span class="avatar-status-dot" aria-hidden="true"></span>
+          </div>
+          <div class="user-meta-hidden-sm">
+            <span class="user-name">{{ userName }}</span>
+            <span class="user-role">{{ userRoleTitle }}</span>
+          </div>
+          <AppIcon name="chevron-down" :size="14" class="chevron-icon" />
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div v-if="isProfileMenuOpen" class="profile-dropdown-card">
+          <div class="dropdown-header">
+            <div class="dropdown-avatar">{{ userAvatar }}</div>
+            <div class="dropdown-user-details">
+              <span class="dropdown-user-name">{{ userName }}</span>
+              <span class="dropdown-user-email">{{ userEmail }}</span>
+              <span class="dropdown-role-badge" :class="userRole.toLowerCase()">
+                {{ userRole.replace('_', ' ') }}
+              </span>
+            </div>
+          </div>
+
+          <div class="dropdown-divider"></div>
+
+          <div class="dropdown-section">
+            <div class="dropdown-item-info">
+              <span class="info-label">Assigned Projects</span>
+              <span class="info-value">{{ user?.projectKeys?.join(', ') || 'All Workspace' }}</span>
+            </div>
+          </div>
+
+          <div class="dropdown-divider"></div>
+
+          <button
+            type="button"
+            class="dropdown-action-btn logout"
+            @click="handleLogout"
+          >
+            <AppIcon name="log-out" :size="15" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
     </div>
@@ -270,32 +364,40 @@ const isMac = computed(() => {
   margin: 0 var(--space-1);
 }
 
-/* Profile */
+/* Profile Dropdown */
+.profile-dropdown-wrapper {
+  position: relative;
+}
+
 .user-profile-menu {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color var(--transition-fast);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
 }
 
-.user-profile-menu:hover {
+.user-profile-menu:hover,
+.user-profile-menu[aria-expanded="true"] {
   background-color: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
 }
 
 .avatar-container {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
 }
 
 .avatar-circle {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
   color: #FFFFFF;
   font-size: 11px;
   font-weight: var(--font-weight-semibold);
@@ -310,8 +412,8 @@ const isMac = computed(() => {
   position: absolute;
   bottom: -1px;
   right: -1px;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background-color: var(--color-success-500);
   border: 1.5px solid var(--bg-surface);
@@ -321,6 +423,7 @@ const isMac = computed(() => {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
+  text-align: left;
 }
 
 .user-name {
@@ -332,6 +435,158 @@ const isMac = computed(() => {
 .user-role {
   font-size: 10px;
   color: var(--text-muted);
+}
+
+.chevron-icon {
+  color: var(--text-muted);
+}
+
+/* Dropdown Menu Card */
+.profile-dropdown-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1);
+}
+
+.dropdown-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dropdown-user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.dropdown-user-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-user-email {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-role-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: var(--font-weight-medium);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  text-transform: uppercase;
+  width: fit-content;
+  margin-top: 2px;
+}
+
+.dropdown-role-badge.admin {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--color-primary-400);
+}
+
+.dropdown-role-badge.developer {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success-500);
+}
+
+.dropdown-role-badge.project_manager {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning-500);
+}
+
+.dropdown-role-badge.viewer {
+  background-color: rgba(107, 114, 128, 0.15);
+  color: var(--text-muted);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-subtle);
+  margin: var(--space-1) 0;
+}
+
+.dropdown-section {
+  padding: var(--space-1);
+}
+
+.dropdown-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.info-value {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.dropdown-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.dropdown-action-btn:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.dropdown-action-btn.logout:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger-500);
 }
 
 /* Responsive adjustments */

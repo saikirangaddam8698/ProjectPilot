@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useActivityStore } from './activity.store';
+import { useActivityStore } from './activity.store.js';
+import { ticketsApi } from '../services/api/index.js';
 
 const INITIAL_TICKETS = [
   // PILOT Project Tickets
@@ -115,7 +116,7 @@ const INITIAL_TICKETS = [
     priority: 'High',
     assignee: { id: 'm-1', name: 'Alex Morgan', avatar: 'AM', role: 'Project Admin' },
     reporter: { id: 'm-1', name: 'Alex Morgan', avatar: 'AM' },
-    sprintId: null, // In Backlog
+    sprintId: null,
     sprint: 'Backlog',
     storyPoints: 5,
     rank: 600,
@@ -135,7 +136,7 @@ const INITIAL_TICKETS = [
     priority: 'Medium',
     assignee: { id: 'm-3', name: 'Samir Khan', avatar: 'SK', role: 'DevOps Engineer' },
     reporter: { id: 'm-2', name: 'Jane Doe', avatar: 'JD' },
-    sprintId: null, // In Backlog
+    sprintId: null,
     sprint: 'Backlog',
     storyPoints: 2,
     rank: 700,
@@ -155,7 +156,7 @@ const INITIAL_TICKETS = [
     priority: 'High',
     assignee: { id: 'm-5', name: 'David Kim', avatar: 'DK', role: 'AI / ML Engineer' },
     reporter: { id: 'm-1', name: 'Alex Morgan', avatar: 'AM' },
-    sprintId: 'sprint-pilot-25', // In Planned Sprint 25
+    sprintId: 'sprint-pilot-25',
     sprint: 'Sprint 25 — Security & Workspaces',
     storyPoints: 8,
     rank: 800,
@@ -217,7 +218,7 @@ const INITIAL_TICKETS = [
     priority: 'High',
     assignee: { id: 'm-2', name: 'Jane Doe', avatar: 'JD', role: 'Backend Engineer' },
     reporter: { id: 'm-3', name: 'Samir Khan', avatar: 'SK' },
-    sprintId: null, // Backlog
+    sprintId: null,
     sprint: 'Backlog',
     storyPoints: 8,
     rank: 300,
@@ -299,7 +300,7 @@ const INITIAL_TICKETS = [
     priority: 'Medium',
     assignee: { id: 'm-4', name: 'Elena Rostova', avatar: 'ER', role: 'Mobile Lead' },
     reporter: { id: 'm-4', name: 'Elena Rostova', avatar: 'ER' },
-    sprintId: null, // Backlog
+    sprintId: null,
     sprint: 'Backlog',
     storyPoints: 3,
     rank: 300,
@@ -335,6 +336,9 @@ export const useTicketStore = defineStore('ticket', () => {
   const activeTicketKey = ref(null);
   const isCreateModalOpen = ref(false);
   const createModalProjectKey = ref('PILOT');
+  const isLoading = ref(false);
+  const error = ref(null);
+  const isInitialized = ref(false);
 
   // Search & Filter state for views
   const searchQuery = ref('');
@@ -351,6 +355,24 @@ export const useTicketStore = defineStore('ticket', () => {
     if (!activeTicketKey.value) return null;
     return getTicketByKey(activeTicketKey.value);
   });
+
+  // Async API Actions
+  async function fetchTickets(params = {}) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const fetched = await ticketsApi.getAll(params);
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        tickets.value = fetched;
+      }
+      isInitialized.value = true;
+    } catch (err) {
+      console.warn('Could not load tickets from API, using cached data:', err.message);
+      error.value = err.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   function getTicketByKey(key) {
     if (!key) return null;
@@ -487,7 +509,7 @@ export const useTicketStore = defineStore('ticket', () => {
     return `${pKey}-${nextNum}`;
   }
 
-  function createTicket({
+  async function createTicket({
     projectKey,
     title,
     description,
@@ -509,7 +531,7 @@ export const useTicketStore = defineStore('ticket', () => {
       .filter((t) => t.projectKey === formattedProjectKey)
       .reduce((max, t) => Math.max(max, t.rank || 0), 0);
 
-    const newTicket = {
+    const fallbackTicket = {
       id: `t-${key.toLowerCase()}`,
       key,
       projectKey: formattedProjectKey,
@@ -530,7 +552,29 @@ export const useTicketStore = defineStore('ticket', () => {
       updatedAt: new Date().toISOString()
     };
 
-    tickets.value.unshift(newTicket);
+    let createdTicket = fallbackTicket;
+
+    try {
+      const result = await ticketsApi.create({
+        projectKey: formattedProjectKey,
+        title: title.trim(),
+        description,
+        type,
+        priority,
+        status,
+        assigneeId: assignee?.id,
+        reporterId: reporter?.id,
+        sprintId,
+        storyPoints: Number(storyPoints) || 0,
+        labels,
+        dueDate
+      });
+      if (result) createdTicket = result;
+    } catch (err) {
+      console.warn('API ticket creation failed, using optimistic state:', err.message);
+    }
+
+    tickets.value.unshift(createdTicket);
 
     // Record activity
     try {
@@ -540,34 +584,48 @@ export const useTicketStore = defineStore('ticket', () => {
         type: 'ticket',
         action: 'created',
         targetType: 'ticket',
-        targetId: newTicket.id,
-        targetKey: newTicket.key,
-        targetTitle: newTicket.title,
-        message: `created ${newTicket.type.toLowerCase()} ${newTicket.key} "${newTicket.title}"`,
-        metadata: { priority: newTicket.priority, points: newTicket.storyPoints }
+        targetId: createdTicket.id,
+        targetKey: createdTicket.key,
+        targetTitle: createdTicket.title,
+        message: `created ${createdTicket.type.toLowerCase()} ${createdTicket.key} "${createdTicket.title}"`,
+        metadata: { priority: createdTicket.priority, points: createdTicket.storyPoints }
       });
     } catch (e) {
       console.warn('Could not record activity:', e);
     }
 
-    return newTicket;
+    return createdTicket;
   }
 
-  function updateTicket(key, updates) {
+  async function updateTicket(key, updates) {
     const ticket = getTicketByKey(key);
     if (!ticket) return null;
 
     Object.assign(ticket, updates, { updatedAt: new Date().toISOString() });
+
+    try {
+      await ticketsApi.update(key, updates);
+    } catch (err) {
+      console.warn('API ticket update failed, applied locally:', err.message);
+    }
+
     return ticket;
   }
 
-  function updateTicketStatus(key, newStatus) {
+  async function updateTicketStatus(key, newStatus) {
     const ticket = getTicketByKey(key);
     if (!ticket) return null;
     const oldStatus = ticket.status;
 
     if (oldStatus !== newStatus) {
-      updateTicket(key, { status: newStatus });
+      ticket.status = newStatus;
+      ticket.updatedAt = new Date().toISOString();
+
+      try {
+        await ticketsApi.updateStatus(key, newStatus);
+      } catch (err) {
+        console.warn('API ticket status update failed, applied locally:', err.message);
+      }
 
       try {
         const activityStore = useActivityStore();
@@ -590,13 +648,20 @@ export const useTicketStore = defineStore('ticket', () => {
     return ticket;
   }
 
-  function updateTicketPriority(key, newPriority) {
+  async function updateTicketPriority(key, newPriority) {
     const ticket = getTicketByKey(key);
     if (!ticket) return null;
     const oldPriority = ticket.priority;
 
     if (oldPriority !== newPriority) {
-      updateTicket(key, { priority: newPriority });
+      ticket.priority = newPriority;
+      ticket.updatedAt = new Date().toISOString();
+
+      try {
+        await ticketsApi.updatePriority(key, newPriority);
+      } catch (err) {
+        console.warn('API ticket priority update failed, applied locally:', err.message);
+      }
 
       try {
         const activityStore = useActivityStore();
@@ -619,13 +684,20 @@ export const useTicketStore = defineStore('ticket', () => {
     return ticket;
   }
 
-  function updateTicketAssignee(key, assignee) {
+  async function updateTicketAssignee(key, assignee) {
     const ticket = getTicketByKey(key);
     if (!ticket) return null;
     const oldAssigneeName = ticket.assignee?.name || 'Unassigned';
     const newAssigneeName = assignee?.name || 'Unassigned';
 
-    updateTicket(key, { assignee });
+    ticket.assignee = assignee;
+    ticket.updatedAt = new Date().toISOString();
+
+    try {
+      await ticketsApi.updateAssignee(key, assignee?.id || null);
+    } catch (err) {
+      console.warn('API ticket assignee update failed, applied locally:', err.message);
+    }
 
     try {
       const activityStore = useActivityStore();
@@ -647,69 +719,78 @@ export const useTicketStore = defineStore('ticket', () => {
     return ticket;
   }
 
-  function assignTicketToSprint(ticketKey, sprintId, sprintName = null) {
+  async function assignTicketToSprint(ticketKey, sprintId, sprintName = null) {
     const ticket = getTicketByKey(ticketKey);
-    const updated = updateTicket(ticketKey, {
-      sprintId: sprintId || null,
-      sprint: sprintName || (sprintId ? 'Assigned Sprint' : 'Backlog')
-    });
+    if (!ticket) return null;
 
-    if (ticket) {
-      try {
-        const activityStore = useActivityStore();
-        activityStore.recordActivity({
-          projectKey: ticket.projectKey,
-          type: 'ticket',
-          action: 'sprint_moved',
-          targetType: 'ticket',
-          targetId: ticket.id,
-          targetKey: ticket.key,
-          targetTitle: ticket.title,
-          message: `assigned ${ticket.key} to ${sprintName || 'Sprint'}`,
-          metadata: { sprintId }
-        });
-      } catch (e) {
-        console.warn('Could not record activity:', e);
-      }
+    ticket.sprintId = sprintId || null;
+    ticket.sprint = sprintName || (sprintId ? 'Assigned Sprint' : 'Backlog');
+    ticket.updatedAt = new Date().toISOString();
+
+    try {
+      await ticketsApi.updateSprint(ticketKey, sprintId || null);
+    } catch (err) {
+      console.warn('API ticket sprint assignment failed, applied locally:', err.message);
     }
 
-    return updated;
+    try {
+      const activityStore = useActivityStore();
+      activityStore.recordActivity({
+        projectKey: ticket.projectKey,
+        type: 'ticket',
+        action: 'sprint_moved',
+        targetType: 'ticket',
+        targetId: ticket.id,
+        targetKey: ticket.key,
+        targetTitle: ticket.title,
+        message: `assigned ${ticket.key} to ${sprintName || 'Sprint'}`,
+        metadata: { sprintId }
+      });
+    } catch (e) {
+      console.warn('Could not record activity:', e);
+    }
+
+    return ticket;
   }
 
-  function removeTicketFromSprint(ticketKey) {
+  async function removeTicketFromSprint(ticketKey) {
     const ticket = getTicketByKey(ticketKey);
-    const updated = updateTicket(ticketKey, {
-      sprintId: null,
-      sprint: 'Backlog'
-    });
+    if (!ticket) return null;
 
-    if (ticket) {
-      try {
-        const activityStore = useActivityStore();
-        activityStore.recordActivity({
-          projectKey: ticket.projectKey,
-          type: 'ticket',
-          action: 'sprint_moved',
-          targetType: 'ticket',
-          targetId: ticket.id,
-          targetKey: ticket.key,
-          targetTitle: ticket.title,
-          message: `moved ${ticket.key} to Product Backlog`,
-          metadata: { sprintId: null }
-        });
-      } catch (e) {
-        console.warn('Could not record activity:', e);
-      }
+    ticket.sprintId = null;
+    ticket.sprint = 'Backlog';
+    ticket.updatedAt = new Date().toISOString();
+
+    try {
+      await ticketsApi.updateSprint(ticketKey, null);
+    } catch (err) {
+      console.warn('API ticket remove from sprint failed, applied locally:', err.message);
     }
 
-    return updated;
+    try {
+      const activityStore = useActivityStore();
+      activityStore.recordActivity({
+        projectKey: ticket.projectKey,
+        type: 'ticket',
+        action: 'sprint_moved',
+        targetType: 'ticket',
+        targetId: ticket.id,
+        targetKey: ticket.key,
+        targetTitle: ticket.title,
+        message: `moved ${ticket.key} to Product Backlog`,
+        metadata: { sprintId: null }
+      });
+    } catch (e) {
+      console.warn('Could not record activity:', e);
+    }
+
+    return ticket;
   }
 
   /**
    * Reassign all open tickets belonging to a member in a project.
-   * Used during member removal workflows to prevent orphan tickets.
    */
-  function reassignMemberTickets(projectKey, memberId, newAssignee = null) {
+  async function reassignMemberTickets(projectKey, memberId, newAssignee = null) {
     const fallbackAssignee = newAssignee || {
       id: 'unassigned',
       name: 'Unassigned',
@@ -729,25 +810,48 @@ export const useTicketStore = defineStore('ticket', () => {
       t.updatedAt = new Date().toISOString();
     });
 
+    try {
+      await ticketsApi.reassignMemberTickets({
+        projectKey,
+        memberId,
+        newAssigneeId: newAssignee?.id || null
+      });
+    } catch (err) {
+      console.warn('API reassign member tickets failed, applied locally:', err.message);
+    }
+
     return affectedTickets.length;
   }
 
-  function reorderBacklog(projectKey, orderedKeys) {
+  async function reorderBacklog(projectKey, orderedKeys) {
     orderedKeys.forEach((key, index) => {
       const ticket = getTicketByKey(key);
       if (ticket && ticket.projectKey.toUpperCase() === projectKey.toUpperCase()) {
         ticket.rank = (index + 1) * 100;
       }
     });
+
+    try {
+      await ticketsApi.reorderBacklog({ projectKey, orderedKeys });
+    } catch (err) {
+      console.warn('API reorder backlog failed, applied locally:', err.message);
+    }
   }
 
-  function deleteTicket(key) {
+  async function deleteTicket(key) {
     const idx = tickets.value.findIndex((t) => t.key.toUpperCase() === key.toUpperCase());
     if (idx !== -1) {
       tickets.value.splice(idx, 1);
       if (activeTicketKey.value === key) {
         activeTicketKey.value = null;
       }
+
+      try {
+        await ticketsApi.delete(key);
+      } catch (err) {
+        console.warn('API delete ticket failed, applied locally:', err.message);
+      }
+
       return true;
     }
     return false;
@@ -773,8 +877,12 @@ export const useTicketStore = defineStore('ticket', () => {
     typeFilter,
     assigneeFilter,
     sprintFilter,
+    isLoading,
+    error,
+    isInitialized,
     allTickets,
     activeTicket,
+    fetchTickets,
     getTicketByKey,
     getTicketsByProject,
     getTicketsByStatus,

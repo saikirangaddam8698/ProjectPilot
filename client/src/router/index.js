@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth.store';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 // Top-level lazy-loaded pages
+const LoginPage = () => import('@/pages/LoginPage.vue');
 const DashboardPage = () => import('@/pages/DashboardPage.vue');
 const ProjectsPage = () => import('@/pages/ProjectsPage.vue');
 const MyWorkPage = () => import('@/pages/MyWorkPage.vue');
@@ -25,6 +27,12 @@ const ProjectActivityPage = () => import('@/pages/projects/ProjectActivityPage.v
 const ProjectSectionPlaceholder = () => import('@/pages/projects/ProjectSectionPlaceholder.vue');
 
 const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginPage,
+    meta: { title: 'Sign In', isPublic: true }
+  },
   {
     path: '/',
     component: AppLayout,
@@ -175,6 +183,33 @@ const router = createRouter({
     }
     return { top: 0 };
   }
+});
+
+// Authentication Navigation Guard
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
+
+  // Check auth if not initialized yet
+  if (!authStore.isInitialized) {
+    await authStore.checkAuth();
+  }
+
+  const isPublicRoute = to.meta?.isPublic === true;
+
+  if (to.name === 'Login' && authStore.isAuthenticated) {
+    // Already logged in, redirect away from login
+    return next({ path: '/dashboard' });
+  }
+
+  if (!isPublicRoute && !authStore.isAuthenticated) {
+    // Unauthenticated user trying to access protected route
+    return next({
+      path: '/login',
+      query: { redirect: to.fullPath !== '/dashboard' ? to.fullPath : undefined }
+    });
+  }
+
+  next();
 });
 
 // Update document title dynamically based on route metadata and active project

@@ -1,17 +1,25 @@
 import app from './app.js';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
+import { connectDatabase, disconnectDatabase } from './db/prisma.js';
 
-const server = app.listen(config.port, () => {
+// Initialize HTTP server
+const server = app.listen(config.port, async () => {
   logger.info(`🚀 ProjectPilot Server running in ${config.env.toUpperCase()} mode`);
   logger.info(`📡 Listening on http://localhost:${config.port}`);
   logger.info(`🩺 Health check: http://localhost:${config.port}/api/health`);
   logger.info(`📋 API Root: http://localhost:${config.port}${config.apiPrefix}`);
+
+  // Test database connection on startup (non-fatal for dev flexibility)
+  await connectDatabase();
 });
 
 // Graceful Shutdown Handler
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   logger.warn(`⚠️ Received ${signal}. Starting graceful shutdown...`);
+
+  // Close Prisma connections
+  await disconnectDatabase();
 
   server.close(() => {
     logger.info('🔒 HTTP server closed gracefully. Exiting process.');

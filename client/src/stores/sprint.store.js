@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useTicketStore } from './ticket.store';
-import { useActivityStore } from './activity.store';
+import { useTicketStore } from './ticket.store.js';
+import { useActivityStore } from './activity.store.js';
+import { sprintsApi } from '../services/api/index.js';
 
 const INITIAL_SPRINTS = [
   // PILOT Sprints
@@ -101,12 +102,33 @@ export const useSprintStore = defineStore('sprint', () => {
   const createModalProjectKey = ref('PILOT');
   const editingSprint = ref(null);
   const completingSprintId = ref(null);
+  const isLoading = ref(false);
+  const error = ref(null);
+  const isInitialized = ref(false);
 
   const allSprints = computed(() => sprints.value);
 
+  // Async API Actions
+  async function fetchSprints(params = {}) {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const fetched = await sprintsApi.getAll(params);
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        sprints.value = fetched;
+      }
+      isInitialized.value = true;
+    } catch (err) {
+      console.warn('Could not load sprints from API, using cached data:', err.message);
+      error.value = err.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function getSprintsByProject(projectKey) {
     if (!projectKey || projectKey === 'all') return sprints.value;
-    return sprints.value.filter((s) => s.projectKey.toUpperCase() === projectKey.toUpperCase());
+    return sprints.value.filter((s) => s.projectKey?.toUpperCase() === projectKey.toUpperCase());
   }
 
   function getSprintById(id) {
@@ -183,7 +205,6 @@ export const useSprintStore = defineStore('sprint', () => {
       }
     }
 
-    // Days remaining calculation relative to fixed reference / current date
     const now = new Date();
     const end = new Date(sprint.endDate);
     const diffTime = end.getTime() - now.getTime();
@@ -221,7 +242,7 @@ export const useSprintStore = defineStore('sprint', () => {
     editingSprint.value = null;
   }
 
-  function createSprint({
+  async function createSprint({
     projectKey,
     name,
     goal,
@@ -233,7 +254,7 @@ export const useSprintStore = defineStore('sprint', () => {
     const existingForProject = getSprintsByProject(formattedKey);
     const id = `sprint-${formattedKey.toLowerCase()}-${existingForProject.length + 10}`;
 
-    const newSprint = {
+    const fallbackSprint = {
       id,
       projectKey: formattedKey,
       name: name.trim(),
@@ -245,6 +266,22 @@ export const useSprintStore = defineStore('sprint', () => {
       createdAt: new Date().toISOString(),
       completedAt: null
     };
+
+    let newSprint = fallbackSprint;
+
+    try {
+      const created = await sprintsApi.create({
+        projectKey: formattedKey,
+        name: name.trim(),
+        goal,
+        startDate,
+        endDate,
+        capacity: Number(capacity) || 30
+      });
+      if (created) newSprint = created;
+    } catch (err) {
+      console.warn('API create sprint failed, using local state:', err.message);
+    }
 
     sprints.value.push(newSprint);
 
@@ -268,19 +305,25 @@ export const useSprintStore = defineStore('sprint', () => {
     return newSprint;
   }
 
-  function updateSprint(sprintId, updates) {
+  async function updateSprint(sprintId, updates) {
     const sprint = getSprintById(sprintId);
     if (!sprint) return null;
 
     Object.assign(sprint, updates);
+
+    try {
+      await sprintsApi.update(sprintId, updates);
+    } catch (err) {
+      console.warn('API update sprint failed, applied locally:', err.message);
+    }
+
     return sprint;
   }
 
-  function startSprint(sprintId) {
+  async function startSprint(sprintId) {
     const sprint = getSprintById(sprintId);
     if (!sprint) return { success: false, error: 'Sprint not found' };
 
-    // Check if another sprint is currently active for this project
     const currentActive = getActiveSprint(sprint.projectKey);
     if (currentActive && currentActive.id !== sprintId) {
       return {
@@ -290,6 +333,12 @@ export const useSprintStore = defineStore('sprint', () => {
     }
 
     sprint.status = 'active';
+
+    try {
+      await sprintsApi.start(sprintId);
+    } catch (err) {
+      console.warn('API start sprint failed, applied locally:', err.message);
+    }
 
     try {
       const activityStore = useActivityStore();
@@ -311,7 +360,7 @@ export const useSprintStore = defineStore('sprint', () => {
     return { success: true, sprint };
   }
 
-  function completeSprint(sprintId, { moveIncompleteTo = 'backlog' } = {}) {
+  async function completeSprint(sprintId, { moveIncompleteTo = 'backlog' } = {}) {
     const sprint = getSprintById(sprintId);
     if (!sprint) return { success: false, error: 'Sprint not found' };
 
@@ -334,6 +383,12 @@ export const useSprintStore = defineStore('sprint', () => {
     sprint.completedAt = new Date().toISOString();
 
     try {
+      await sprintsApi.complete(sprintId, { moveIncompleteTo });
+    } catch (err) {
+      console.warn('API complete sprint failed, applied locally:', err.message);
+    }
+
+    try {
       const activityStore = useActivityStore();
       activityStore.recordActivity({
         projectKey: sprint.projectKey,
@@ -353,17 +408,23 @@ export const useSprintStore = defineStore('sprint', () => {
     return { success: true, sprint, movedTicketsCount: incompleteTickets.length };
   }
 
-  function deleteSprint(sprintId) {
+  async function deleteSprint(sprintId) {
     const idx = sprints.value.findIndex((s) => s.id === sprintId);
     if (idx !== -1) {
       const ticketStore = useTicketStore();
       const sprintTickets = ticketStore.allTickets.filter((t) => t.sprintId === sprintId);
-      // Move all tickets back to backlog
       sprintTickets.forEach((t) => {
         ticketStore.removeTicketFromSprint(t.key);
       });
 
       sprints.value.splice(idx, 1);
+
+      try {
+        await sprintsApi.delete(sprintId);
+      } catch (err) {
+        console.warn('API delete sprint failed, applied locally:', err.message);
+      }
+
       return true;
     }
     return false;
@@ -375,7 +436,11 @@ export const useSprintStore = defineStore('sprint', () => {
     createModalProjectKey,
     editingSprint,
     completingSprintId,
+    isLoading,
+    error,
+    isInitialized,
     allSprints,
+    fetchSprints,
     getSprintsByProject,
     getSprintById,
     getActiveSprint,

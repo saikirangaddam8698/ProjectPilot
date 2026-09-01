@@ -1,17 +1,26 @@
 import os from 'os';
 import { config } from '../config/index.js';
 import { APP_INFO } from '../utils/constants.js';
+import { DatabaseService } from './database.service.js';
 
 export class HealthService {
   /**
    * Compute comprehensive system and service health status
+   * @param {boolean} includeDb - whether to include database verification
    */
-  static getHealthStatus() {
+  static async getHealthStatus(includeDb = true) {
     const memoryUsage = process.memoryUsage();
     const uptimeSeconds = Math.floor(process.uptime());
 
+    let dbHealth = null;
+    if (includeDb) {
+      dbHealth = await DatabaseService.verifyHealth();
+    }
+
+    const overallStatus = dbHealth && dbHealth.status === 'disconnected' ? 'degraded' : 'healthy';
+
     return {
-      status: 'healthy',
+      status: overallStatus,
       app: APP_INFO.NAME,
       version: APP_INFO.VERSION,
       environment: config.env,
@@ -20,6 +29,7 @@ export class HealthService {
         seconds: uptimeSeconds,
         formatted: this.formatUptime(uptimeSeconds)
       },
+      ...(dbHealth ? { database: dbHealth } : {}),
       system: {
         nodeVersion: process.version,
         platform: process.platform,
@@ -33,6 +43,13 @@ export class HealthService {
         cpuLoad: os.loadavg()
       }
     };
+  }
+
+  /**
+   * Get database-specific health and diagnostics
+   */
+  static async getDatabaseHealth() {
+    return DatabaseService.verifyHealth();
   }
 
   /**

@@ -1,0 +1,20 @@
+/**
+ * Password Utility — Secure Password Hashing & Comparison using bcryptjs
+ */
+import bcrypt from 'bcryptjs';
+
+const SALT_ROUNDS = 10;
+
+export async function hashPassword(plainPassword) {
+  if (!plainPassword || typeof plainPassword !== 'string') {
+    throw new Error('Password must be a non-empty string');
+  }
+  return bcrypt.hash(plainPassword, SALT_ROUNDS);
+}
+
+export async function comparePassword(plainPassword, passwordHash) {
+  if (!plainPassword || !passwordHash) {
+    return false;
+  }
+  return bcrypt.compare(plainPassword, passwordHash);
+}
