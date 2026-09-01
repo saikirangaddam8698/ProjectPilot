@@ -234,6 +234,8 @@ function getProjectProgress(key) {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
 }
 
 .page-header {
@@ -242,6 +244,8 @@ function getProjectProgress(key) {
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
 }
 
 .page-title {
@@ -379,8 +383,10 @@ function getProjectProgress(key) {
 /* Grid */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
 }
 
 .project-card {
@@ -393,6 +399,8 @@ function getProjectProgress(key) {
   gap: var(--space-4);
   cursor: pointer;
   outline: none;
+  min-width: 0;
+  box-sizing: border-box;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 

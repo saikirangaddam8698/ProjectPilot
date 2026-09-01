@@ -306,13 +306,17 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
 }
 
 /* Metrics Grid */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
 }
 
 .metric-card {
@@ -323,6 +327,8 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
+  box-sizing: border-box;
   transition: border-color var(--transition-fast);
 }
 
@@ -338,6 +344,7 @@ function openCreateModal() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .metric-label {
@@ -399,6 +406,9 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sprint-card-header {
@@ -419,6 +429,7 @@ function openCreateModal() {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .sprint-icon-circle {
@@ -431,6 +442,7 @@ function openCreateModal() {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .sprint-title {
@@ -465,6 +477,7 @@ function openCreateModal() {
   justify-content: space-between;
   font-size: var(--text-xs);
   color: var(--text-secondary);
+  gap: var(--space-2);
 }
 
 .sprint-progress-bar {
@@ -484,8 +497,10 @@ function openCreateModal() {
 /* Two Column Layout */
 .overview-grid {
   display: grid;
-  grid-template-columns: 1.8fr 1.2fr;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
 }
 
 .overview-column-main,
@@ -493,6 +508,8 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  min-width: 0;
+  width: 100%;
 }
 
 .content-panel {
@@ -503,12 +520,16 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .panel-title {
@@ -521,6 +542,8 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
+  width: 100%;
 }
 
 .ticket-row {
@@ -533,6 +556,8 @@ function openCreateModal() {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   cursor: pointer;
+  min-width: 0;
+  box-sizing: border-box;
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -551,16 +576,19 @@ function openCreateModal() {
 .ticket-title {
   flex: 1;
   color: var(--text-primary);
+  min-width: 0;
 }
 
 .ticket-points {
   font-size: var(--text-xs);
+  flex-shrink: 0;
 }
 
 .ticket-assignee {
   font-size: var(--text-xs);
   width: 90px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .empty-substate {
@@ -573,6 +601,7 @@ function openCreateModal() {
 .ai-insight-card {
   border-color: rgba(139, 92, 246, 0.3);
   background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(99, 102, 241, 0.03) 100%);
+  min-width: 0;
 }
 
 .ai-header {
@@ -619,6 +648,7 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .activity-event {
@@ -626,6 +656,7 @@ function openCreateModal() {
   align-items: flex-start;
   gap: var(--space-3);
   font-size: var(--text-xs);
+  min-width: 0;
 }
 
 .activity-bullet {
@@ -641,6 +672,8 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .act-user {
@@ -655,7 +688,7 @@ function openCreateModal() {
   font-size: 10px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
   .overview-grid {
     grid-template-columns: 1fr;
   }

@@ -104,14 +104,16 @@ function isRouteActive(path) {
 <style scoped>
 .sidebar {
   width: var(--sidebar-width-expanded);
-  height: 100vh;
+  height: 100%;
+  max-height: 100vh;
   background-color: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   transition: width var(--transition-base);
   user-select: none;
   flex-shrink: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .sidebar.is-collapsed {
@@ -125,6 +127,7 @@ function isRouteActive(path) {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .brand-link {
@@ -183,6 +186,7 @@ function isRouteActive(path) {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-height: 0;
 }
 
 .nav-group {
@@ -269,6 +273,7 @@ function isRouteActive(path) {
 .sidebar-footer {
   padding: var(--space-2);
   border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .collapse-btn {

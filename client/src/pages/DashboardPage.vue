@@ -201,6 +201,8 @@ function openCreateTicketModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
 }
 
 .page-header {
@@ -209,6 +211,8 @@ function openCreateTicketModal() {
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
 }
 
 .page-title {
@@ -228,13 +232,16 @@ function openCreateTicketModal() {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
 }
 
 .stat-card {
@@ -245,6 +252,8 @@ function openCreateTicketModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
+  box-sizing: border-box;
   transition: border-color var(--transition-fast);
 }
 
@@ -256,6 +265,7 @@ function openCreateTicketModal() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .stat-label {
@@ -302,8 +312,10 @@ function openCreateTicketModal() {
 /* Panels Grid */
 .panels-grid {
   display: grid;
-  grid-template-columns: 2fr 1.2fr;
-  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
 }
 
 .content-panel {
@@ -312,6 +324,9 @@ function openCreateTicketModal() {
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-header {
@@ -320,6 +335,13 @@ function openCreateTicketModal() {
   justify-content: space-between;
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.panel-title-group {
+  min-width: 0;
 }
 
 .panel-title {
@@ -335,6 +357,8 @@ function openCreateTicketModal() {
 .sample-ticket-list {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
 }
 
 .ticket-row {
@@ -345,6 +369,8 @@ function openCreateTicketModal() {
   border-bottom: 1px solid var(--border-subtle);
   font-size: var(--text-sm);
   cursor: pointer;
+  min-width: 0;
+  box-sizing: border-box;
   transition: background-color var(--transition-fast);
 }
 
@@ -366,15 +392,18 @@ function openCreateTicketModal() {
 .ticket-title {
   flex: 1;
   color: var(--text-primary);
+  min-width: 0;
 }
 
 .ticket-assignee {
   font-size: var(--text-xs);
+  flex-shrink: 0;
 }
 
 /* AI Highlight Box */
 .ai-panel-highlight {
   border-color: rgba(139, 92, 246, 0.3);
+  min-width: 0;
 }
 
 .ai-badge-row {
@@ -389,6 +418,7 @@ function openCreateTicketModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .ai-insight-text {
@@ -410,9 +440,10 @@ function openCreateTicketModal() {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
   .panels-grid {
     grid-template-columns: 1fr;
   }

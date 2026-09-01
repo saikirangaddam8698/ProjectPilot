@@ -15,9 +15,11 @@ onMounted(() => {
 
 <style>
 #projectpilot-root {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-app);
+  overflow: hidden;
 }
 </style>

@@ -240,14 +240,24 @@ onUnmounted(() => {
 <style scoped>
 .app-layout-container {
   display: flex;
-  min-height: 100vh;
-  width: 100vw;
+  height: 100vh;
+  width: 100%;
+  max-width: 100%;
   background-color: var(--bg-app);
-  overflow-x: hidden;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .desktop-sidebar-wrapper {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  max-height: 100vh;
+  z-index: var(--z-sidebar, 40);
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  overflow: hidden;
 }
 
 .app-main-column {
@@ -255,7 +265,9 @@ onUnmounted(() => {
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .page-content-wrapper {
@@ -265,6 +277,10 @@ onUnmounted(() => {
   max-width: 1600px;
   width: 100%;
   margin: 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Mobile Nav inside Drawer */

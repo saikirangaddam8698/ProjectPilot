@@ -255,8 +255,10 @@ function getRoleBadgeVariant(role) {
 
 .members-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
 }
 
 .member-card {
@@ -269,6 +271,8 @@ function getRoleBadgeVariant(role) {
   border-radius: var(--radius-md);
   cursor: pointer;
   position: relative;
+  min-width: 0;
+  box-sizing: border-box;
   transition: all var(--transition-fast);
 }
 

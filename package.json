@@ -1,0 +1,16 @@
+{
+  "name": "projectpilot-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ProjectPilot - AI-powered Agile Management & Intelligence Platform",
+  "scripts": {
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "build:client": "npm run build --prefix client",
+    "test:server": "npm run test --prefix server",
+    "test": "npm run test:server"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -151,6 +151,8 @@ function getAvatarBgColor(key) {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  width: 100%;
+  min-width: 0;
 }
 
 .workspace-header-card {
@@ -160,6 +162,9 @@ function getAvatarBgColor(key) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .header-nav-top {
@@ -367,6 +372,8 @@ function getAvatarBgColor(key) {
 
 .workspace-body {
   margin-top: var(--space-2);
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
