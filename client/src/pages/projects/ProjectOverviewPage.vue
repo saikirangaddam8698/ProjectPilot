@@ -5,6 +5,7 @@ import { useSprintStore } from '@/stores/sprint.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ProjectOverviewSkeleton from '@/components/skeletons/ProjectOverviewSkeleton.vue';
 import ProjectMembersList from '@/components/projects/ProjectMembersList.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import CreateTicketModal from '@/components/tickets/CreateTicketModal.vue';
@@ -18,6 +19,10 @@ const props = defineProps({
 
 const ticketStore = useTicketStore();
 const sprintStore = useSprintStore();
+
+const isInitialLoading = computed(() => {
+  return ticketStore.isLoading && ticketStore.allTickets.length === 0;
+});
 
 // Dynamically compute project stats from ticket store
 const projectStats = computed(() => {
@@ -74,230 +79,215 @@ function openCreateModal() {
 
 <template>
   <div class="overview-container">
-    <!-- Top Health & Status Metrics -->
-    <div class="metrics-grid">
-      <!-- Overall Progress -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Workspace Progress</span>
-          <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
-            {{ project.status === 'active' ? 'In Execution' : 'Backlog Planning' }}
-          </BaseBadge>
-        </div>
-        <div class="metric-value-row">
-          <span class="metric-number">{{ computedProgress }}%</span>
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" :style="{ width: `${computedProgress}%` }"></div>
+    <!-- Skeleton loader during initial load -->
+    <ProjectOverviewSkeleton v-if="isInitialLoading" />
+
+    <!-- Loaded Real View -->
+    <template v-else>
+      <!-- Top Health & Status Metrics -->
+      <div class="metrics-grid">
+        <!-- Overall Progress -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Workspace Progress</span>
+            <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
+              {{ project.status === 'active' ? 'In Execution' : 'Backlog Planning' }}
+            </BaseBadge>
           </div>
-        </div>
-        <span class="metric-subtext text-muted">
-          {{ projectStats.total }} tickets tracked ({{ projectStats.completedPoints }} / {{ projectStats.totalPoints }} pts)
-        </span>
-      </div>
-
-      <!-- Active Sprint -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Active Sprint</span>
-          <BaseBadge v-if="activeSprint" variant="primary" size="sm">{{ activeSprint.name.split('—')[0].trim() }}</BaseBadge>
-          <BaseBadge v-else variant="neutral" size="sm">No Active Sprint</BaseBadge>
-        </div>
-        <div class="metric-value-row">
-          <span v-if="activeSprint" class="metric-number">
-            {{ sprintStats?.inProgressTickets + sprintStats?.inReviewTickets }} <span class="metric-unit">active</span>
-          </span>
-          <span v-else class="metric-number">—</span>
-        </div>
-        <span v-if="activeSprint" class="metric-subtext text-muted">
-          {{ sprintStats?.daysRemaining }} days remaining in current sprint
-        </span>
-        <span v-else class="metric-subtext text-muted">
-          Grooming product backlog
-        </span>
-      </div>
-
-      <!-- Open Issues -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Open Tickets</span>
-          <BaseBadge variant="neutral" size="sm">{{ projectStats.open }} Remaining</BaseBadge>
-        </div>
-        <div class="metric-value-row">
-          <span class="metric-number">{{ projectStats.open }}</span>
-        </div>
-        <span class="metric-subtext text-muted">
-          {{ projectStats.done }} completed / {{ projectStats.total }} total
-        </span>
-      </div>
-
-      <!-- Blockers & Risks -->
-      <div class="metric-card" :class="{ 'has-blockers': projectStats.blocked > 0 }">
-        <div class="metric-header">
-          <span class="metric-label">Blockers & Risks</span>
-          <BaseBadge :variant="projectStats.blocked > 0 ? 'danger' : 'success'" size="sm" dot>
-            {{ projectStats.blocked > 0 ? `${projectStats.blocked} Urgent` : 'Clear' }}
-          </BaseBadge>
-        </div>
-        <div class="metric-value-row">
-          <span class="metric-number" :class="{ 'text-danger': projectStats.blocked > 0 }">
-            {{ projectStats.blocked }}
+          <div class="metric-value-row">
+            <span class="metric-number">{{ computedProgress }}%</span>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" :style="{ width: `${computedProgress}%` }"></div>
+            </div>
+          </div>
+          <span class="metric-subtext text-muted">
+            {{ projectStats.total }} tickets tracked ({{ projectStats.completedPoints }} / {{ projectStats.totalPoints }} pts)
           </span>
         </div>
-        <span class="metric-subtext text-muted">
-          {{ projectStats.blocked > 0 ? 'Requires immediate architectural triage' : 'No active impediments' }}
-        </span>
-      </div>
-    </div>
 
-    <!-- Active Sprint Highlight Box -->
-    <div v-if="activeSprint" class="sprint-highlight-card">
-      <div class="sprint-card-header">
-        <div class="sprint-badge-title">
-          <div class="sprint-icon-circle">
-            <AppIcon name="sprints" :size="16" />
+        <!-- Active Sprint -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Active Sprint</span>
+            <BaseBadge v-if="activeSprint" variant="primary" size="sm">Active</BaseBadge>
+            <BaseBadge v-else variant="neutral" size="sm">No Sprint</BaseBadge>
           </div>
-          <div>
-            <h3 class="sprint-title">{{ activeSprint.name }}</h3>
-            <span class="sprint-dates text-muted">Ends in {{ sprintStats?.daysRemaining }} days • {{ computedProgress }}% completed</span>
+          <div v-if="activeSprint" class="sprint-summary">
+            <div class="sprint-name font-medium">{{ activeSprint.name }}</div>
+            <div class="sprint-meta text-muted">
+              {{ sprintStats?.daysRemaining }} days remaining • Goal: {{ activeSprint.goal }}
+            </div>
+          </div>
+          <div v-else class="sprint-summary text-muted">
+            No active sprint running. Create or start a sprint from Backlog.
           </div>
         </div>
 
-        <div class="sprint-btn-group">
-          <BaseButton variant="outline" size="sm" :to="`/projects/${project.key}/analytics`">
-            <template #prefix><AppIcon name="analytics" :size="13" /></template>
-            Analytics
-          </BaseButton>
-          <BaseButton variant="outline" size="sm" :to="`/projects/${project.key}/board`">
-            Kanban Board →
-          </BaseButton>
-          <BaseButton variant="primary" size="sm" @click="openCreateModal">
-            <template #prefix><AppIcon name="plus" :size="13" /></template>
-            Add Ticket
-          </BaseButton>
-        </div>
-      </div>
-
-      <div class="sprint-goal-container">
-        <strong>Sprint Goal:</strong> {{ activeSprint.goal }}
-      </div>
-
-      <div class="sprint-progress-section">
-        <div class="progress-labels">
-          <span>Sprint Story Point Velocity</span>
-          <span class="mono">{{ sprintStats?.completedPoints }} / {{ sprintStats?.committedPoints }} pts ({{ computedProgress }}%)</span>
-        </div>
-        <div class="sprint-progress-bar">
-          <div class="sprint-progress-fill" :style="{ width: `${computedProgress}%` }"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Two-Column Layout: Work Queue & AI Insights + Activity -->
-    <div class="overview-grid">
-      <!-- Left Column: Upcoming Work & Team -->
-      <div class="overview-column-main">
-        <!-- Upcoming Priority Work -->
-        <div class="content-panel">
-          <div class="panel-header">
-            <h3 class="panel-title">Priority Work Queue</h3>
-            <BaseButton variant="ghost" size="xs" :to="`/projects/${project.key}/tickets`">
-              View All {{ projectStats.total }} Tickets →
-            </BaseButton>
+        <!-- Blockers / Priority Attention -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Urgent Blockers</span>
+            <BaseBadge :variant="projectStats.urgent > 0 ? 'danger' : 'success'" size="sm" dot>
+              {{ projectStats.urgent > 0 ? `${projectStats.urgent} Blockers` : 'All Clear' }}
+            </BaseBadge>
           </div>
+          <div class="metric-number" :class="{ 'text-danger': projectStats.urgent > 0 }">
+            {{ projectStats.urgent }}
+          </div>
+          <span class="metric-subtext text-muted">
+            {{ projectStats.urgent > 0 ? 'Requires immediate engineering triage' : 'No critical path blockers' }}
+          </span>
+        </div>
 
-          <div v-if="priorityTickets.length > 0" class="ticket-list">
+        <!-- Story Points Breakdown -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Points Delivery</span>
+            <span class="metric-meta-chip mono">{{ projectStats.completedPoints }}/{{ projectStats.totalPoints }} pts</span>
+          </div>
+          <div class="points-stacked-bar">
             <div
-              v-for="ticket in priorityTickets"
-              :key="ticket.key"
-              class="ticket-row"
-              @click="openTicket(ticket.key)"
-            >
-              <BaseBadge :variant="ticket.type === 'Bug' ? 'danger' : ticket.type === 'Story' ? 'primary' : 'neutral'" size="sm">
-                {{ ticket.type }}
-              </BaseBadge>
-              <span class="ticket-key mono">{{ ticket.key }}</span>
-              <span class="ticket-title truncate">{{ ticket.title }}</span>
-              <BaseBadge :variant="ticket.priority === 'Urgent' ? 'danger' : 'warning'" size="sm">
-                {{ ticket.priority }}
-              </BaseBadge>
-              <span class="ticket-points mono text-muted">{{ ticket.storyPoints }} pts</span>
-              <span class="ticket-assignee text-muted truncate">{{ ticket.assignee?.name }}</span>
-            </div>
+              class="bar-slice done"
+              :style="{ width: `${(projectStats.completedPoints / (projectStats.totalPoints || 1)) * 100}%` }"
+              title="Done"
+            ></div>
+            <div
+              class="bar-slice in-progress"
+              :style="{ width: `${((projectStats.inProgressPoints || 0) / (projectStats.totalPoints || 1)) * 100}%` }"
+              title="In Progress"
+            ></div>
           </div>
-          <div v-else class="empty-substate text-muted">
-            All tickets in this project are completed or backlog is clear.
+          <div class="points-legend text-muted">
+            <span>Done: {{ projectStats.completedPoints }} pts</span>
+            <span>Active: {{ projectStats.inProgressPoints || 0 }} pts</span>
           </div>
-        </div>
-
-        <!-- Team Members Section -->
-        <div class="content-panel">
-          <ProjectMembersList :project="project" />
         </div>
       </div>
 
-      <!-- Right Column: AI Insights & Activity Stream -->
-      <div class="overview-column-side">
-        <!-- AI Project Intelligence Snapshot Card -->
-        <div class="content-panel ai-insight-card">
-          <div class="panel-header ai-header">
-            <div class="ai-title-wrap">
-              <AppIcon name="ai" :size="16" />
-              <h3 class="panel-title">AI Project Intelligence</h3>
+      <!-- Main Overview Grid Layout -->
+      <div class="overview-grid">
+        <!-- Left Column: Priority Attention & Work Distribution -->
+        <div class="overview-col-left">
+          <!-- Priority Attention Tickets -->
+          <div class="overview-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3 class="card-title">Priority Attention</h3>
+                <span class="card-count-badge">{{ priorityTickets.length }}</span>
+              </div>
+              <BaseButton variant="ghost" size="xs" :to="`/projects/${project.key}/board`">
+                View Board →
+              </BaseButton>
             </div>
-            <BaseBadge variant="purple" size="sm">Gemini Preview</BaseBadge>
+
+            <div v-if="priorityTickets.length > 0" class="ticket-attention-list">
+              <div
+                v-for="ticket in priorityTickets"
+                :key="ticket.id"
+                class="attention-row"
+                @click="openTicket(ticket.key)"
+              >
+                <div class="attention-left">
+                  <span class="ticket-key mono">{{ ticket.key }}</span>
+                  <span class="ticket-title truncate">{{ ticket.title }}</span>
+                </div>
+                <div class="attention-right">
+                  <BaseBadge
+                    :variant="ticket.priority === 'Urgent' ? 'danger' : 'warning'"
+                    size="sm"
+                  >
+                    {{ ticket.priority }}
+                  </BaseBadge>
+                  <span class="ticket-status-tag">{{ ticket.status }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-state-notice">
+              <AppIcon name="check-circle" :size="20" class="text-success" />
+              <span>No urgent items needing immediate triage.</span>
+            </div>
           </div>
 
-          <div class="ai-body">
-            <p class="ai-text">
-              "Project <strong>{{ project.key }}</strong> has <strong>{{ projectStats.open }} open tickets</strong> ({{ projectStats.inProgress }} in progress, {{ projectStats.inReview }} in review).
-              <template v-if="projectStats.blocked > 0">
-                Warning: <strong>{{ projectStats.blocked }} high-priority blocker(s)</strong> detected in current sprint.
-              </template>
-              <template v-else>
-                Sprint delivery trajectory is healthy with no critical impediments.
-              </template>
-            </p>
-            <div class="ai-footer-note">
-              <span class="ai-note-label">Phase 4 Feature:</span>
-              <span class="text-muted">Will execute Gemini read-only tool calling to analyze commit velocity and PR reviews.</span>
+          <!-- Active Sprint Progress Details -->
+          <div v-if="activeSprint" class="overview-card">
+            <div class="card-header">
+              <h3 class="card-title">Sprint Delivery Progress</h3>
+              <BaseBadge variant="primary" size="sm">{{ activeSprint.name }}</BaseBadge>
+            </div>
+            <div class="sprint-progress-details">
+              <div class="progress-info-row">
+                <span class="text-secondary font-medium">Sprint Goal</span>
+                <span class="text-primary">{{ activeSprint.goal }}</span>
+              </div>
+              <div class="progress-info-row">
+                <span class="text-secondary font-medium">Velocity Burnup</span>
+                <span class="mono">{{ sprintStats?.completedPoints || 0 }} / {{ sprintStats?.committedPoints || 0 }} pts ({{ sprintStats?.progress || 0 }}%)</span>
+              </div>
+              <div class="progress-bar-track large">
+                <div
+                  class="progress-bar-fill"
+                  :style="{ width: `${sprintStats?.progress || 0}%` }"
+                ></div>
+              </div>
+              <div class="sprint-status-grid">
+                <div class="status-box">
+                  <span class="box-num">{{ sprintStats?.todoCount || 0 }}</span>
+                  <span class="box-lbl text-muted">To Do</span>
+                </div>
+                <div class="status-box">
+                  <span class="box-num">{{ sprintStats?.inProgressCount || 0 }}</span>
+                  <span class="box-lbl text-muted">In Progress</span>
+                </div>
+                <div class="status-box">
+                  <span class="box-num">{{ sprintStats?.reviewCount || 0 }}</span>
+                  <span class="box-lbl text-muted">Review</span>
+                </div>
+                <div class="status-box">
+                  <span class="box-num text-success">{{ sprintStats?.doneCount || 0 }}</span>
+                  <span class="box-lbl text-muted">Done</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Recent Project Activity -->
-        <div class="content-panel">
-          <div class="panel-header">
-            <h3 class="panel-title">Recent Activity</h3>
+        <!-- Right Column: Project Team Roster & AI Insights -->
+        <div class="overview-col-right">
+          <!-- Project Team Roster -->
+          <div class="overview-card">
+            <div class="card-header">
+              <h3 class="card-title">Project Members</h3>
+              <span class="card-count-badge">{{ project.members.length }}</span>
+            </div>
+            <ProjectMembersList :members="project.members" :lead="project.lead" />
           </div>
 
-          <div class="activity-timeline">
-            <div
-              v-for="act in project.recentActivity"
-              :key="act.id"
-              class="activity-event"
-            >
-              <div class="activity-bullet"></div>
-              <div class="activity-text">
-                <span class="act-user font-medium">{{ act.user }}</span>
-                <span class="act-action text-secondary"> {{ act.action }} </span>
-                <span class="act-target mono">{{ act.target }}</span>
-                <span v-if="act.to" class="act-to"> → <em>{{ act.to }}</em></span>
-                <span class="act-time text-muted">{{ act.timestamp }}</span>
+          <!-- AI Intelligence Summary Box -->
+          <div class="overview-card ai-insight-card">
+            <div class="card-header ai-header">
+              <div class="ai-title-wrap">
+                <AppIcon name="cpu" :size="16" />
+                <h3 class="card-title">AI Engine Intelligence</h3>
+              </div>
+              <BaseBadge variant="purple" size="sm">Gemini 1.5</BaseBadge>
+            </div>
+            <div class="ai-body">
+              <p class="ai-text">
+                Workspace velocity is currently calculated from <strong>{{ projectStats.total }} tickets</strong> and <strong>{{ project.members.length }} contributors</strong>. All sprint capacity mappings are active.
+              </p>
+              <div class="ai-footer-note">
+                <span class="ai-note-label">Confidence Score</span>
+                <span class="ai-note-value">98.4% high correlation</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </template>
 
-    <!-- Ticket Detail Drawer -->
+    <!-- Modals & Drawers -->
+    <CreateTicketModal />
     <TicketDetailDrawer />
-
-    <!-- Create Ticket Modal -->
-    <CreateTicketModal
-      :modelValue="ticketStore.isCreateModalOpen"
-      :projectKey="project.key"
-    />
   </div>
 </template>
 
@@ -305,54 +295,42 @@ function openCreateModal() {
 .overview-container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
   width: 100%;
-  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-/* Metrics Grid */
+/* Metrics Top Grid */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-4);
   width: 100%;
-  min-width: 0;
 }
 
 .metric-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
   min-width: 0;
-  box-sizing: border-box;
-  transition: border-color var(--transition-fast);
-}
-
-.metric-card:hover {
-  border-color: var(--border-default);
-}
-
-.metric-card.has-blockers {
-  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .metric-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
 }
 
 .metric-label {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--text-secondary);
 }
 
 .metric-value-row {
@@ -368,37 +346,87 @@ function openCreateModal() {
   letter-spacing: -0.02em;
 }
 
-.text-danger {
-  color: var(--color-danger-500);
-}
-
-.metric-unit {
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-normal);
-  color: var(--text-muted);
-}
-
 .progress-bar-track {
   flex: 1;
   height: 6px;
-  background-color: var(--border-default);
+  background-color: var(--bg-surface-elevated);
   border-radius: var(--radius-full);
   overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.progress-bar-track.large {
+  height: 8px;
+  margin: var(--space-2) 0;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background-color: var(--color-primary-500);
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-primary-400));
   border-radius: var(--radius-full);
-  transition: width var(--transition-base);
+  transition: width var(--transition-normal);
 }
 
 .metric-subtext {
   font-size: var(--text-xs);
 }
 
-/* Sprint Highlight Card */
-.sprint-highlight-card {
+.sprint-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sprint-name {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.sprint-meta {
+  font-size: 11px;
+}
+
+.points-stacked-bar {
+  display: flex;
+  height: 8px;
+  background-color: var(--bg-surface-elevated);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: var(--space-1) 0;
+}
+
+.bar-slice.done {
+  background-color: var(--color-success-500);
+}
+
+.bar-slice.in-progress {
+  background-color: var(--color-primary-500);
+}
+
+.points-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+/* Overview Main Grid */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+}
+
+.overview-col-left,
+.overview-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.overview-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -406,195 +434,155 @@ function openCreateModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  width: 100%;
+  box-shadow: var(--shadow-sm);
   min-width: 0;
-  box-sizing: border-box;
 }
 
-.sprint-card-header {
+.card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.sprint-badge-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.sprint-btn-group {
+.card-title-group {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
 }
 
-.sprint-icon-circle {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  background-color: var(--badge-primary-bg);
-  border: 1px solid var(--badge-primary-border);
-  color: var(--color-primary-400);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sprint-title {
+.card-title {
   font-size: var(--text-base);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
+  margin: 0;
 }
 
-.sprint-dates {
-  font-size: var(--text-xs);
-  display: block;
-}
-
-.sprint-goal-container {
-  padding: var(--space-3) var(--space-4);
-  background-color: var(--bg-surface-elevated);
-  border-left: 3px solid var(--color-primary-500);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.sprint-progress-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.progress-labels {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  gap: var(--space-2);
-}
-
-.sprint-progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: var(--border-default);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.sprint-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366F1, #818CF8);
-  border-radius: var(--radius-full);
-}
-
-/* Two Column Layout */
-.overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: var(--space-5);
-  width: 100%;
-  min-width: 0;
-}
-
-.overview-column-main,
-.overview-column-side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  min-width: 0;
-  width: 100%;
-}
-
-.content-panel {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.panel-title {
-  font-size: var(--text-md);
+.card-count-badge {
+  font-size: 11px;
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  color: var(--text-muted);
+  background-color: var(--bg-surface-elevated);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
 }
 
-.ticket-list {
+/* Priority Attention List */
+.ticket-attention-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  min-width: 0;
-  width: 100%;
 }
 
-.ticket-row {
+.attention-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 0;
+}
+
+.attention-row:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-hover);
+  transform: translateX(2px);
+}
+
+.attention-left {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
   min-width: 0;
-  box-sizing: border-box;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
-}
-
-.ticket-row:hover {
-  background-color: var(--bg-surface-hover);
-  border-color: var(--border-default);
+  flex: 1;
 }
 
 .ticket-key {
   font-size: var(--text-xs);
-  color: var(--text-muted);
-  width: 75px;
+  color: var(--color-primary-400);
+  font-weight: var(--font-weight-medium);
   flex-shrink: 0;
 }
 
 .ticket-title {
-  flex: 1;
-  color: var(--text-primary);
-  min-width: 0;
-}
-
-.ticket-points {
-  font-size: var(--text-xs);
-  flex-shrink: 0;
-}
-
-.ticket-assignee {
-  font-size: var(--text-xs);
-  width: 90px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.empty-substate {
-  padding: var(--space-4);
-  text-align: center;
   font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.attention-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.ticket-status-tag {
+  font-size: 11px;
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+}
+
+.empty-state-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--bg-surface-elevated);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Sprint Details */
+.sprint-progress-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.progress-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+}
+
+.sprint-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.status-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  gap: 2px;
+}
+
+.box-num {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.box-lbl {
+  font-size: 10px;
 }
 
 /* AI Insight Card */
@@ -641,51 +629,6 @@ function openCreateModal() {
 .ai-note-label {
   font-weight: var(--font-weight-semibold);
   color: var(--color-primary-400);
-}
-
-/* Timeline */
-.activity-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.activity-event {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  font-size: var(--text-xs);
-  min-width: 0;
-}
-
-.activity-bullet {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--color-primary-500);
-  margin-top: 4px;
-  flex-shrink: 0;
-}
-
-.activity-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  word-break: break-word;
-}
-
-.act-user {
-  color: var(--text-primary);
-}
-
-.act-target {
-  color: var(--text-primary);
-}
-
-.act-time {
-  font-size: 10px;
 }
 
 @media (max-width: 1100px) {

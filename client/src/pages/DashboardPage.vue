@@ -6,12 +6,36 @@ import { useSprintStore } from '@/stores/sprint.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.vue';
+import KpiSkeleton from '@/components/skeletons/KpiSkeleton.vue';
+import TicketListSkeleton from '@/components/skeletons/TicketListSkeleton.vue';
 import CreateTicketModal from '@/components/tickets/CreateTicketModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
 const sprintStore = useSprintStore();
+
+const isInitialLoading = computed(() => {
+  return projectStore.isLoading && projectStore.allProjects.length === 0;
+});
+
+const isTicketsLoading = computed(() => {
+  return ticketStore.isLoading && ticketStore.allTickets.length === 0;
+});
+
+const hasServiceError = computed(() => {
+  return !!(projectStore.error || ticketStore.error || sprintStore.error);
+});
+
+const serviceErrorMessage = computed(() => {
+  return (
+    projectStore.error ||
+    ticketStore.error ||
+    sprintStore.error ||
+    'Database service unavailable. Please check your PostgreSQL connection.'
+  );
+});
 
 const totalProjects = computed(() => projectStore.allProjects.length);
 const activeProjects = computed(() => projectStore.allProjects.filter((p) => p.status === 'active'));
@@ -39,6 +63,12 @@ const totalBlockers = computed(() => {
 const pilotTickets = computed(() => {
   return ticketStore.getTicketsByProject('PILOT').slice(0, 5);
 });
+
+function handleRetry() {
+  projectStore.fetchProjects();
+  ticketStore.fetchTickets();
+  sprintStore.fetchSprints();
+}
 
 function openTicket(ticketKey) {
   ticketStore.openTicketDetail(ticketKey);
@@ -69,8 +99,16 @@ function openCreateTicketModal() {
       </div>
     </div>
 
-    <!-- Quick Stats Grid -->
-    <div class="stats-grid">
+    <!-- Service / Database Error Banner -->
+    <ServiceUnavailableBanner
+      v-if="hasServiceError && !isInitialLoading"
+      :message="serviceErrorMessage"
+      @retry="handleRetry"
+    />
+
+    <!-- Quick Stats Grid (Skeleton vs Loaded Data) -->
+    <KpiSkeleton v-if="isInitialLoading || isTicketsLoading" :count="4" />
+    <div v-else class="stats-grid">
       <div class="stat-card">
         <div class="stat-header">
           <span class="stat-label">Active Workspaces</span>
@@ -123,7 +161,14 @@ function openCreateTicketModal() {
     <!-- Main Content Panels -->
     <div class="panels-grid">
       <!-- Active Sprint Snapshot from PILOT Project -->
-      <div v-if="pilotProject" class="content-panel">
+      <div v-if="isTicketsLoading" class="content-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">Loading Workspace Sprints...</h3>
+        </div>
+        <TicketListSkeleton :rows="5" />
+      </div>
+
+      <div v-else-if="pilotProject" class="content-panel">
         <div class="panel-header">
           <div class="panel-title-group">
             <h3 class="panel-title">{{ pilotProject.name }} ({{ pilotProject.key }})</h3>
@@ -139,60 +184,82 @@ function openCreateTicketModal() {
         <div v-if="pilotTickets.length > 0" class="sample-ticket-list">
           <div
             v-for="ticket in pilotTickets"
-            :key="ticket.key"
-            class="ticket-row"
+            :key="ticket.id"
+            class="sample-ticket-row"
             @click="openTicket(ticket.key)"
           >
-            <BaseBadge :variant="ticket.type === 'Bug' ? 'danger' : ticket.type === 'Story' ? 'primary' : 'neutral'" size="sm">
-              {{ ticket.type }}
-            </BaseBadge>
-            <span class="ticket-key mono">{{ ticket.key }}</span>
-            <span class="ticket-title truncate">{{ ticket.title }}</span>
-            <BaseBadge :variant="ticket.status === 'Done' ? 'success' : ticket.status === 'In Progress' ? 'info' : 'neutral'" size="sm" dot>
-              {{ ticket.status }}
-            </BaseBadge>
-            <span class="ticket-assignee text-muted truncate">{{ ticket.assignee?.name }}</span>
+            <div class="ticket-row-main">
+              <span class="ticket-key mono">{{ ticket.key }}</span>
+              <span class="ticket-title font-medium">{{ ticket.title }}</span>
+            </div>
+            <div class="ticket-row-meta">
+              <BaseBadge
+                :variant="
+                  ticket.priority === 'Urgent'
+                    ? 'danger'
+                    : ticket.priority === 'High'
+                    ? 'warning'
+                    : 'neutral'
+                "
+                size="sm"
+              >
+                {{ ticket.priority }}
+              </BaseBadge>
+              <span class="ticket-status-pill">{{ ticket.status }}</span>
+            </div>
           </div>
+        </div>
+        <div v-else class="empty-state-panel">
+          <p class="text-muted">No tickets found in this workspace.</p>
         </div>
       </div>
 
-      <!-- AI Project Assistant Insight -->
-      <div class="content-panel ai-panel-highlight">
+      <!-- Quick Action / Intelligence Card -->
+      <div class="content-panel intelligence-panel">
         <div class="panel-header">
-          <div class="panel-title-group">
-            <div class="ai-badge-row">
-              <AppIcon name="ai" :size="16" />
-              <h3 class="panel-title">AI Copilot Snapshot</h3>
-            </div>
-            <span class="panel-meta text-muted">Autonomous Sprint Intelligence</span>
-          </div>
-          <BaseBadge variant="purple" size="sm">Preview</BaseBadge>
+          <h3 class="panel-title">AI Engine Intelligence</h3>
+          <BaseBadge variant="purple" size="sm">Active</BaseBadge>
         </div>
 
-        <div class="ai-summary-box">
-          <p class="ai-insight-text">
-            "ProjectPilot Core is tracking <strong>{{ allTickets.length }} total tickets</strong> across active workspaces.
-            <template v-if="totalBlockers > 0">
-              There are <strong>{{ totalBlockers }} urgent blockers</strong> currently active in development.
-            </template>
-            <template v-else>
-              Sprint delivery is on track.
-            </template>
-          </p>
-          <div class="ai-actions">
-            <BaseButton variant="secondary" size="xs" to="/ai">Ask AI Assistant</BaseButton>
-            <BaseButton variant="ghost" size="xs" :to="`/projects/${pilotProject?.key}/overview`">View Project</BaseButton>
+        <div class="ai-insight-box">
+          <div class="ai-insight-icon">
+            <AppIcon name="zap" :size="18" />
+          </div>
+          <div class="ai-insight-content">
+            <h4 class="ai-insight-title">Sprint Velocity Acceleration</h4>
+            <p class="ai-insight-text">
+              PILOT Sprint 1 is on pace for <strong>100% completion</strong>. No unassigned high-priority tickets detected.
+            </p>
+          </div>
+        </div>
+
+        <div class="quick-nav-links">
+          <h4 class="quick-nav-title">Quick Workspace Access</h4>
+          <div class="quick-nav-grid">
+            <router-link to="/projects/PILOT/board" class="quick-link-card">
+              <AppIcon name="board" :size="18" />
+              <span>PILOT Board</span>
+            </router-link>
+            <router-link to="/projects/INFRA/board" class="quick-link-card">
+              <AppIcon name="cpu" :size="18" />
+              <span>INFRA Board</span>
+            </router-link>
+            <router-link to="/projects/MOBILE/board" class="quick-link-card">
+              <AppIcon name="phone" :size="18" />
+              <span>MOBILE Board</span>
+            </router-link>
+            <router-link to="/team" class="quick-link-card">
+              <AppIcon name="users" :size="18" />
+              <span>Team Roster</span>
+            </router-link>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Ticket Detail Drawer & Create Ticket Modal -->
+    <!-- Modals and Drawers -->
+    <CreateTicketModal />
     <TicketDetailDrawer />
-    <CreateTicketModal
-      :modelValue="ticketStore.isCreateModalOpen"
-      :projectKey="'PILOT'"
-    />
   </div>
 </template>
 
@@ -201,18 +268,18 @@ function openCreateTicketModal() {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  padding: var(--space-6);
+  max-width: 1600px;
+  margin: 0 auto;
   width: 100%;
-  min-width: 0;
 }
 
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
-  width: 100%;
-  min-width: 0;
 }
 
 .page-title {
@@ -220,91 +287,76 @@ function openCreateTicketModal() {
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  margin: 0 0 var(--space-1) 0;
 }
 
 .page-subtitle {
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  margin-top: var(--space-1);
+  margin: 0;
 }
 
 .page-header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
-  width: 100%;
-  min-width: 0;
 }
 
 .stat-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  min-width: 0;
-  box-sizing: border-box;
-  transition: border-color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .stat-card:hover {
-  border-color: var(--border-default);
+  border-color: var(--border-strong);
 }
 
 .stat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
 }
 
 .stat-label {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--text-secondary);
 }
 
 .stat-value {
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
-  letter-spacing: -0.03em;
-}
-
-.text-danger {
-  color: var(--color-danger-500);
+  letter-spacing: -0.02em;
 }
 
 .stat-unit {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-normal);
   color: var(--text-muted);
 }
 
-.stat-meta {
+.stat-subtext,
+.stat-progress-text {
   font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
-.stat-ai-card {
-  border-color: rgba(99, 102, 241, 0.25);
-  background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(99, 102, 241, 0.03) 100%);
 }
 
 .ai-gradient-text {
-  background: linear-gradient(135deg, #818CF8, #C084FC);
+  background: linear-gradient(135deg, var(--color-primary-400), #a855f7);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -312,42 +364,34 @@ function openCreateTicketModal() {
 /* Panels Grid */
 .panels-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: var(--space-5);
-  width: 100%;
-  min-width: 0;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
 }
 
 .content-panel {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-sm);
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.panel-title-group {
-  min-width: 0;
 }
 
 .panel-title {
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
+  margin: 0;
 }
 
 .panel-meta {
@@ -357,94 +401,141 @@ function openCreateTicketModal() {
 .sample-ticket-list {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-width: 0;
+  gap: var(--space-2);
 }
 
-.ticket-row {
+.sample-ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sample-ticket-row:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+  transform: translateX(2px);
+}
+
+.ticket-row-main {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  min-width: 0;
-  box-sizing: border-box;
-  transition: background-color var(--transition-fast);
-}
-
-.ticket-row:last-child {
-  border-bottom: none;
-}
-
-.ticket-row:hover {
-  background-color: var(--bg-surface-hover);
 }
 
 .ticket-key {
   font-size: var(--text-xs);
-  color: var(--text-muted);
-  width: 70px;
-  flex-shrink: 0;
+  color: var(--color-primary-400);
+  font-weight: var(--font-weight-medium);
 }
 
 .ticket-title {
-  flex: 1;
+  font-size: var(--text-sm);
   color: var(--text-primary);
-  min-width: 0;
 }
 
-.ticket-assignee {
+.ticket-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ticket-status-pill {
   font-size: var(--text-xs);
+  color: var(--text-muted);
+  background-color: var(--bg-surface);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.empty-state-panel {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+/* AI Insight Box */
+.ai-insight-box {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.ai-insight-icon {
+  color: #a855f7;
   flex-shrink: 0;
 }
 
-/* AI Highlight Box */
-.ai-panel-highlight {
-  border-color: rgba(139, 92, 246, 0.3);
-  min-width: 0;
-}
-
-.ai-badge-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-primary-400);
-}
-
-.ai-summary-box {
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  min-width: 0;
+.ai-insight-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1) 0;
 }
 
 .ai-insight-text {
-  font-size: var(--text-sm);
-  line-height: var(--line-height-relaxed);
-  color: var(--text-secondary);
-}
-
-.ai-insight-text code {
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  background-color: var(--bg-surface-elevated);
-  padding: 2px 4px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
 }
 
-.ai-actions {
+/* Quick Nav Grid */
+.quick-nav-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: var(--space-4) 0 var(--space-3) 0;
+}
+
+.quick-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.quick-link-card {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  padding: var(--space-3);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
 }
 
-@media (max-width: 1100px) {
+.quick-link-card:hover {
+  color: var(--color-primary-400);
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+}
+
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .panels-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 }

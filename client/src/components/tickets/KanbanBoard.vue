@@ -4,6 +4,8 @@ import { useTicketStore } from '@/stores/ticket.store';
 import { useProjectStore } from '@/stores/project.store';
 import { useSprintStore } from '@/stores/sprint.store';
 import KanbanColumn from './KanbanColumn.vue';
+import KanbanBoardSkeleton from '@/components/skeletons/KanbanBoardSkeleton.vue';
+import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.vue';
 import TicketDetailDrawer from './TicketDetailDrawer.vue';
 import CreateTicketModal from './CreateTicketModal.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
@@ -29,6 +31,10 @@ const isCreateModalOpen = ref(false);
 const createPrefillStatus = ref('Todo');
 const selectedProjectScope = ref(props.projectKey || 'all');
 const toastMessage = ref('');
+
+const isInitialLoading = computed(() => {
+  return ticketStore.isLoading && ticketStore.allTickets.length === 0;
+});
 
 const COLUMNS = [
   { id: 'Backlog', title: 'Backlog' },
@@ -58,44 +64,54 @@ function getTicketsForColumn(statusId) {
   return currentTickets.value.filter((t) => t.status.toLowerCase() === statusId.toLowerCase());
 }
 
-function handleTicketClick(ticket) {
-  ticketStore.openTicketDetail(ticket.key);
+function handleTicketClick(ticketKey) {
+  ticketStore.openTicketDetail(ticketKey);
 }
 
-function handleTicketDrop({ status, ticketKey }) {
-  const updated = ticketStore.updateTicketStatus(ticketKey, status);
-  if (updated) {
-    toastMessage.value = `Moved ${ticketKey} to ${status}`;
-    setTimeout(() => {
-      toastMessage.value = '';
-    }, 2500);
-  }
-}
+function handleTicketDrop({ ticketId, newStatus }) {
+  const ticket = ticketStore.getTicketById(ticketId);
+  const oldStatus = ticket?.status;
+  if (!ticket || oldStatus === newStatus) return;
 
-function handleCreateInColumn(status) {
-  createPrefillStatus.value = status;
-  ticketStore.openCreateModal(props.projectKey || 'PILOT');
-}
+  // Safe status update
+  ticketStore.updateTicketStatus(ticketId, newStatus);
 
-function openCreateModal() {
-  ticketStore.openCreateModal(props.projectKey || 'PILOT');
-}
-
-function handleTicketCreated(newTicket) {
-  toastMessage.value = `Ticket ${newTicket.key} created!`;
+  // Micro feedback toast
+  toastMessage.value = `${ticket.key} moved to ${newStatus}`;
   setTimeout(() => {
     toastMessage.value = '';
   }, 3000);
+}
+
+function handleCreateInColumn(statusId) {
+  createPrefillStatus.value = statusId;
+  isCreateModalOpen.value = true;
+}
+
+function openCreateModal() {
+  createPrefillStatus.value = 'Todo';
+  isCreateModalOpen.value = true;
+}
+
+function handleRetry() {
+  ticketStore.fetchTickets();
 }
 </script>
 
 <template>
   <div class="kanban-board-container">
-    <!-- Toolbar: Search & Filters & New Ticket -->
+    <!-- Service Unavailable Error Banner -->
+    <ServiceUnavailableBanner
+      v-if="ticketStore.error && !isInitialLoading"
+      :message="ticketStore.error"
+      @retry="handleRetry"
+    />
+
+    <!-- Filter & Action Toolbar -->
     <div class="board-toolbar">
       <div class="toolbar-left">
-        <!-- Search -->
-        <div class="search-input-wrap">
+        <!-- Search Input -->
+        <div class="search-wrap">
           <BaseInput
             :modelValue="ticketStore.searchQuery"
             @update:modelValue="ticketStore.searchQuery = $event"
@@ -186,8 +202,11 @@ function handleTicketCreated(newTicket) {
       </div>
     </Transition>
 
+    <!-- Skeleton Loader for Initial Data Fetch -->
+    <KanbanBoardSkeleton v-if="isInitialLoading" />
+
     <!-- Kanban Columns Grid -->
-    <div class="kanban-columns-grid">
+    <div v-else class="kanban-columns-grid">
       <KanbanColumn
         v-for="col in COLUMNS"
         :key="col.id"
@@ -200,14 +219,13 @@ function handleTicketCreated(newTicket) {
       />
     </div>
 
-    <!-- Ticket Detail Side-Sheet Drawer -->
+    <!-- Modals and Drawers -->
     <TicketDetailDrawer />
-
-    <!-- Create Ticket Modal -->
     <CreateTicketModal
-      :modelValue="ticketStore.isCreateModalOpen"
-      :projectKey="projectKey"
-      @created="handleTicketCreated"
+      :isOpen="isCreateModalOpen"
+      :defaultProjectKey="activeScope || 'PILOT'"
+      :defaultStatus="createPrefillStatus"
+      @close="isCreateModalOpen = false"
     />
   </div>
 </template>
@@ -218,46 +236,38 @@ function handleTicketCreated(newTicket) {
   flex-direction: column;
   gap: var(--space-4);
   width: 100%;
+  height: 100%;
 }
 
+/* Toolbar */
 .board-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
   flex-wrap: wrap;
+  padding-bottom: var(--space-1);
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex-wrap: wrap;
   flex: 1;
 }
 
-.search-input-wrap {
-  max-width: 260px;
-  width: 100%;
-}
-
-.filter-select-wrap {
-  display: flex;
-  align-items: center;
+.search-wrap {
+  width: 240px;
 }
 
 .toolbar-select {
-  height: 30px;
-  background-color: var(--bg-surface-elevated);
+  height: 32px;
+  padding: 0 var(--space-3);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-family: var(--font-sans);
   font-size: var(--text-xs);
   outline: none;
   cursor: pointer;
@@ -265,87 +275,74 @@ function handleTicketCreated(newTicket) {
 }
 
 .toolbar-select:focus {
-  border-color: var(--border-focus);
+  border-color: var(--color-primary-500);
 }
 
 .clear-filters-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary-400);
   font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-decoration: underline;
   cursor: pointer;
-  transition: color var(--transition-fast);
+  padding: var(--space-1) var(--space-2);
 }
 
 .clear-filters-btn:hover {
-  color: var(--text-primary);
+  text-decoration: underline;
 }
 
-.toolbar-right {
-  display: flex;
-  align-items: center;
-}
-
+/* Toast */
 .board-toast {
   position: fixed;
-  top: calc(var(--header-height) + 20px);
-  right: 28px;
-  z-index: var(--z-toast);
-  display: inline-flex;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-modal);
+  display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
   background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-default);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.2), 0 4px 12px -2px rgba(0, 0, 0, 0.12);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
-  min-width: 260px;
-  max-width: 440px;
-  pointer-events: auto;
+  border: 1px solid var(--color-success-500);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .toast-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-full);
-  background-color: var(--badge-success-bg);
-  color: var(--badge-success-text);
-  flex-shrink: 0;
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success-500);
 }
 
 .toast-text {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  line-height: 1.4;
+  color: var(--text-primary);
 }
 
+/* Kanban Grid */
+.kanban-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(280px, 1fr));
+  gap: var(--space-4);
+  overflow-x: auto;
+  align-items: start;
+  padding-bottom: var(--space-4);
+}
+
+/* Toast Transition */
 .toast-enter-active,
 .toast-leave-active {
-  transition: opacity var(--transition-base), transform var(--transition-base);
+  transition: all var(--transition-normal);
 }
 
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(-10px) scale(0.95);
-}
-
-.kanban-columns-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(260px, 1fr));
-  gap: var(--space-4);
-  overflow-x: auto;
-  padding-bottom: var(--space-4);
-}
-
-@media (max-width: 1280px) {
-  .kanban-columns-grid {
-    grid-template-columns: repeat(5, 270px);
-  }
+  transform: translateY(16px);
 }
 </style>

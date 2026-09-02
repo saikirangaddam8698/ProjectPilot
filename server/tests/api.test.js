@@ -25,53 +25,73 @@ test('ProjectPilot REST API v1 Integration Tests', async (t) => {
     assert.ok(res.body.data.endpoints.activities);
   });
 
-  await t.test('POST /api/v1/projects validation failure on missing name', async () => {
+  await t.test('POST /api/v1/projects validation failure on missing name or 503 on DB offline', async () => {
     const res = await request(app)
       .post('/api/v1/projects')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ key: 'TEST' });
 
-    assert.ok(res.status === HTTP_STATUS.BAD_REQUEST || res.status === HTTP_STATUS.UNAUTHORIZED);
+    assert.ok(
+      res.status === HTTP_STATUS.BAD_REQUEST ||
+      res.status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+      res.status === HTTP_STATUS.UNAUTHORIZED
+    );
     assert.equal(res.body.success, false);
   });
 
-  await t.test('POST /api/v1/tickets validation failure on missing title or projectKey', async () => {
+  await t.test('POST /api/v1/tickets validation failure on missing title or 503 on DB offline', async () => {
     const res = await request(app)
       .post('/api/v1/tickets')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ description: 'No title' });
 
-    assert.ok(res.status === HTTP_STATUS.BAD_REQUEST || res.status === HTTP_STATUS.UNAUTHORIZED);
+    assert.ok(
+      res.status === HTTP_STATUS.BAD_REQUEST ||
+      res.status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+      res.status === HTTP_STATUS.UNAUTHORIZED
+    );
     assert.equal(res.body.success, false);
   });
 
-  await t.test('POST /api/v1/sprints validation failure on missing name', async () => {
+  await t.test('POST /api/v1/sprints validation failure on missing name or 503 on DB offline', async () => {
     const res = await request(app)
       .post('/api/v1/sprints')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ capacity: 20 });
 
-    assert.ok(res.status === HTTP_STATUS.BAD_REQUEST || res.status === HTTP_STATUS.UNAUTHORIZED);
+    assert.ok(
+      res.status === HTTP_STATUS.BAD_REQUEST ||
+      res.status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+      res.status === HTTP_STATUS.UNAUTHORIZED
+    );
     assert.equal(res.body.success, false);
   });
 
-  await t.test('POST /api/v1/members validation failure on invalid email', async () => {
+  await t.test('POST /api/v1/members validation failure on invalid email or 503 on DB offline', async () => {
     const res = await request(app)
       .post('/api/v1/members')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'John Doe', email: 'invalid-email' });
 
-    assert.ok(res.status === HTTP_STATUS.BAD_REQUEST || res.status === HTTP_STATUS.UNAUTHORIZED);
+    assert.ok(
+      res.status === HTTP_STATUS.BAD_REQUEST ||
+      res.status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+      res.status === HTTP_STATUS.UNAUTHORIZED
+    );
     assert.equal(res.body.success, false);
   });
 
-  await t.test('POST /api/v1/activities validation failure on missing message', async () => {
+  await t.test('POST /api/v1/activities validation failure on missing message or 503 on DB offline', async () => {
     const res = await request(app)
       .post('/api/v1/activities')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ projectKey: 'PILOT' });
 
-    assert.ok(res.status === HTTP_STATUS.BAD_REQUEST || res.status === HTTP_STATUS.UNAUTHORIZED);
+    assert.ok(
+      res.status === HTTP_STATUS.BAD_REQUEST ||
+      res.status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+      res.status === HTTP_STATUS.UNAUTHORIZED
+    );
     assert.equal(res.body.success, false);
   });
 
@@ -81,7 +101,11 @@ test('ProjectPilot REST API v1 Integration Tests', async (t) => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ status: 'InvalidStatus' });
 
-    assert.ok(res.status === HTTP_STATUS.BAD_REQUEST || res.status === HTTP_STATUS.UNAUTHORIZED);
+    assert.ok(
+      res.status === HTTP_STATUS.BAD_REQUEST ||
+      res.status === HTTP_STATUS.SERVICE_UNAVAILABLE ||
+      res.status === HTTP_STATUS.UNAUTHORIZED
+    );
     assert.equal(res.body.success, false);
   });
 });

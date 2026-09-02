@@ -58,13 +58,6 @@ export class SprintRepository {
       where: {
         projectId,
         status: 'ACTIVE'
-      },
-      include: {
-        tickets: {
-          include: {
-            assignee: true
-          }
-        }
       }
     });
   }
@@ -107,6 +100,7 @@ export class SprintRepository {
         completedAt: new Date()
       },
       include: {
+        project: true,
         tickets: true
       }
     });

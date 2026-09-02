@@ -7,6 +7,9 @@ import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import KpiMetricCard from '@/components/analytics/KpiMetricCard.vue';
+import KpiSkeleton from '@/components/skeletons/KpiSkeleton.vue';
+import MemberGridSkeleton from '@/components/skeletons/MemberGridSkeleton.vue';
+import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.vue';
 import MemberDetailDrawer from '@/components/team/MemberDetailDrawer.vue';
 import InviteMemberModal from '@/components/team/InviteMemberModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
@@ -23,6 +26,10 @@ const selectedMember = ref(null);
 const isMemberDrawerOpen = ref(false);
 const isInviteModalOpen = ref(false);
 const toastMessage = ref('');
+
+const isInitialLoading = computed(() => {
+  return projectStore.isLoading && projectStore.allWorkspaceMembers.length === 0;
+});
 
 // Aggregate all unique workspace members with live ticket data
 const teamMembers = computed(() => {
@@ -161,6 +168,13 @@ function resetFilters() {
       </div>
     </div>
 
+    <!-- Service Unavailable Error Banner -->
+    <ServiceUnavailableBanner
+      v-if="projectStore.error && !isInitialLoading"
+      :message="projectStore.error"
+      @retry="projectStore.fetchProjects()"
+    />
+
     <!-- Success Toast (Fixed Overlay) -->
     <Transition name="toast">
       <div v-if="toastMessage" class="team-toast-overlay">
@@ -169,8 +183,9 @@ function resetFilters() {
       </div>
     </Transition>
 
-    <!-- Top KPI Row -->
-    <div class="kpi-grid">
+    <!-- Top KPI Row (Skeleton vs Real) -->
+    <KpiSkeleton v-if="isInitialLoading" :count="4" />
+    <div v-else class="kpi-grid">
       <KpiMetricCard
         label="Total Members"
         :value="totalMembersCount"
@@ -274,8 +289,10 @@ function resetFilters() {
       </div>
     </div>
 
-    <!-- Members Table Card -->
-    <div class="team-table-card">
+    <!-- Skeleton vs Loaded Table Card -->
+    <MemberGridSkeleton v-if="isInitialLoading" :count="6" />
+
+    <div v-else class="team-table-card">
       <div v-if="filteredMembers.length === 0" class="empty-team-state text-muted">
         <AppIcon name="team" :size="28" />
         <h4 class="empty-title">No matching team members found</h4>

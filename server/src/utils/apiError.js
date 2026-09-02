@@ -58,4 +58,9 @@ export class ApiError extends Error {
   static internal(message = 'Internal Server Error', details = null) {
     return new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, message, ERROR_CODES.INTERNAL_SERVER_ERROR, details, false);
   }
+
+  static serviceUnavailable(message = 'Database service is currently unavailable. Please verify PostgreSQL is running.', details = null) {
+    return new ApiError(HTTP_STATUS.SERVICE_UNAVAILABLE, message, ERROR_CODES.SERVICE_UNAVAILABLE, details, true);
+  }
 }
+
