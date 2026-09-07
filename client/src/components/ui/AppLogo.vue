@@ -17,6 +17,13 @@ const props = defineProps({
   }
 });
 
+const isDemoMode = computed(() => {
+  if (import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'false') {
+    return false;
+  }
+  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true';
+});
+
 const logoDimensions = computed(() => {
   switch (props.size) {
     case 'sm':
@@ -62,7 +69,10 @@ const logoDimensions = computed(() => {
     </div>
 
     <div v-if="showText" class="logo-text-wrapper">
-      <span class="logo-title" :class="logoDimensions.titleClass">ProjectPilot</span>
+      <div class="title-row">
+        <span class="logo-title" :class="logoDimensions.titleClass">ProjectPilot</span>
+        <span v-if="isDemoMode" class="demo-badge" title="Running in Demo Environment Mode">DEMO</span>
+      </div>
       <span v-if="showTagline" class="logo-tagline">AI-Powered Project Intelligence & Agile Workspace</span>
     </div>
   </div>
@@ -104,11 +114,36 @@ const logoDimensions = computed(() => {
   text-align: left;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .logo-title {
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   letter-spacing: -0.025em;
   font-family: var(--font-sans);
+}
+
+.demo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-xs);
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning-500);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .title-sm {

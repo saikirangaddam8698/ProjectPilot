@@ -8,7 +8,7 @@ import AppHeader from './AppHeader.vue';
 import BaseDrawer from '@/components/ui/BaseDrawer.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
-import BaseBadge from '@/components/ui/BaseBadge.vue';
+import TicketDetailModal from '@/components/tickets/TicketDetailModal.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { NAVIGATION_GROUPS } from '@/utils/navigation';
 import { useRouter } from 'vue-router';
@@ -234,6 +234,9 @@ onUnmounted(() => {
         </div>
       </div>
     </BaseModal>
+
+    <!-- Global Jira-Style Ticket Detail Modal -->
+    <TicketDetailModal />
   </div>
 </template>
 

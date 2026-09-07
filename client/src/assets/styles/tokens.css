@@ -112,9 +112,9 @@
   --bg-surface-subtle: rgba(255, 255, 255, 0.03);
 
   /* Borders */
-  --border-subtle: #1F242D;
-  --border-default: #2A313D;
-  --border-strong: #3A4353;
+  --border-subtle: #252d38;
+  --border-default: #344054;
+  --border-strong: #485870;
   --border-focus: #6366F1;
 
   /* Text & Content */
