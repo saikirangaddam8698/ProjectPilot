@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -12,7 +12,15 @@ import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 const props = defineProps({
   project: {
     type: Object,
-    required: true
+    default: () => ({})
+  },
+  members: {
+    type: Array,
+    default: null
+  },
+  lead: {
+    type: Object,
+    default: null
   },
   showAddButton: {
     type: Boolean,
@@ -22,6 +30,13 @@ const props = defineProps({
 
 const ticketStore = useTicketStore();
 
+const effectiveProjectKey = computed(() => props.project?.key || '');
+const effectiveMembers = computed(() => {
+  if (Array.isArray(props.members)) return props.members;
+  if (Array.isArray(props.project?.members)) return props.project.members;
+  return [];
+});
+
 const isAddModalOpen = ref(false);
 const isRemoveModalOpen = ref(false);
 const isDetailDrawerOpen = ref(false);
@@ -29,9 +44,10 @@ const selectedMember = ref(null);
 const toastMessage = ref('');
 
 function getMemberOpenTickets(memberId, memberName) {
+  if (!effectiveProjectKey.value) return [];
   return ticketStore.allTickets.filter(
     (t) =>
-      t.projectKey.toUpperCase() === props.project.key.toUpperCase() &&
+      t.projectKey?.toUpperCase() === effectiveProjectKey.value.toUpperCase() &&
       (t.assignee?.id === memberId || t.assignee?.name === memberName) &&
       t.status !== 'Done'
   );
@@ -85,12 +101,12 @@ function getRoleBadgeVariant(role) {
   <div class="members-component">
     <div class="members-header">
       <div class="header-left">
-        <h4 class="members-title">Team Members ({{ project.members.length }})</h4>
+        <h4 class="members-title">Team Members ({{ effectiveMembers.length }})</h4>
         <span class="text-muted members-subtext">Assigned developers, reviewers, and project leads</span>
       </div>
 
       <BaseButton
-        v-if="showAddButton"
+        v-if="showAddButton && effectiveProjectKey"
         variant="outline"
         size="xs"
         @click="isAddModalOpen = true"
@@ -110,7 +126,7 @@ function getRoleBadgeVariant(role) {
 
     <div class="members-grid">
       <div
-        v-for="member in project.members"
+        v-for="member in effectiveMembers"
         :key="member.id"
         class="member-card"
         @click="openMemberDetail(member)"
@@ -163,9 +179,10 @@ function getRoleBadgeVariant(role) {
 
     <!-- Add Member Modal -->
     <AddMemberModal
+      v-if="effectiveProjectKey"
       :modelValue="isAddModalOpen"
       @update:modelValue="isAddModalOpen = $event"
-      :projectKey="project.key"
+      :projectKey="effectiveProjectKey"
       @added="handleMemberAdded"
     />
 
@@ -174,7 +191,7 @@ function getRoleBadgeVariant(role) {
       :modelValue="isDetailDrawerOpen"
       @update:modelValue="isDetailDrawerOpen = $event"
       :member="selectedMember"
-      :projectKey="project.key"
+      :projectKey="effectiveProjectKey"
       @remove="openRemoveModal"
       @close="isDetailDrawerOpen = false"
     />
@@ -184,7 +201,7 @@ function getRoleBadgeVariant(role) {
       :modelValue="isRemoveModalOpen"
       @update:modelValue="isRemoveModalOpen = $event"
       :member="selectedMember"
-      :projectKey="project.key"
+      :projectKey="effectiveProjectKey"
       @removed="handleMemberRemoved"
       @close="isRemoveModalOpen = false"
     />

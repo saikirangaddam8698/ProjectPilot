@@ -515,6 +515,8 @@ export const useProjectStore = defineStore('project', () => {
     fetchProjects,
     getProjectByKey,
     setActiveProjectKey,
+    setCurrentProject: setActiveProjectKey,
+    currentProjectKey: activeProjectKey,
     createProject,
     addMemberToProject,
     removeMemberFromProject,

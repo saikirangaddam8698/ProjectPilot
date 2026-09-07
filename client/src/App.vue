@@ -9,6 +9,7 @@ import { useActivityStore } from '@/stores/activity.store';
 
 import { useUiStore } from '@/stores/ui.store';
 import SessionExpiredModal from '@/components/ui/SessionExpiredModal.vue';
+import AccessDeniedModal from '@/components/ui/AccessDeniedModal.vue';
 
 const authStore = useAuthStore();
 const uiStore = useUiStore();
@@ -57,6 +58,7 @@ onMounted(async () => {
     </div>
     <RouterView />
     <SessionExpiredModal />
+    <AccessDeniedModal />
   </div>
 </template>
 

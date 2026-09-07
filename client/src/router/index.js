@@ -113,7 +113,7 @@ const routes = [
             path: 'settings',
             name: 'ProjectSettings',
             component: ProjectSectionPlaceholder,
-            meta: { title: 'Project Settings', section: 'Settings' }
+            meta: { title: 'Project Settings', section: 'Settings', roles: ['ADMIN', 'PROJECT_MANAGER'] }
           }
         ]
       },
@@ -163,7 +163,7 @@ const routes = [
         path: 'settings',
         name: 'Settings',
         component: SettingsPage,
-        meta: { title: 'Settings' }
+        meta: { title: 'Settings', roles: ['ADMIN'] }
       }
     ]
   },
@@ -192,8 +192,8 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
   const uiStore = useUiStore();
 
-  // Trigger minimum 1-second page skeleton loading state for smooth platform consistency
-  uiStore.triggerPageLoading(1000);
+  // Set navigation state
+  uiStore.setNavigating(true);
 
   // Check auth if not initialized yet
   if (!authStore.isInitialized) {
@@ -213,6 +213,25 @@ router.beforeEach(async (to, from, next) => {
       path: '/login',
       query: { redirect: to.fullPath !== '/dashboard' ? to.fullPath : undefined }
     });
+  }
+
+  // RBAC Route Permission Check
+  if (to.meta?.roles && Array.isArray(to.meta.roles)) {
+    const userRole = authStore.globalRole || 'VIEWER';
+    if (!to.meta.roles.includes(userRole)) {
+      uiStore.setNavigating(false);
+      authStore.showAccessDenied({
+        title: 'Page Access Restricted',
+        message: `You are not authorized to access ${to.meta.title || 'this page'}. Your current role (${userRole}) does not have sufficient permissions.`,
+        requiredRole: to.meta.roles.join(' or '),
+        action: `Navigate to ${to.path}`
+      });
+
+      if (from.name && from.path !== to.path) {
+        return next(false);
+      }
+      return next({ path: '/dashboard' });
+    }
   }
 
   next();

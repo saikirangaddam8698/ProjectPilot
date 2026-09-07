@@ -12,16 +12,19 @@ defineProps({
 <template>
   <div class="project-grid-skeleton" aria-label="Loading projects" aria-busy="true">
     <div v-for="i in count" :key="i" class="project-card-skeleton">
-      <!-- Header -->
+      <!-- Topbar: Avatar + Key + Status -->
       <div class="card-head-skeleton">
         <div class="project-badge-skeleton">
           <BaseSkeleton width="36px" height="36px" rounded="md" />
-          <div class="title-meta-skeleton">
-            <BaseSkeleton width="140px" height="18px" rounded="sm" />
-            <BaseSkeleton width="60px" height="12px" rounded="xs" />
-          </div>
+          <BaseSkeleton width="48px" height="20px" rounded="xs" />
         </div>
-        <BaseSkeleton width="50px" height="20px" rounded="full" />
+        <BaseSkeleton width="56px" height="22px" rounded="full" />
+      </div>
+
+      <!-- Title & Lead -->
+      <div class="identity-skeleton">
+        <BaseSkeleton width="180px" height="22px" rounded="sm" />
+        <BaseSkeleton width="110px" height="13px" rounded="xs" />
       </div>
 
       <!-- Description lines -->
@@ -30,23 +33,16 @@ defineProps({
         <BaseSkeleton width="85%" height="13px" rounded="xs" />
       </div>
 
-      <!-- Health Meter -->
-      <div class="health-skeleton">
-        <div class="health-meta-skeleton">
-          <BaseSkeleton width="80px" height="12px" rounded="xs" />
-          <BaseSkeleton width="36px" height="12px" rounded="xs" />
-        </div>
-        <BaseSkeleton width="100%" height="6px" rounded="full" />
+      <!-- Sprint Banner -->
+      <div class="sprint-skeleton">
+        <BaseSkeleton width="100%" height="32px" rounded="md" />
       </div>
 
-      <!-- Footer Stats & Avatars -->
+      <!-- Footer Stats -->
       <div class="card-foot-skeleton">
-        <div class="avatars-skeleton">
-          <BaseSkeleton width="24px" height="24px" rounded="full" />
-          <BaseSkeleton width="24px" height="24px" rounded="full" style="margin-left: -6px;" />
-          <BaseSkeleton width="24px" height="24px" rounded="full" style="margin-left: -6px;" />
-        </div>
-        <BaseSkeleton width="90px" height="14px" rounded="xs" />
+        <BaseSkeleton width="60px" height="24px" rounded="xs" />
+        <BaseSkeleton width="60px" height="24px" rounded="xs" />
+        <BaseSkeleton width="60px" height="24px" rounded="xs" />
       </div>
     </div>
   </div>
@@ -55,8 +51,8 @@ defineProps({
 <style scoped>
 .project-grid-skeleton {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--space-6);
   width: 100%;
 }
 
@@ -64,12 +60,49 @@ defineProps({
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   box-shadow: var(--shadow-sm);
-  min-height: 220px;
+  min-height: 240px;
+}
+
+.card-head-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-badge-skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.identity-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card-body-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sprint-skeleton {
+  width: 100%;
+}
+
+.card-foot-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: auto;
 }
 
 .card-head-skeleton {

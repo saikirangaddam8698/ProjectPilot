@@ -259,7 +259,7 @@ function openCreateModal() {
               <h3 class="card-title">Project Members</h3>
               <span class="card-count-badge">{{ project.members.length }}</span>
             </div>
-            <ProjectMembersList :members="project.members" :lead="project.lead" />
+            <ProjectMembersList :project="project" />
           </div>
 
           <!-- AI Intelligence Summary Box -->

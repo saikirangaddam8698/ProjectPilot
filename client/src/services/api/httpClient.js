@@ -65,6 +65,21 @@ async function request(endpoint, { method = 'GET', body = null, params = null, h
         }
       }
 
+      // Notify application if access is denied / restricted (403 Forbidden)
+      if (response.status === 403) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('projectpilot:access-denied', {
+            detail: {
+              title: 'Access Restricted',
+              message: errorMessage || 'You are not authorized to perform this operation.',
+              endpoint,
+              action: errorObj.action || endpoint,
+              requiredRole: errorObj.requiredRole || null
+            }
+          }));
+        }
+      }
+
       throw new ApiClientError(errorMessage, {
         code: errorObj.code || 'HTTP_ERROR',
         status: response.status,

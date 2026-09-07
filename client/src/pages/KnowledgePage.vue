@@ -64,7 +64,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => projectStore.currentProjectKey,
+  () => projectStore.activeProjectKey,
   (newKey) => {
     if (newKey && newKey !== knowledgeStore.selectedProjectKey) {
       knowledgeStore.setSelectedProject(newKey);
@@ -75,7 +75,7 @@ watch(
 function handleProjectChange(e) {
   const newKey = e.target.value;
   knowledgeStore.setSelectedProject(newKey);
-  projectStore.setCurrentProject(newKey);
+  projectStore.setActiveProjectKey(newKey);
 }
 
 // Semantic Search handling

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useProjectStore } from '@/stores/project.store';
 import { useTicketStore } from '@/stores/ticket.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
@@ -16,6 +17,7 @@ import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
+const authStore = useAuthStore();
 
 const searchQuery = ref('');
 const roleFilter = ref('all');
@@ -26,6 +28,19 @@ const selectedMember = ref(null);
 const isMemberDrawerOpen = ref(false);
 const isInviteModalOpen = ref(false);
 const toastMessage = ref('');
+
+function handleInviteClick() {
+  if (!authStore.canManageWorkspaceMembers) {
+    authStore.showAccessDenied({
+      title: 'Operation Restricted',
+      message: 'You are not authorized to invite new contributors. Only Workspace Admins can invite team members.',
+      requiredRole: 'ADMIN',
+      action: 'Invite Workspace Member'
+    });
+    return;
+  }
+  isInviteModalOpen.value = true;
+}
 
 const isInitialLoading = computed(() => {
   return projectStore.isLoading && projectStore.allWorkspaceMembers.length === 0;
@@ -161,7 +176,7 @@ function resetFilters() {
       </div>
 
       <div class="page-actions">
-        <BaseButton variant="primary" size="md" @click="isInviteModalOpen = true">
+        <BaseButton variant="primary" size="md" @click="handleInviteClick">
           <template #prefix><AppIcon name="plus" :size="14" /></template>
           Invite Member
         </BaseButton>

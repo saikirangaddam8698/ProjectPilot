@@ -9,6 +9,15 @@ export const useAuthStore = defineStore('auth', () => {
   const isInitialized = ref(false);
 
   const showSessionExpiredModal = ref(false);
+  const showAccessDeniedModal = ref(false);
+  const accessDeniedInfo = ref({
+    title: 'Access Restricted',
+    message: 'You are not authorized to perform this operation.',
+    reason: '',
+    requiredRole: '',
+    action: ''
+  });
+
   const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour (3600000 ms)
   let sessionTimeoutTimer = null;
 
@@ -37,12 +46,46 @@ export const useAuthStore = defineStore('auth', () => {
     showSessionExpiredModal.value = false;
   }
 
-  // Listen to 401 Unauthorized events from httpClient
+  function showAccessDenied({
+    title = 'Access Restricted',
+    message = 'You are not authorized to perform this operation.',
+    reason = '',
+    requiredRole = '',
+    action = ''
+  } = {}) {
+    accessDeniedInfo.value = {
+      title,
+      message,
+      reason,
+      requiredRole,
+      action
+    };
+    showAccessDeniedModal.value = true;
+  }
+
+  function dismissAccessDeniedModal() {
+    showAccessDeniedModal.value = false;
+  }
+
+  // Global browser event listeners
   if (typeof window !== 'undefined') {
+    // 401 Unauthorized
     window.addEventListener('projectpilot:session-expired', (e) => {
       if (user.value) {
         handleSessionExpired(e?.detail?.message);
       }
+    });
+
+    // 403 Forbidden / Access Restricted
+    window.addEventListener('projectpilot:access-denied', (e) => {
+      const detail = e?.detail || {};
+      showAccessDenied({
+        title: detail.title || 'Access Restricted',
+        message: detail.message || 'You are not authorized to perform this operation.',
+        reason: detail.reason || 'Your account permissions are insufficient for this request.',
+        requiredRole: detail.requiredRole || '',
+        action: detail.action || ''
+      });
     });
   }
 
@@ -149,6 +192,10 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isInitialized,
     showSessionExpiredModal,
+    showAccessDeniedModal,
+    accessDeniedInfo,
+    showAccessDenied,
+    dismissAccessDeniedModal,
     isAuthenticated,
     currentUser,
     currentMember,

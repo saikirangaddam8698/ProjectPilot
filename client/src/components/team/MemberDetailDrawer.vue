@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
-import BaseDrawer from '@/components/ui/BaseDrawer.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -97,17 +97,14 @@ function handleClose() {
 </script>
 
 <template>
-  <BaseDrawer
+  <BaseModal
     :modelValue="modelValue"
     @update:modelValue="$emit('update:modelValue', $event)"
     @close="handleClose"
-    size="md"
-    :title="member ? member.name : 'Team Member'"
-    :subtitle="member ? `${member.role} • ${member.department || 'Engineering'}` : ''"
+    size="lg"
   >
-    <div v-if="member" class="drawer-content">
-      <!-- Member Profile Header Card -->
-      <div class="member-profile-header">
+    <template #header>
+      <div v-if="member" class="profile-modal-header">
         <div class="avatar-large-wrap">
           <div class="avatar-large" :class="{ 'is-admin': (member.role || '').includes('Admin') }">
             {{ member.avatar }}
@@ -126,11 +123,16 @@ function handleClose() {
             </BaseBadge>
           </div>
 
-          <span class="member-email text-muted">{{ member.email }}</span>
-          <span class="member-dept text-muted">{{ member.department || 'Core Engineering' }}</span>
+          <div class="member-submeta-row">
+            <span class="member-email text-muted">{{ member.email }}</span>
+            <span class="meta-dot text-muted">•</span>
+            <span class="member-dept text-muted">{{ member.department || 'Core Engineering' }}</span>
+          </div>
         </div>
       </div>
+    </template>
 
+    <div v-if="member" class="modal-profile-body">
       <!-- Capacity & Workload Meter -->
       <div class="capacity-section">
         <div class="capacity-header">
@@ -161,24 +163,27 @@ function handleClose() {
         </div>
       </div>
 
-      <!-- Skills Section -->
-      <div v-if="member.skills && member.skills.length > 0" class="section-group">
-        <h4 class="section-label">Technical Skills & Expertise</h4>
-        <div class="skills-tags-wrap">
-          <span v-for="skill in member.skills" :key="skill" class="skill-tag">
-            {{ skill }}
-          </span>
+      <!-- Skills & Workspaces 2-Column Row -->
+      <div class="info-columns-row">
+        <!-- Skills Section -->
+        <div v-if="member.skills && member.skills.length > 0" class="section-group flex-1">
+          <h4 class="section-label">Technical Skills & Expertise</h4>
+          <div class="skills-tags-wrap">
+            <span v-for="skill in member.skills" :key="skill" class="skill-tag">
+              {{ skill }}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <!-- Assigned Projects -->
-      <div v-if="member.projectKeys && member.projectKeys.length > 0" class="section-group">
-        <h4 class="section-label">Assigned Workspaces</h4>
-        <div class="projects-tags-wrap">
-          <span v-for="pkey in member.projectKeys" :key="pkey" class="project-tag mono">
-            <AppIcon name="projects" :size="12" />
-            {{ pkey }}
-          </span>
+        <!-- Assigned Projects -->
+        <div v-if="member.projectKeys && member.projectKeys.length > 0" class="section-group flex-1">
+          <h4 class="section-label">Assigned Workspaces</h4>
+          <div class="projects-tags-wrap">
+            <span v-for="pkey in member.projectKeys" :key="pkey" class="project-tag mono">
+              <AppIcon name="projects" :size="12" />
+              {{ pkey }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -198,7 +203,7 @@ function handleClose() {
           <span>No tickets currently assigned to {{ member.name }}.</span>
         </div>
 
-        <div v-else class="assigned-tickets-list">
+        <div v-else class="assigned-tickets-grid">
           <div
             v-for="ticket in assignedTickets"
             :key="ticket.key"
@@ -209,7 +214,7 @@ function handleClose() {
               <span class="ticket-key mono">{{ ticket.key }}</span>
               <BaseBadge
                 :variant="ticket.status === 'Done' ? 'success' : ticket.status === 'In Progress' ? 'info' : 'neutral'"
-                size="sm"
+                size="xs"
               >
                 {{ ticket.status }}
               </BaseBadge>
@@ -231,7 +236,7 @@ function handleClose() {
     </div>
 
     <template #footer>
-      <div class="drawer-footer-actions">
+      <div class="modal-footer-actions">
         <BaseButton
           v-if="projectKey"
           variant="outline"
@@ -241,29 +246,21 @@ function handleClose() {
         >
           Remove from {{ projectKey }}
         </BaseButton>
-        <BaseButton variant="ghost" size="sm" @click="handleClose">
-          Close
+        <div v-else></div>
+        <BaseButton variant="primary" size="sm" @click="handleClose">
+          Done
         </BaseButton>
       </div>
     </template>
-  </BaseDrawer>
+  </BaseModal>
 </template>
 
 <style scoped>
-.drawer-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.member-profile-header {
+.profile-modal-header {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-4);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  width: 100%;
 }
 
 .avatar-large-wrap {
@@ -272,12 +269,12 @@ function handleClose() {
 }
 
 .avatar-large {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--color-primary-600);
   color: #FFFFFF;
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   font-weight: var(--font-weight-bold);
   display: flex;
   align-items: center;
@@ -292,10 +289,10 @@ function handleClose() {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  border: 2.5px solid var(--bg-surface-elevated);
+  border: 2px solid var(--bg-surface-elevated);
 }
 
 .status-indicator-dot.status-active { background-color: var(--color-success-500); }
@@ -305,7 +302,7 @@ function handleClose() {
 .member-header-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   overflow: hidden;
   flex: 1;
 }
@@ -318,23 +315,33 @@ function handleClose() {
 }
 
 .member-full-name {
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
+  margin: 0;
 }
 
-.member-email {
+.member-submeta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-xs);
 }
 
-.member-dept {
-  font-size: 11px;
+.meta-dot {
+  opacity: 0.6;
+}
+
+.modal-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 /* Capacity Section */
 .capacity-section {
   padding: var(--space-4);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   display: flex;
@@ -361,7 +368,7 @@ function handleClose() {
 
 .capacity-bar-track {
   height: 8px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-surface-elevated);
   border-radius: var(--radius-full);
   overflow: hidden;
   border: 1px solid var(--border-subtle);
@@ -385,6 +392,13 @@ function handleClose() {
   color: var(--text-secondary);
 }
 
+/* 2-Column Info Row */
+.info-columns-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
 /* Section Groups */
 .section-group {
   display: flex;
@@ -398,6 +412,7 @@ function handleClose() {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  margin: 0;
 }
 
 .section-header-row {
@@ -417,7 +432,7 @@ function handleClose() {
   font-size: 11px;
   padding: 3px 8px;
   border-radius: var(--radius-sm);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-default);
   color: var(--text-primary);
 }
@@ -430,18 +445,19 @@ function handleClose() {
   font-weight: var(--font-weight-semibold);
   padding: 3px 8px;
   border-radius: var(--radius-sm);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-default);
-  color: var(--color-primary-500);
+  color: var(--color-primary-400);
 }
 
-/* Assigned Tickets List */
-.assigned-tickets-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+/* Assigned Tickets Grid */
+.assigned-tickets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
   max-height: 280px;
   overflow-y: auto;
+  padding-right: 2px;
 }
 
 .assigned-ticket-item {
@@ -449,7 +465,7 @@ function handleClose() {
   flex-direction: column;
   gap: 4px;
   padding: var(--space-3);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -457,8 +473,9 @@ function handleClose() {
 }
 
 .assigned-ticket-item:hover {
-  border-color: var(--border-default);
-  transform: translateX(2px);
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-hover);
+  transform: translateY(-1px);
 }
 
 .ticket-top-row {
@@ -470,7 +487,7 @@ function handleClose() {
 .ticket-key {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
-  color: var(--text-secondary);
+  color: var(--color-primary-400);
 }
 
 .ticket-title-text {
@@ -488,12 +505,12 @@ function handleClose() {
 
 .ticket-pts {
   font-weight: var(--font-weight-semibold);
-  color: var(--color-primary-500);
+  color: var(--text-muted);
 }
 
 .empty-tickets-box {
   padding: var(--space-6);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-surface);
   border: 1px dashed var(--border-default);
   border-radius: var(--radius-md);
   display: flex;
@@ -505,7 +522,7 @@ function handleClose() {
   font-size: var(--text-xs);
 }
 
-.drawer-footer-actions {
+.modal-footer-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project.store';
 import { useTicketStore } from '@/stores/ticket.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
@@ -14,9 +15,23 @@ import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 const router = useRouter();
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
+const authStore = useAuthStore();
 
 const isCreateModalOpen = ref(false);
 const toastMessage = ref('');
+
+function handleCreateProjectClick() {
+  if (!authStore.canCreateProject) {
+    authStore.showAccessDenied({
+      title: 'Operation Restricted',
+      message: 'You are not authorized to create new project workspaces. Only Workspace Admins and Project Managers can create projects.',
+      requiredRole: 'PROJECT_MANAGER or ADMIN',
+      action: 'Create Project'
+    });
+    return;
+  }
+  isCreateModalOpen.value = true;
+}
 
 const isInitialLoading = computed(() => {
   return projectStore.isLoading && projectStore.allProjects.length === 0;
@@ -73,7 +88,7 @@ function getProjectProgress(key) {
         <h2 class="page-title">Projects</h2>
         <p class="page-subtitle">Manage workspaces, project keys, sprint configurations, and team access.</p>
       </div>
-      <BaseButton variant="primary" size="sm" @click="isCreateModalOpen = true">
+      <BaseButton variant="primary" size="sm" @click="handleCreateProjectClick">
         <template #prefix><AppIcon name="plus" :size="14" /></template>
         Create Project
       </BaseButton>
@@ -164,25 +179,26 @@ function getProjectProgress(key) {
         @keydown.enter="openProject(project.key)"
         @keydown.space.prevent="openProject(project.key)"
       >
-        <!-- Card Header -->
-        <div class="project-card-header">
-          <div class="project-avatar" :style="{ backgroundColor: getAvatarBgColor(project.key) }">
-            {{ project.key.slice(0, 3) }}
-          </div>
-
-          <div class="project-title-group">
-            <div class="title-key-row">
-              <h3 class="project-name">{{ project.name }}</h3>
-              <span class="project-key mono">{{ project.key }}</span>
+        <!-- Card Top Bar (Avatar + Key + Status Badge) -->
+        <div class="project-card-topbar">
+          <div class="topbar-left">
+            <div class="project-avatar" :style="{ backgroundColor: getAvatarBgColor(project.key) }">
+              {{ project.key.slice(0, 3) }}
             </div>
-            <span class="project-lead-subtext text-muted">
-              Lead: {{ project.lead?.name || 'Unassigned' }}
-            </span>
+            <span class="project-key mono">{{ project.key }}</span>
           </div>
 
           <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
             {{ project.status === 'active' ? 'Active' : 'Planning' }}
           </BaseBadge>
+        </div>
+
+        <!-- Project Title & Lead -->
+        <div class="project-identity-block">
+          <h3 class="project-name">{{ project.name }}</h3>
+          <span class="project-lead-subtext text-muted">
+            Lead: <span class="lead-name">{{ project.lead?.name || 'Unassigned' }}</span>
+          </span>
         </div>
 
         <!-- Description -->
@@ -368,15 +384,15 @@ function getProjectProgress(key) {
 /* Projects Grid */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--space-6);
 }
 
 .project-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -396,10 +412,17 @@ function getProjectProgress(key) {
   outline-offset: 2px;
 }
 
-.project-card-header {
+.project-card-topbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .project-avatar {
@@ -416,48 +439,46 @@ function getProjectProgress(key) {
   flex-shrink: 0;
 }
 
-.project-title-group {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.project-key {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  background-color: var(--bg-surface-elevated);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
 }
 
-.title-key-row {
+.project-identity-block {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex-direction: column;
+  gap: 4px;
 }
 
 .project-name {
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.project-key {
-  font-size: 11px;
-  color: var(--text-muted);
-  background-color: var(--bg-surface-elevated);
-  padding: 1px 5px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-subtle);
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .project-lead-subtext {
   font-size: var(--text-xs);
 }
 
+.lead-name {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
 .project-description {
   font-size: var(--text-xs);
   color: var(--text-secondary);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
+  min-height: 38px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

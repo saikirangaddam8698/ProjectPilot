@@ -406,27 +406,106 @@ async function handleLogin() {
   margin: 0;
 }
 
-/* ─── Capability rows ─── */
+/* ─── Capability rows with dynamic sliding motion ─── */
 .left-capabilities {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  position: relative;
 }
 
 .capability-row {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  background: rgba(99, 102, 241, 0.04);
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  background: rgba(99, 102, 241, 0.05);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  transform: translateX(-28px);
+  animation: capabilitySlideIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+             capabilitySlideFloat 6s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+  position: relative;
+  overflow: hidden;
+}
+
+.capability-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: capabilityShimmer 6s infinite;
+  pointer-events: none;
+}
+
+.capability-row:nth-child(1) {
+  animation-delay: 0.15s, 0.85s;
+}
+
+.capability-row:nth-child(1)::before {
+  animation-delay: 1s;
+}
+
+.capability-row:nth-child(2) {
+  animation-delay: 0.35s, 2.5s;
+}
+
+.capability-row:nth-child(2)::before {
+  animation-delay: 3s;
+}
+
+.capability-row:nth-child(3) {
+  animation-delay: 0.55s, 4.2s;
+}
+
+.capability-row:nth-child(3)::before {
+  animation-delay: 5s;
 }
 
 .capability-row:hover {
-  border-color: rgba(99, 102, 241, 0.3);
-  background: rgba(99, 102, 241, 0.08);
+  transform: translateX(8px) translateY(-2px) !important;
+  border-color: rgba(129, 140, 248, 0.5);
+  background: rgba(99, 102, 241, 0.12);
+  box-shadow: 0 8px 24px -4px rgba(99, 102, 241, 0.25);
+}
+
+@keyframes capabilitySlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes capabilitySlideFloat {
+  0% {
+    transform: translateX(0px) translateY(0px);
+  }
+  50% {
+    transform: translateX(7px) translateY(-2px);
+  }
+  100% {
+    transform: translateX(2px) translateY(2px);
+  }
+}
+
+@keyframes capabilityShimmer {
+  0%, 100% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
 }
 
 .cap-icon {
