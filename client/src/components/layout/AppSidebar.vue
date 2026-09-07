@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useUiStore } from '@/stores/ui.store';
 import { NAVIGATION_GROUPS } from '@/utils/navigation';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppLogo from '@/components/ui/AppLogo.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 
 const route = useRoute();
@@ -28,21 +29,7 @@ function isRouteActive(path) {
     <!-- Brand / Header -->
     <div class="sidebar-brand">
       <router-link to="/dashboard" class="brand-link" :title="isCollapsed ? 'ProjectPilot' : undefined">
-        <div class="brand-icon-wrapper">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="brand-svg">
-            <polygon points="12 2 19 21 12 17 5 21 12 2" fill="url(#brand-grad)" stroke="#6366F1" stroke-width="1.5" stroke-linejoin="round"/>
-            <defs>
-              <linearGradient id="brand-grad" x1="5" y1="2" x2="19" y2="21" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#818CF8" />
-                <stop offset="1" stop-color="#4F46E5" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div v-show="!isCollapsed" class="brand-info">
-          <span class="brand-name">ProjectPilot</span>
-          <span class="brand-badge">v0.1</span>
-        </div>
+        <AppLogo size="sm" :show-text="!isCollapsed" />
       </router-link>
     </div>
 

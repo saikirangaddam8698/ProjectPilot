@@ -15,12 +15,15 @@
     "db:seed": "node prisma/seed.js",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "seed:knowledge": "node scripts/seed-knowledge.js",
+    "db:bootstrap-admin": "node scripts/bootstrap-admin.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@google/genai": "^2.20.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

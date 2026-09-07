@@ -1,18 +1,30 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import AppLogo from '@/components/ui/AppLogo.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 
-const email = ref('alex.m@projectpilot.dev');
-const password = ref('PilotPass123!');
+const email = ref('');
+const password = ref('');
 const isSubmitting = ref(false);
 const errorMessage = ref('');
+
+/**
+ * Demo accounts quick-switcher visibility logic
+ * Rendered in local development/demo environments, hidden in production.
+ */
+const showDemoAccounts = computed(() => {
+  if (import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'false') {
+    return false;
+  }
+  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true';
+});
 
 const DEMO_ACCOUNTS = [
   {
@@ -89,13 +101,7 @@ async function handleLogin() {
     <div class="login-container">
       <!-- Brand Header -->
       <div class="brand-header">
-        <div class="logo-mark">
-          <AppIcon name="cpu" :size="24" />
-        </div>
-        <div class="brand-text">
-          <h1 class="brand-title">ProjectPilot</h1>
-          <p class="brand-tagline">AI-Powered Project Intelligence & Agile Workspace</p>
-        </div>
+        <AppLogo size="lg" :show-text="true" :show-tagline="true" />
       </div>
 
       <!-- Main Login Card -->
@@ -112,7 +118,7 @@ async function handleLogin() {
         </div>
 
         <!-- Login Form -->
-        <form class="login-form" @submit.prevent="handleLogin">
+        <form class="login-form" :aria-busy="isSubmitting" @submit.prevent="handleLogin">
           <div class="form-group">
             <label for="email" class="form-label">Email Address</label>
             <div class="input-wrapper">
@@ -123,7 +129,7 @@ async function handleLogin() {
                 type="email"
                 required
                 autocomplete="email"
-                placeholder="name@projectpilot.dev"
+                placeholder="name@company.com"
                 class="form-input"
                 :disabled="isSubmitting"
               />
@@ -133,7 +139,6 @@ async function handleLogin() {
           <div class="form-group">
             <div class="label-row">
               <label for="password" class="form-label">Password</label>
-              <span class="password-hint">Default: PilotPass123!</span>
             </div>
             <div class="input-wrapper">
               <AppIcon name="lock" :size="16" class="input-icon" />
@@ -154,15 +159,14 @@ async function handleLogin() {
             type="submit"
             variant="primary"
             class="submit-btn"
-            :disabled="isSubmitting"
+            :loading="isSubmitting"
           >
-            <AppIcon v-if="isSubmitting" name="refresh-cw" :size="16" class="spin" />
-            <span>{{ isSubmitting ? 'Authenticating...' : 'Sign In to Workspace' }}</span>
+            {{ isSubmitting ? 'Signing into workspace...' : 'Sign In to Workspace' }}
           </BaseButton>
         </form>
 
-        <!-- Demo Accounts Quick Switcher -->
-        <div class="demo-section">
+        <!-- Demo Accounts Quick Switcher (Development Only) -->
+        <div v-if="showDemoAccounts" class="demo-section">
           <div class="demo-divider">
             <span class="divider-text">Quick Demo Accounts</span>
           </div>
@@ -174,6 +178,7 @@ async function handleLogin() {
               type="button"
               class="demo-account-btn"
               :class="{ active: email === acc.email }"
+              :disabled="isSubmitting"
               @click="selectDemoAccount(acc)"
             >
               <div class="demo-avatar">{{ acc.avatar }}</div>
@@ -199,13 +204,15 @@ async function handleLogin() {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  height: 100%;
   width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   background-color: var(--bg-app);
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
 }
 
 .login-container {
@@ -213,7 +220,9 @@ async function handleLogin() {
   max-width: 460px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
+  margin: auto 0;
+  padding: var(--space-2) 0;
 }
 
 /* Brand Header */
@@ -374,6 +383,12 @@ async function handleLogin() {
   justify-content: center;
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
+}
+
+.button-loading-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* Demo Accounts Switcher */

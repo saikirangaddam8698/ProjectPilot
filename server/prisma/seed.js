@@ -7,6 +7,7 @@ import { PrismaClient, ProjectStatus, SprintStatus, TicketStatus, TicketPriority
 const prisma = new PrismaClient();
 
 import bcrypt from 'bcryptjs';
+import { seedKnowledgeBase } from '../scripts/seed-knowledge.js';
 
 // Deterministic default development password for all seed accounts
 export const DEFAULT_DEV_PASSWORD = 'PilotPass123!';
@@ -664,6 +665,92 @@ export const SEED_ACTIVITIES = [
   }
 ];
 
+export const SEED_DOCUMENTS = [
+  {
+    id: 'doc-pilot-arch',
+    projectId: 'proj-pilot',
+    title: 'ProjectPilot System Architecture & Service Blueprint',
+    description: 'Comprehensive blueprint describing the Vue 3 frontend shell, Express backend, PostgreSQL schema, and Gemini tool calling pipeline.',
+    documentType: 'ARCHITECTURE',
+    source: 'internal/architecture',
+    status: 'INDEXED',
+    createdById: 'm-1',
+    content: `# ProjectPilot System Architecture & Service Blueprint
+
+## 1. Overview & High-Level Architecture
+ProjectPilot is built on a clean multi-layer modular architecture:
+- Frontend: Vue 3 with Composition API, Pinia stores for unidirectional state, and Vanilla CSS design tokens.
+- Backend: Node.js with Express 4, layered controllers, domain services, and repository patterns.
+- Database: Cloud PostgreSQL with Prisma ORM and the pgvector extension for semantic similarity retrieval.
+- AI Intelligence: Google Gemini 3.6 Flash for multi-turn tool calling and gemini-embedding-001 for 768-dimensional vector embeddings.
+
+## 2. Layered Responsibilities
+1. Routes: Express routers mapping REST endpoints to controllers with middleware validation.
+2. Controllers: HTTP request parsing, response formatting, and status code mapping.
+3. Services: Business logic, multi-turn AI tool loops, document chunking, and metric derivation.
+4. Repositories: Direct database queries via Prisma and pgvector raw distance queries.
+5. Database: Single runtime source of truth in PostgreSQL. Zero in-memory fallback datasets.
+
+## 3. Database Connection & Pooling
+The application connects to Cloud PostgreSQL using an optimized connection pool. To prevent connection exhaustion under heavy traffic, Prisma Client operates as a singleton instance across all service modules with pooled connection recycling.`,
+    createdAt: new Date('2026-08-18T10:00:00.000Z'),
+    updatedAt: new Date('2026-08-28T14:30:00.000Z')
+  },
+  {
+    id: 'doc-pilot-auth',
+    projectId: 'proj-pilot',
+    title: 'Authentication & Role-Based Access Control (RBAC) Specifications',
+    description: 'Security specifications for JWT browser sessions, password hashing with bcrypt, and multi-tenant project authorization.',
+    documentType: 'ARCHITECTURE',
+    source: 'internal/security',
+    status: 'INDEXED',
+    createdById: 'm-1',
+    content: `# Authentication & Role-Based Access Control (RBAC) Specifications
+
+## 1. Authentication Mechanism
+ProjectPilot uses HTTP-only JSON Web Tokens (JWT) for secure browser authentication:
+- Tokens are signed using HMAC SHA-256 with a 32-character secret key.
+- Tokens expire in 24 hours (configurable via JWT_EXPIRES_IN).
+- Secure, SameSite=Lax HTTP-only cookies prevent Cross-Site Scripting (XSS) token exfiltration.
+- Passwords are salted and hashed with bcrypt using 10 salt rounds.
+
+## 2. Global Role Hierarchy
+- ADMIN: Superuser access across all projects, member invites, and global analytics.
+- PROJECT_MANAGER: Full control over assigned project boards, sprint planning, and team membership.
+- DEVELOPER: Standard access to view boards, move assigned tickets, and participate in sprints.
+- VIEWER: Read-only access to project overview, metrics, and documentation.
+
+## 3. Project-Level Authorization
+Access to project data is strictly validated on every request via the requireProjectAccess() middleware. Even if a user knows a projectKey, they cannot access tickets, sprints, or documentation unless they have an active project membership record.`,
+    createdAt: new Date('2026-08-20T11:00:00.000Z'),
+    updatedAt: new Date('2026-08-29T16:00:00.000Z')
+  },
+  {
+    id: 'doc-infra-k8s',
+    projectId: 'proj-infra',
+    title: 'Kubernetes Staging Deployment & TLS Rotation Runbook',
+    description: 'Operational runbook for deploying microservices, provisioning staging ingress, and rotating Let\'s Encrypt TLS certificates.',
+    documentType: 'RUNBOOK',
+    source: 'devops/runbooks',
+    status: 'INDEXED',
+    createdById: 'm-3',
+    content: `# Kubernetes Staging Deployment & TLS Rotation Runbook
+
+## 1. Staging Deployment Pipeline
+All backend and frontend builds are containerized using Docker multi-stage images and deployed via Helm charts to the staging EKS cluster:
+1. Build step compiles Vite production bundle and validates zero TypeScript/linter errors.
+2. Container images are scanned for vulnerabilities before pushing to AWS ECR.
+3. Helm rollout automatically restarts deployment pods with zero downtime rolling updates.
+
+## 2. Automated TLS Certificate Rotation
+TLS certificates are managed by cert-manager with Let's Encrypt ACME DNS-01 challenge automation:
+- Certificates renew automatically 30 days prior to expiration.
+- Emergency manual rotation: run \`kubectl cert-manager renew stage-projectpilot-tls\` from the bastion host.`,
+    createdAt: new Date('2026-08-22T09:00:00.000Z'),
+    updatedAt: new Date('2026-08-30T10:00:00.000Z')
+  }
+];
+
 export async function seedDatabase(client = prisma) {
   console.log('🌱 Starting ProjectPilot database seeding...');
 
@@ -745,6 +832,10 @@ export async function seedDatabase(client = prisma) {
       create: activity
     });
   }
+
+  // 6. Seed Knowledge Base Documents via DocumentIngestionService
+  console.log(`📚 Seeding project documentation records via RAG ingestion pipeline...`);
+  await seedKnowledgeBase();
 
   console.log('✅ ProjectPilot database seeded successfully!');
 }

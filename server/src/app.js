@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { getCorsOptions } from './config/cors.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { requestId } from './middleware/requestId.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -14,17 +15,20 @@ const app = express();
 // 1. Security Headers Middleware
 app.use(helmet());
 
-// 2. CORS Policy Middleware
+// 2. Request Correlation ID Middleware
+app.use(requestId);
+
+// 3. CORS Policy Middleware
 app.use(cors(getCorsOptions()));
 
-// 3. Cookie Parsing Middleware
+// 4. Cookie Parsing Middleware
 app.use(cookieParser());
 
-// 4. Body Parsing Middleware with sensible limits
+// 5. Body Parsing Middleware with sensible limits
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// 5. HTTP Request Logging Middleware
+// 6. HTTP Request Logging Middleware
 app.use(requestLogger);
 
 // 6. Rate Limiter Middleware for API endpoints

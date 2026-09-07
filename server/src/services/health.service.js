@@ -53,6 +53,26 @@ export class HealthService {
   }
 
   /**
+   * Get production readiness status (checks DB connectivity & AI configuration)
+   */
+  static async getReadiness() {
+    const dbHealth = await DatabaseService.verifyHealth();
+    const isDbReady = dbHealth.status === 'connected';
+    const isAiConfigured = Boolean(config.ai.geminiApiKey || process.env.GEMINI_API_KEY);
+
+    const isReady = isDbReady;
+
+    return {
+      status: isReady ? 'ready' : 'unready',
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: isDbReady ? 'connected' : 'disconnected',
+        aiService: isAiConfigured ? 'configured' : 'unconfigured'
+      }
+    };
+  }
+
+  /**
    * Helper to format seconds into readable uptime string
    * @param {number} seconds
    * @returns {string}

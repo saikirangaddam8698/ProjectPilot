@@ -4,6 +4,8 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requireRole, requireProjectAccess } from '../../middleware/auth.middleware.js';
 import { createProjectSchema, updateProjectSchema, addProjectMemberSchema } from '../../validators/project.validator.js';
+import knowledgeRoutes from './knowledge.routes.js';
+import conversationRoutes from './conversation.routes.js';
 
 const router = Router();
 
@@ -60,5 +62,9 @@ router.delete(
   requireProjectAccess('Project Admin'),
   asyncHandler(ProjectController.removeProjectMember)
 );
+
+// Mount project-scoped knowledge base & conversation routes
+router.use('/:projectKey/knowledge', knowledgeRoutes);
+router.use('/:projectKey/conversations', conversationRoutes);
 
 export default router;

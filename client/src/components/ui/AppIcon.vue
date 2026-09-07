@@ -159,6 +159,94 @@ const props = defineProps({
     <template v-else-if="name === 'check'">
       <path d="M20 6 9 17l-5-5"></path>
     </template>
+
+    <!-- CPU / Brand Logo -->
+    <template v-else-if="name === 'cpu'">
+      <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+      <rect x="9" y="9" width="6" height="6"></rect>
+      <path d="M15 2v2M15 20v2M2 15h2M20 15h2M9 2v2M9 20v2M2 9h2M20 9h2"></path>
+    </template>
+
+    <!-- Mail -->
+    <template v-else-if="name === 'mail'">
+      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+    </template>
+
+    <!-- Lock -->
+    <template v-else-if="name === 'lock'">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </template>
+
+    <!-- Refresh / Spinner -->
+    <template v-else-if="name === 'refresh-cw'">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+      <path d="M21 3v5h-5"></path>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+      <path d="M8 16H3v5"></path>
+    </template>
+
+    <!-- Alert Triangle -->
+    <template v-else-if="name === 'alert-triangle'">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </template>
+
+    <!-- Clock -->
+    <template v-else-if="name === 'clock'">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </template>
+
+    <!-- Board -->
+    <template v-else-if="name === 'board'">
+      <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+      <path d="M11 3v18"></path>
+    </template>
+
+    <!-- Phone -->
+    <template v-else-if="name === 'phone'">
+      <rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect>
+      <path d="M12 18h.01"></path>
+    </template>
+
+    <!-- Users -->
+    <template v-else-if="name === 'users'">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </template>
+
+    <!-- Zap -->
+    <template v-else-if="name === 'zap'">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </template>
+
+    <!-- Chevron Down -->
+    <template v-else-if="name === 'chevron-down'">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </template>
+
+    <!-- Log Out -->
+    <template v-else-if="name === 'log-out'">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+      <polyline points="16 17 21 12 16 7"></polyline>
+      <line x1="21" y1="12" x2="9" y2="12"></line>
+    </template>
+
+    <!-- Check Circle -->
+    <template v-else-if="name === 'check-circle'">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </template>
+
+    <!-- Activity -->
+    <template v-else-if="name === 'activity'">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+    </template>
   </svg>
 </template>
 

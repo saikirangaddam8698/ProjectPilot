@@ -13,4 +13,7 @@ router.get('/system', asyncHandler(HealthController.getSystemInfo));
 // GET /api/v1/health/db
 router.get('/db', asyncHandler(HealthController.getDatabaseHealth));
 
+// GET /api/v1/health/ready
+router.get('/ready', asyncHandler(HealthController.getReadiness));
+
 export default router;

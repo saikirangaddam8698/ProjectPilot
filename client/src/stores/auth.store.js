@@ -8,6 +8,44 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref(null);
   const isInitialized = ref(false);
 
+  const showSessionExpiredModal = ref(false);
+  const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour (3600000 ms)
+  let sessionTimeoutTimer = null;
+
+  function startSessionTimer() {
+    clearSessionTimer();
+    sessionTimeoutTimer = setTimeout(() => {
+      handleSessionExpired('Your 1-hour active session has expired.');
+    }, SESSION_DURATION_MS);
+  }
+
+  function clearSessionTimer() {
+    if (sessionTimeoutTimer) {
+      clearTimeout(sessionTimeoutTimer);
+      sessionTimeoutTimer = null;
+    }
+  }
+
+  function handleSessionExpired(reason = 'Your session has expired.') {
+    clearSessionTimer();
+    user.value = null;
+    error.value = null;
+    showSessionExpiredModal.value = true;
+  }
+
+  function dismissSessionExpiredModal() {
+    showSessionExpiredModal.value = false;
+  }
+
+  // Listen to 401 Unauthorized events from httpClient
+  if (typeof window !== 'undefined') {
+    window.addEventListener('projectpilot:session-expired', (e) => {
+      if (user.value) {
+        handleSessionExpired(e?.detail?.message);
+      }
+    });
+  }
+
   // Getters
   const isAuthenticated = computed(() => !!user.value);
   const currentUser = computed(() => user.value);
@@ -53,6 +91,10 @@ export const useAuthStore = defineStore('auth', () => {
       const result = await authApi.login({ email, password });
       user.value = result?.user || null;
       isInitialized.value = true;
+      showSessionExpiredModal.value = false;
+      if (user.value) {
+        startSessionTimer();
+      }
       return { success: true, user: user.value };
     } catch (err) {
       error.value = err.message || 'Failed to authenticate. Please check your credentials.';
@@ -64,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     isLoading.value = true;
+    clearSessionTimer();
     try {
       await authApi.logout();
     } catch (err) {
@@ -72,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null;
       error.value = null;
       isLoading.value = false;
+      showSessionExpiredModal.value = false;
     }
   }
 
@@ -83,8 +127,14 @@ export const useAuthStore = defineStore('auth', () => {
       const profile = await authApi.getMe();
       user.value = profile || null;
       isInitialized.value = true;
+      if (user.value) {
+        startSessionTimer();
+      } else {
+        clearSessionTimer();
+      }
       return !!user.value;
     } catch {
+      clearSessionTimer();
       user.value = null;
       isInitialized.value = true;
       return false;
@@ -98,6 +148,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     isInitialized,
+    showSessionExpiredModal,
     isAuthenticated,
     currentUser,
     currentMember,
@@ -113,6 +164,9 @@ export const useAuthStore = defineStore('auth', () => {
     canManageProject,
     login,
     logout,
-    checkAuth
+    checkAuth,
+    handleSessionExpired,
+    dismissSessionExpiredModal
   };
 });
+

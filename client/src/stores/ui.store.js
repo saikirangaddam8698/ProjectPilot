@@ -39,15 +39,38 @@ export const useUiStore = defineStore('ui', () => {
     isSearchModalOpen.value = false;
   }
 
+  // Route navigation & page skeleton loading state
+  const isNavigating = ref(false);
+  const isPageLoading = ref(false);
+  let pageLoadingTimer = null;
+
+  function setNavigating(navigating) {
+    isNavigating.value = navigating;
+  }
+
+  function triggerPageLoading(minDurationMs = 1000) {
+    if (pageLoadingTimer) clearTimeout(pageLoadingTimer);
+    isPageLoading.value = true;
+    isNavigating.value = true;
+    pageLoadingTimer = setTimeout(() => {
+      isPageLoading.value = false;
+      isNavigating.value = false;
+    }, minDurationMs);
+  }
+
   return {
     isSidebarCollapsed,
     isMobileNavOpen,
     isSearchModalOpen,
+    isNavigating,
+    isPageLoading,
     toggleSidebar,
     setSidebarCollapsed,
     toggleMobileNav,
     closeMobileNav,
     openSearchModal,
-    closeSearchModal
+    closeSearchModal,
+    setNavigating,
+    triggerPageLoading
   };
 });

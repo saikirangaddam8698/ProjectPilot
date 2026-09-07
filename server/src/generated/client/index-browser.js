@@ -213,6 +213,53 @@ exports.Prisma.ActivityScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.DocumentScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  title: 'title',
+  fileName: 'fileName',
+  mimeType: 'mimeType',
+  fileSize: 'fileSize',
+  checksum: 'checksum',
+  description: 'description',
+  documentType: 'documentType',
+  source: 'source',
+  content: 'content',
+  status: 'status',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DocumentChunkScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  projectId: 'projectId',
+  chunkIndex: 'chunkIndex',
+  content: 'content',
+  tokenCount: 'tokenCount',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ConversationScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  createdById: 'createdById',
+  title: 'title',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ConversationMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  role: 'role',
+  content: 'content',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -287,6 +334,24 @@ exports.TicketPriority = exports.$Enums.TicketPriority = {
   URGENT: 'URGENT'
 };
 
+exports.DocumentType = exports.$Enums.DocumentType = {
+  ARCHITECTURE: 'ARCHITECTURE',
+  API_SPEC: 'API_SPEC',
+  RUNBOOK: 'RUNBOOK',
+  REQUIREMENTS: 'REQUIREMENTS',
+  TROUBLESHOOTING: 'TROUBLESHOOTING',
+  GENERAL: 'GENERAL'
+};
+
+exports.DocumentStatus = exports.$Enums.DocumentStatus = {
+  DRAFT: 'DRAFT',
+  INDEXED: 'INDEXED',
+  OUTDATED: 'OUTDATED',
+  PROCESSING: 'PROCESSING',
+  READY: 'READY',
+  FAILED: 'FAILED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Member: 'Member',
@@ -294,7 +359,11 @@ exports.Prisma.ModelName = {
   ProjectMember: 'ProjectMember',
   Sprint: 'Sprint',
   Ticket: 'Ticket',
-  Activity: 'Activity'
+  Activity: 'Activity',
+  Document: 'Document',
+  DocumentChunk: 'DocumentChunk',
+  Conversation: 'Conversation',
+  ConversationMessage: 'ConversationMessage'
 };
 
 /**

@@ -64,6 +64,24 @@ enum MemberStatus {
   OFFLINE
 }
 
+enum DocumentType {
+  ARCHITECTURE
+  API_SPEC
+  RUNBOOK
+  REQUIREMENTS
+  TROUBLESHOOTING
+  GENERAL
+}
+
+enum DocumentStatus {
+  DRAFT
+  INDEXED
+  OUTDATED
+  PROCESSING
+  READY
+  FAILED
+}
+
 // -----------------------------------------------------------------------------
 // Models
 // -----------------------------------------------------------------------------
@@ -78,7 +96,8 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // 1-to-1 relationship with Member profile
-  member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  member        Member?        @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  conversations Conversation[]
 
   @@index([email])
   @@index([role])
@@ -104,6 +123,7 @@ model Member {
   assignedTickets    Ticket[]        @relation("TicketAssignee")
   reportedTickets    Ticket[]        @relation("TicketReporter")
   activities         Activity[]      @relation("ActivityActor")
+  authoredDocs       Document[]      @relation("DocumentAuthor")
 
   @@index([email])
   @@index([status])
@@ -120,11 +140,13 @@ model Project {
   updatedAt   DateTime      @updatedAt
 
   // Relationships
-  lead       Member?         @relation("ProjectLead", fields: [leadId], references: [id], onDelete: SetNull)
-  members    ProjectMember[]
-  tickets    Ticket[]
-  sprints    Sprint[]
-  activities Activity[]
+  lead          Member?         @relation("ProjectLead", fields: [leadId], references: [id], onDelete: SetNull)
+  members       ProjectMember[]
+  tickets       Ticket[]
+  sprints       Sprint[]
+  activities    Activity[]
+  documents     Document[]
+  conversations Conversation[]
 
   @@index([key])
   @@index([status])
@@ -221,5 +243,85 @@ model Activity {
 
   @@index([projectId])
   @@index([actorId])
+  @@index([createdAt])
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  projectId    String
+  title        String
+  fileName     String?
+  mimeType     String?
+  fileSize     Int?
+  checksum     String?
+  description  String?        @db.Text
+  documentType DocumentType   @default(GENERAL)
+  source       String?        @default("manual")
+  content      String         @db.Text
+  status       DocumentStatus @default(DRAFT)
+  createdById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relationships
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy Member?         @relation("DocumentAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  chunks    DocumentChunk[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([documentType])
+  @@index([createdAt])
+}
+
+model DocumentChunk {
+  id         String                      @id @default(cuid())
+  documentId String
+  projectId  String?
+  chunkIndex Int
+  content    String                      @db.Text
+  tokenCount Int                         @default(0)
+  metadata   Json? // page, section, source
+  embedding  Unsupported("vector(768)")?
+  createdAt  DateTime                    @default(now())
+
+  // Relationships
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([chunkIndex])
+  @@index([projectId])
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  projectId   String
+  createdById String?
+  title       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  project   Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  messages  ConversationMessage[]
+
+  @@index([projectId])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String // "user" or "assistant"
+  content        String   @db.Text
+  metadata       Json? // executedTools, sources, analysis, grounded, agentRounds, requestId, usage, model
+  createdAt      DateTime @default(now())
+
+  // Relationships
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
   @@index([createdAt])
 }

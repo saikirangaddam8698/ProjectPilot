@@ -100,8 +100,8 @@ const routes = [
           {
             path: 'knowledge',
             name: 'ProjectKnowledge',
-            component: ProjectSectionPlaceholder,
-            meta: { title: 'Project Knowledge', section: 'Knowledge' }
+            component: KnowledgePage,
+            meta: { title: 'Project Knowledge Base', section: 'Knowledge' }
           },
           {
             path: 'activity',
@@ -185,9 +185,15 @@ const router = createRouter({
   }
 });
 
-// Authentication Navigation Guard
+import { useUiStore } from '@/stores/ui.store';
+
+// Authentication & Navigation Guard
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
+  const uiStore = useUiStore();
+
+  // Trigger minimum 1-second page skeleton loading state for smooth platform consistency
+  uiStore.triggerPageLoading(1000);
 
   // Check auth if not initialized yet
   if (!authStore.isInitialized) {
@@ -214,6 +220,9 @@ router.beforeEach(async (to, from, next) => {
 
 // Update document title dynamically based on route metadata and active project
 router.afterEach((to) => {
+  const uiStore = useUiStore();
+  uiStore.setNavigating(false);
+
   const projectKey = to.params?.projectKey;
   const pageTitle = to.meta?.title;
 
@@ -224,6 +233,11 @@ router.afterEach((to) => {
   } else {
     document.title = 'ProjectPilot — AI-Powered Project Intelligence';
   }
+});
+
+router.onError(() => {
+  const uiStore = useUiStore();
+  uiStore.setNavigating(false);
 });
 
 export default router;

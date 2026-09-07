@@ -8,3 +8,5 @@ export { ticketsApi } from './tickets.api.js';
 export { sprintsApi } from './sprints.api.js';
 export { membersApi } from './members.api.js';
 export { activitiesApi } from './activities.api.js';
+export { aiApi } from './ai.api.js';
+export { knowledgeApi } from './knowledge.api.js';

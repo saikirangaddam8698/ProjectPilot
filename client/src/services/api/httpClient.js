@@ -55,6 +55,16 @@ async function request(endpoint, { method = 'GET', body = null, params = null, h
     if (!response.ok) {
       const errorObj = json?.error || {};
       const errorMessage = errorObj.message || json?.message || `Request failed with status ${response.status}`;
+      
+      // Notify application if session has expired (401 Unauthorized on non-login endpoints)
+      if (response.status === 401 && !endpoint.includes('/auth/login')) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('projectpilot:session-expired', {
+            detail: { message: errorMessage, endpoint }
+          }));
+        }
+      }
+
       throw new ApiClientError(errorMessage, {
         code: errorObj.code || 'HTTP_ERROR',
         status: response.status,
@@ -84,3 +94,5 @@ export const httpClient = {
   put: (endpoint, body = null, headers = {}) => request(endpoint, { method: 'PUT', body, headers }),
   delete: (endpoint, headers = {}) => request(endpoint, { method: 'DELETE', headers })
 };
+
+export const http = httpClient;

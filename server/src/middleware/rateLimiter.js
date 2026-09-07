@@ -17,3 +17,18 @@ export const rateLimiter = rateLimit({
     });
   }
 });
+
+export const aiRateLimiter = rateLimit({
+  windowMs: config.ai.rateLimitWindowMs,
+  max: config.ai.rateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => config.isTest,
+  handler: (req, res) => {
+    return ApiResponse.error(res, {
+      statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
+      errorCode: ERROR_CODES.RATE_LIMIT_EXCEEDED,
+      message: 'AI chat rate limit exceeded. Please wait a moment before sending another prompt.'
+    });
+  }
+});

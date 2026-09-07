@@ -26,7 +26,9 @@ export class ApiController {
           tickets: `${config.apiPrefix}/tickets`,
           sprints: `${config.apiPrefix}/sprints`,
           members: `${config.apiPrefix}/members`,
-          activities: `${config.apiPrefix}/activities`
+          activities: `${config.apiPrefix}/activities`,
+          ai: `${config.apiPrefix}/ai`,
+          knowledge: `${config.apiPrefix}/projects/:projectKey/knowledge`
         }
       }
     });

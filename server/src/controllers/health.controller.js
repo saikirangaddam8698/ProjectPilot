@@ -44,4 +44,19 @@ export class HealthController {
       data: dbHealth
     });
   }
+
+  /**
+   * Readiness Probe Handler
+   * GET /api/v1/health/ready
+   */
+  static async getReadiness(req, res) {
+    const readiness = await HealthService.getReadiness();
+    const statusCode = readiness.status === 'ready' ? HTTP_STATUS.OK : HTTP_STATUS.SERVICE_UNAVAILABLE;
+
+    return ApiResponse.success(res, {
+      statusCode,
+      message: readiness.status === 'ready' ? 'Server is ready' : 'Server is not ready',
+      data: readiness
+    });
+  }
 }

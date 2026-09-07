@@ -7,7 +7,11 @@ import { useTicketStore } from '@/stores/ticket.store';
 import { useSprintStore } from '@/stores/sprint.store';
 import { useActivityStore } from '@/stores/activity.store';
 
+import { useUiStore } from '@/stores/ui.store';
+import SessionExpiredModal from '@/components/ui/SessionExpiredModal.vue';
+
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
 const sprintStore = useSprintStore();
@@ -42,7 +46,17 @@ onMounted(async () => {
 
 <template>
   <div id="projectpilot-root">
+    <!-- Top Route & Data Hydration Progress Loader Bar -->
+    <div
+      v-if="uiStore.isNavigating || projectStore.loading || ticketStore.loading"
+      class="top-progress-bar"
+      role="progressbar"
+      aria-label="Loading page content"
+    >
+      <div class="progress-indicator"></div>
+    </div>
     <RouterView />
+    <SessionExpiredModal />
   </div>
 </template>
 
@@ -54,5 +68,37 @@ onMounted(async () => {
   flex-direction: column;
   background-color: var(--bg-app);
   overflow: hidden;
+  position: relative;
+}
+
+.top-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 999999;
+  background-color: rgba(99, 102, 241, 0.15);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.progress-indicator {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #818cf8, #a5b4fc);
+  animation: indeterminateProgress 1.2s infinite ease-in-out;
+  transform-origin: 0% 50%;
+}
+
+@keyframes indeterminateProgress {
+  0% {
+    transform: translateX(-100%) scaleX(0.2);
+  }
+  50% {
+    transform: translateX(0%) scaleX(0.5);
+  }
+  100% {
+    transform: translateX(100%) scaleX(1);
+  }
 }
 </style>

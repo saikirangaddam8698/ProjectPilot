@@ -56,92 +56,94 @@ function getAvatarBgColor(key) {
 </script>
 
 <template>
-  <div v-if="!project">
-    <ProjectNotFound />
-  </div>
-
-  <div v-else class="workspace-container">
-    <!-- Breadcrumb & Workspace Header -->
-    <div class="workspace-header-card">
-      <div class="header-nav-top">
-        <router-link to="/projects" class="back-link">
-          <AppIcon name="chevron-left" :size="14" />
-          <span>All Projects</span>
-        </router-link>
-      </div>
-
-      <div class="project-identity-row">
-        <div class="identity-left">
-          <div class="project-icon-badge" :style="{ backgroundColor: getAvatarBgColor(project.key) }">
-            {{ project.key.slice(0, 3) }}
-          </div>
-
-          <div class="identity-text">
-            <div class="name-badge-row">
-              <h2 class="project-title">{{ project.name }}</h2>
-              <span class="project-key-tag mono">{{ project.key }}</span>
-              <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
-                {{ project.status === 'active' ? 'Active Sprint' : 'Planning' }}
-              </BaseBadge>
-            </div>
-            <p class="project-desc">{{ project.description }}</p>
-          </div>
-        </div>
-
-        <div class="identity-right">
-          <!-- Project Lead -->
-          <div class="meta-pill" title="Project Lead">
-            <div class="meta-avatar">{{ project.lead.avatar }}</div>
-            <div class="meta-info">
-              <span class="meta-name">{{ project.lead.name }}</span>
-              <span class="meta-label text-muted">Project Lead</span>
-            </div>
-          </div>
-
-          <!-- Member Stack -->
-          <div class="member-avatar-stack" :title="`${project.members.length} active project members`">
-            <div
-              v-for="(member, idx) in project.members.slice(0, 4)"
-              :key="member.id"
-              class="stacked-avatar"
-              :style="{ zIndex: 10 - idx }"
-            >
-              {{ member.avatar }}
-            </div>
-            <div v-if="project.members.length > 4" class="stacked-avatar overflow-count">
-              +{{ project.members.length - 4 }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab Navigation Bar -->
-      <nav class="project-tabs-nav" aria-label="Project Sections">
-        <router-link
-          v-for="tab in PROJECT_TABS"
-          :key="tab.id"
-          :to="`/projects/${project.key}/${tab.pathSuffix}`"
-          class="tab-link"
-          :class="{ 'is-active': isTabActive(tab.pathSuffix) }"
-        >
-          <AppIcon :name="tab.icon" :size="15" />
-          <span>{{ tab.name }}</span>
-          <span v-if="tab.id === 'tickets'" class="tab-count-badge">
-            {{ ticketStore.getTicketsByProject(project.key).length }}
-          </span>
-          <span v-else-if="tab.id === 'backlog'" class="tab-count-badge">
-            {{ ticketStore.getBacklogTickets(project.key).length }}
-          </span>
-          <span v-else-if="tab.id === 'sprints'" class="tab-count-badge">
-            {{ sprintStore.getSprintsByProject(project.key).length }}
-          </span>
-        </router-link>
-      </nav>
+  <div class="project-workspace-page">
+    <div v-if="!project">
+      <ProjectNotFound />
     </div>
 
-    <!-- Nested Project Route View -->
-    <div class="workspace-body">
-      <router-view :project="project" />
+    <div v-else class="workspace-container">
+      <!-- Breadcrumb & Workspace Header -->
+      <div class="workspace-header-card">
+        <div class="header-nav-top">
+          <router-link to="/projects" class="back-link">
+            <AppIcon name="chevron-left" :size="14" />
+            <span>All Projects</span>
+          </router-link>
+        </div>
+
+        <div class="project-identity-row">
+          <div class="identity-left">
+            <div class="project-icon-badge" :style="{ backgroundColor: getAvatarBgColor(project.key) }">
+              {{ project.key.slice(0, 3) }}
+            </div>
+
+            <div class="identity-text">
+              <div class="name-badge-row">
+                <h2 class="project-title">{{ project.name }}</h2>
+                <span class="project-key-tag mono">{{ project.key }}</span>
+                <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
+                  {{ project.status === 'active' ? 'Active Sprint' : 'Planning' }}
+                </BaseBadge>
+              </div>
+              <p class="project-desc">{{ project.description }}</p>
+            </div>
+          </div>
+
+          <div class="identity-right">
+            <!-- Project Lead -->
+            <div class="meta-pill" title="Project Lead">
+              <div class="meta-avatar">{{ project.lead.avatar }}</div>
+              <div class="meta-info">
+                <span class="meta-name">{{ project.lead.name }}</span>
+                <span class="meta-label text-muted">Project Lead</span>
+              </div>
+            </div>
+
+            <!-- Member Stack -->
+            <div class="member-avatar-stack" :title="`${project.members.length} active project members`">
+              <div
+                v-for="(member, idx) in project.members.slice(0, 4)"
+                :key="member.id"
+                class="stacked-avatar"
+                :style="{ zIndex: 10 - idx }"
+              >
+                {{ member.avatar }}
+              </div>
+              <div v-if="project.members.length > 4" class="stacked-avatar overflow-count">
+                +{{ project.members.length - 4 }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Navigation Bar -->
+        <nav class="project-tabs-nav" aria-label="Project Sections">
+          <router-link
+            v-for="tab in PROJECT_TABS"
+            :key="tab.id"
+            :to="`/projects/${project.key}/${tab.pathSuffix}`"
+            class="tab-link"
+            :class="{ 'is-active': isTabActive(tab.pathSuffix) }"
+          >
+            <AppIcon :name="tab.icon" :size="15" />
+            <span>{{ tab.name }}</span>
+            <span v-if="tab.id === 'tickets'" class="tab-count-badge">
+              {{ ticketStore.getTicketsByProject(project.key).length }}
+            </span>
+            <span v-else-if="tab.id === 'backlog'" class="tab-count-badge">
+              {{ ticketStore.getBacklogTickets(project.key).length }}
+            </span>
+            <span v-else-if="tab.id === 'sprints'" class="tab-count-badge">
+              {{ sprintStore.getSprintsByProject(project.key).length }}
+            </span>
+          </router-link>
+        </nav>
+      </div>
+
+      <!-- Nested Project Route View -->
+      <div class="workspace-body">
+        <router-view :project="project" />
+      </div>
     </div>
   </div>
 </template>

@@ -55,6 +55,10 @@ export class ApiError extends Error {
     return new ApiError(HTTP_STATUS.TOO_MANY_REQUESTS, message, ERROR_CODES.RATE_LIMIT_EXCEEDED, details);
   }
 
+  static tooManyRequests(message = 'Too Many Requests', details = null) {
+    return this.rateLimit(message, details);
+  }
+
   static internal(message = 'Internal Server Error', details = null) {
     return new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, message, ERROR_CODES.INTERNAL_SERVER_ERROR, details, false);
   }
