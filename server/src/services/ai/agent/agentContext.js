@@ -61,27 +61,55 @@ export function appendModelTurn(contents, geminiResult, functionCalls) {
 }
 
 /**
- * Append a function response turn to the contents array.
- * Only the data Gemini needs is included — raw DB results are summarized.
+ * Append function response turn(s) to the contents array.
+ * If multiple tool calls occurred in a single model turn, all functionResponse parts
+ * are grouped into a single user turn as required by Gemini API schema.
+ *
  * @param {Array<object>} contents - Mutable contents array
- * @param {string} toolName - The tool name
- * @param {object} toolResult - The tool execution result
+ * @param {Array<{name: string, result: object}>|string} toolResponsesOrName
+ * @param {object} [toolResult]
  */
-export function appendFunctionResponse(contents, toolName, toolResult) {
-  // Sanitize: remove any internal error stacks and sensitive fields before feeding back to Gemini
-  const safeResult = sanitizeForGemini(toolResult);
+export function appendFunctionResponses(contents, toolResponses) {
+  if (!Array.isArray(toolResponses) || toolResponses.length === 0) return;
+
+  const parts = toolResponses.map((tr) => ({
+    functionResponse: {
+      name: tr.name,
+      response: { result: sanitizeForGemini(tr.result) }
+    }
+  }));
 
   contents.push({
     role: 'user',
-    parts: [
-      {
-        functionResponse: {
-          name: toolName,
-          response: { result: safeResult }
-        }
-      }
-    ]
+    parts
   });
+}
+
+export function appendFunctionResponse(contents, toolName, toolResult) {
+  const safeResult = sanitizeForGemini(toolResult);
+  const lastTurn = contents[contents.length - 1];
+
+  // If the last turn is already a function response user turn, append the part to it
+  if (lastTurn && lastTurn.role === 'user' && lastTurn.parts && lastTurn.parts.some(p => p.functionResponse)) {
+    lastTurn.parts.push({
+      functionResponse: {
+        name: toolName,
+        response: { result: safeResult }
+      }
+    });
+  } else {
+    contents.push({
+      role: 'user',
+      parts: [
+        {
+          functionResponse: {
+            name: toolName,
+            response: { result: safeResult }
+          }
+        }
+      ]
+    });
+  }
 }
 
 /**

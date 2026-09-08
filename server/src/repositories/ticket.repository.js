@@ -77,12 +77,17 @@ export class TicketRepository {
     type,
     assigneeId,
     search,
-    isBacklog
+    isBacklog,
+    allowedProjectKeys
   } = {}) {
     const where = {};
 
     if (projectId) where.projectId = projectId;
-    if (projectKey && projectKey !== 'all') where.project = { key: projectKey.toUpperCase() };
+    if (projectKey && projectKey !== 'all') {
+      where.project = { key: projectKey.toUpperCase() };
+    } else if (Array.isArray(allowedProjectKeys)) {
+      where.project = { key: { in: allowedProjectKeys.map((k) => k.toUpperCase()) } };
+    }
     if (sprintId !== undefined) {
       if (sprintId === null || sprintId === 'backlog' || isBacklog) {
         where.sprintId = null;

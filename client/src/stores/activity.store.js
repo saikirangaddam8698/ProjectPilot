@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { useAuthStore } from './auth.store.js';
 import { activitiesApi } from '../services/api/index.js';
 
 export const CURRENT_DEMO_USER = {
@@ -146,7 +147,14 @@ export const useActivityStore = defineStore('activity', () => {
 
   // All activities sorted chronologically descending
   const allActivities = computed(() => {
-    return [...activities.value].sort(
+    const authStore = useAuthStore();
+    const currentUser = authStore.user;
+    let list = activities.value;
+    if (currentUser && !authStore.isAdmin) {
+      const userKeys = (currentUser.projectKeys || []).map((k) => k.toUpperCase());
+      list = list.filter((a) => a.projectKey && userKeys.includes(a.projectKey.toUpperCase()));
+    }
+    return [...list].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   });

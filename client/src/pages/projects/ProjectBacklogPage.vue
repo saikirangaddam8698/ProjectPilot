@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useSprintStore } from '@/stores/sprint.store';
 import { useTicketStore } from '@/stores/ticket.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BacklogGroup from '@/components/sprints/BacklogGroup.vue';
 import CreateSprintModal from '@/components/sprints/CreateSprintModal.vue';
 import CompleteSprintModal from '@/components/sprints/CompleteSprintModal.vue';
@@ -20,6 +21,7 @@ const props = defineProps({
 
 const sprintStore = useSprintStore();
 const ticketStore = useTicketStore();
+const authStore = useAuthStore();
 
 const searchQuery = ref('');
 const completingSprint = ref(null);
@@ -142,22 +144,28 @@ function handleCreateTicketInScope(sprintId) {
       </div>
 
       <div class="toolbar-right">
-        <BaseButton
-          variant="outline"
-          size="sm"
-          @click="sprintStore.openCreateModal(project.key)"
-        >
-          <template #prefix><AppIcon name="sprints" :size="14" /></template>
-          Plan Sprint
-        </BaseButton>
-        <BaseButton
-          variant="primary"
-          size="sm"
-          @click="ticketStore.openCreateModal(project.key)"
-        >
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Create Issue
-        </BaseButton>
+        <div :title="!authStore.canManageProject(project.key) ? 'Only Project Managers and Admins can plan sprints' : ''">
+          <BaseButton
+            variant="outline"
+            size="sm"
+            :disabled="!authStore.canManageProject(project.key)"
+            @click="sprintStore.openCreateModal(project.key)"
+          >
+            <template #prefix><AppIcon name="sprints" :size="14" /></template>
+            Plan Sprint
+          </BaseButton>
+        </div>
+        <div :title="authStore.isViewer ? 'Viewers cannot create issues' : ''">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="ticketStore.openCreateModal(project.key)"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            Create Issue
+          </BaseButton>
+        </div>
       </div>
     </div>
 

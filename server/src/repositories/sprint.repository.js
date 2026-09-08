@@ -7,10 +7,14 @@ export class SprintRepository {
   /**
    * Find all sprints with optional filters
    */
-  static async findAll({ projectId, projectKey, status } = {}) {
+  static async findAll({ projectId, projectKey, status, allowedProjectKeys } = {}) {
     const where = {};
     if (projectId) where.projectId = projectId;
-    if (projectKey) where.project = { key: projectKey.toUpperCase() };
+    if (projectKey && projectKey !== 'all') {
+      where.project = { key: projectKey.toUpperCase() };
+    } else if (Array.isArray(allowedProjectKeys)) {
+      where.project = { key: { in: allowedProjectKeys.map((k) => k.toUpperCase()) } };
+    }
     if (status && status !== 'all') where.status = status.toUpperCase();
 
     return prisma.sprint.findMany({
@@ -59,6 +63,41 @@ export class SprintRepository {
         projectId,
         status: 'ACTIVE'
       }
+    });
+  }
+
+  /**
+   * Find the active sprint for a project by projectKey, with its tickets and assignees.
+   * Optimized for AI tool use: single DB query, only fetches the ACTIVE sprint,
+   * avoids the N+1 pattern of findAll(all sprints) + findAll(all tickets) separately.
+   *
+   * @param {string} projectKey - Uppercase project key (e.g. 'PILOT')
+   * @returns {Promise<object|null>} Sprint with sprint.tickets[] included, or null if none
+   */
+  static async findActiveSprintWithTickets(projectKey) {
+    return prisma.sprint.findFirst({
+      where: {
+        project: { key: projectKey.toUpperCase() },
+        status: 'ACTIVE'
+      },
+      include: {
+        project: { select: { id: true, key: true, name: true } },
+        tickets: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+            status: true,
+            priority: true,
+            storyPoints: true,
+            sprintId: true,
+            assignee: { select: { id: true, name: true, role: true } }
+          },
+          orderBy: { rank: 'asc' }
+        },
+        _count: { select: { tickets: true } }
+      },
+      orderBy: { startDate: 'desc' }
     });
   }
 

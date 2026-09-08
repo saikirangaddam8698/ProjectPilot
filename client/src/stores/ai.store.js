@@ -71,21 +71,32 @@ export const useAiStore = defineStore('ai', () => {
     stopActivityCycle();
   }
 
+  let fetchPromise = null;
+
   /**
-   * Fetch conversation list for current project
+   * Fetch conversation list for current project with in-flight request deduplication
    */
-  async function fetchConversations(projectKey = selectedProjectKey.value) {
-    if (!projectKey) return;
+  async function fetchConversations(projectKey = selectedProjectKey.value, force = false) {
+    if (!projectKey) return [];
+    if (fetchPromise && !force) return fetchPromise;
+
     isLoadingConversations.value = true;
-    try {
-      const response = await aiApi.listConversations(projectKey);
-      const data = response?.data || response || [];
-      conversations.value = Array.isArray(data) ? data : [];
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err);
-    } finally {
-      isLoadingConversations.value = false;
-    }
+    fetchPromise = (async () => {
+      try {
+        const response = await aiApi.listConversations(projectKey);
+        const data = response?.data || response || [];
+        conversations.value = Array.isArray(data) ? data : [];
+        return conversations.value;
+      } catch (err) {
+        console.error('Failed to fetch conversations:', err);
+        return [];
+      } finally {
+        isLoadingConversations.value = false;
+        fetchPromise = null;
+      }
+    })();
+
+    return fetchPromise;
   }
 
   /**
@@ -102,7 +113,20 @@ export const useAiStore = defineStore('ai', () => {
       if (data.id) {
         activeConversationId.value = data.id;
         messages.value = data.messages || [];
-        await fetchConversations();
+        // Insert into local conversation list if not already present
+        const existingIdx = conversations.value.findIndex((c) => c.id === data.id);
+        if (existingIdx === -1) {
+          conversations.value.unshift({
+            id: data.id,
+            projectId: data.projectId,
+            projectKey: selectedProjectKey.value,
+            title: data.title || 'New AI Conversation',
+            messageCount: data.messages?.length || 0,
+            lastMessageAt: new Date().toISOString(),
+            createdAt: data.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
         return data;
       }
     } catch (err) {
@@ -112,10 +136,13 @@ export const useAiStore = defineStore('ai', () => {
   }
 
   /**
-   * Load messages for an existing conversation
+   * Load messages for an existing conversation (deduplicated: no refetch if already loaded)
    */
-  async function selectConversation(conversationId) {
+  async function selectConversation(conversationId, force = false) {
     if (!conversationId) return;
+    if (!force && activeConversationId.value === conversationId && messages.value.length > 0) {
+      return;
+    }
     activeConversationId.value = conversationId;
     isLoadingConversation.value = true;
     error.value = null;
@@ -150,7 +177,7 @@ export const useAiStore = defineStore('ai', () => {
   }
 
   /**
-   * Send a chat message (creates persistent conversation if none active)
+   * Send a chat message (optimistic UI update, creates persistent conversation if none active)
    */
   async function sendMessage(text) {
     const trimmed = (text || '').trim();
@@ -158,13 +185,7 @@ export const useAiStore = defineStore('ai', () => {
 
     error.value = null;
 
-    // If no active conversation, create one first
-    if (!activeConversationId.value) {
-      const newConv = await createNewConversation(trimmed);
-      return Boolean(newConv);
-    }
-
-    // Append optimistic user message
+    // 1. Immediately push optimistic user message to the UI
     const tempUserMsgId = `temp-user-${Date.now()}`;
     messages.value.push({
       id: tempUserMsgId,
@@ -173,10 +194,44 @@ export const useAiStore = defineStore('ai', () => {
       timestamp: new Date().toISOString()
     });
 
+    // 2. Immediately start generating animation and activity cycle
     isGenerating.value = true;
     startActivityCycle();
 
     try {
+      // If no active conversation, create one with initial message
+      if (!activeConversationId.value) {
+        const response = await aiApi.createConversation(selectedProjectKey.value, {
+          initialMessage: trimmed
+        });
+        const data = response?.data || response || {};
+
+        if (data.id) {
+          activeConversationId.value = data.id;
+          if (Array.isArray(data.messages) && data.messages.length > 0) {
+            messages.value = data.messages;
+          }
+          // Optimistically unshift into conversations list without an extra HTTP GET
+          const existingIdx = conversations.value.findIndex((c) => c.id === data.id);
+          if (existingIdx === -1) {
+            conversations.value.unshift({
+              id: data.id,
+              projectId: data.projectId,
+              projectKey: selectedProjectKey.value,
+              title: data.title || trimmed.slice(0, 35),
+              messageCount: data.messages?.length || 2,
+              lastMessageAt: new Date().toISOString(),
+              createdAt: data.createdAt || new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+          }
+          return true;
+        } else {
+          throw new Error('Failed to create new conversation session.');
+        }
+      }
+
+      // Existing conversation: send message
       const response = await aiApi.sendConversationMessage(
         selectedProjectKey.value,
         activeConversationId.value,
@@ -211,11 +266,16 @@ export const useAiStore = defineStore('ai', () => {
         });
       }
 
-      // Refresh conversation list titles/timestamps
-      fetchConversations();
+      // Update active conversation in local list without an extra HTTP call
+      const activeConv = conversations.value.find((c) => c.id === activeConversationId.value);
+      if (activeConv) {
+        activeConv.lastMessageAt = new Date().toISOString();
+        activeConv.messageCount = messages.value.length;
+      }
       return true;
     } catch (err) {
       error.value = err.message || 'Failed to generate AI response. Please try again.';
+      // If failed on new conversation with only the temp message, remove it or keep for retry
       return false;
     } finally {
       isGenerating.value = false;

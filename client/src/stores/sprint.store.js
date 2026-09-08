@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useTicketStore } from './ticket.store.js';
 import { useActivityStore } from './activity.store.js';
+import { useAuthStore } from './auth.store.js';
 import { sprintsApi } from '../services/api/index.js';
 
 const INITIAL_SPRINTS = [
@@ -106,7 +107,18 @@ export const useSprintStore = defineStore('sprint', () => {
   const error = ref(null);
   const isInitialized = ref(false);
 
-  const allSprints = computed(() => sprints.value);
+  const rawSprints = computed(() => sprints.value);
+
+  // Accessible sprints scoped to the logged-in user (or all sprints if ADMIN)
+  const allSprints = computed(() => {
+    const authStore = useAuthStore();
+    const currentUser = authStore.user;
+    if (!currentUser || authStore.isAdmin) {
+      return sprints.value;
+    }
+    const userKeys = (currentUser.projectKeys || []).map((k) => k.toUpperCase());
+    return sprints.value.filter((s) => s.projectKey && userKeys.includes(s.projectKey.toUpperCase()));
+  });
 
   // Async API Actions
   async function fetchSprints(params = {}) {
@@ -127,13 +139,13 @@ export const useSprintStore = defineStore('sprint', () => {
   }
 
   function getSprintsByProject(projectKey) {
-    if (!projectKey || projectKey === 'all') return sprints.value;
-    return sprints.value.filter((s) => s.projectKey?.toUpperCase() === projectKey.toUpperCase());
+    if (!projectKey || projectKey === 'all') return allSprints.value;
+    return allSprints.value.filter((s) => s.projectKey?.toUpperCase() === projectKey.toUpperCase());
   }
 
   function getSprintById(id) {
     if (!id) return null;
-    return sprints.value.find((s) => s.id === id) || null;
+    return allSprints.value.find((s) => s.id === id) || null;
   }
 
   function getActiveSprint(projectKey) {

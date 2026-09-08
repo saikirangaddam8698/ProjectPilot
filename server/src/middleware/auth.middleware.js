@@ -3,6 +3,7 @@
  */
 import { verifyAuthToken } from '../utils/token.js';
 import { AuthService } from '../services/auth.service.js';
+import { SprintRepository } from '../repositories/sprint.repository.js';
 import { ApiError } from '../utils/apiError.js';
 import { config } from '../config/index.js';
 
@@ -44,7 +45,7 @@ export const authenticate = async (req, res, next) => {
     const user = await AuthService.getCurrentUser(decoded.id, decoded.role);
     if (!user) {
       res.clearCookie(config.auth.cookieName, { path: '/' });
-      throw ApiError.unauthorized('Authenticated user not found or inactive');
+      throw ApiError.unauthorized('Authenticated user session not found');
     }
 
     // Attach to request context
@@ -78,55 +79,97 @@ export const requireRole = (...allowedRoles) => {
 };
 
 /**
+ * Check if a user has access to a project workspace and meets optional role requirement
+ * @throws {ApiError} If user is unauthorized or forbidden
+ */
+export const checkUserProjectAccess = (user, projectKey, minProjectRole = null) => {
+  if (!user) {
+    throw ApiError.unauthorized('Authentication required');
+  }
+
+  // Global ADMIN always has superuser access across all projects
+  if (user.role === 'ADMIN') {
+    return true;
+  }
+
+  const pKey = (projectKey || '').trim().toUpperCase();
+  if (!pKey) {
+    throw ApiError.badRequest('Project workspace parameter is required.');
+  }
+
+  const membership = (user.projectMemberships || []).find(
+    (pm) => pm.projectKey?.toUpperCase() === pKey
+  );
+
+  if (!membership) {
+    throw ApiError.forbidden(`Forbidden: You are not a member of project workspace "${pKey}"`);
+  }
+
+  // Check project-specific role if specified
+  if (minProjectRole) {
+    const userProjectRole = membership.projectRole;
+    const isProjectAdmin = userProjectRole === 'Project Admin' || userProjectRole === 'Lead';
+
+    if (!isProjectAdmin && userProjectRole !== minProjectRole) {
+      throw ApiError.forbidden(
+        `Forbidden: Action requires "${minProjectRole}" role in project "${pKey}". Your project role is "${userProjectRole}"`
+      );
+    }
+  }
+
+  return true;
+};
+
+/**
  * Enforce Project-level membership and optional project role
  * e.g., requireProjectAccess('Project Admin')
  */
 export const requireProjectAccess = (minProjectRole = null) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return next(ApiError.unauthorized('Authentication required'));
-    }
-
-    // Global ADMIN always has superuser access across all projects
-    if (req.user.role === 'ADMIN') {
-      return next();
-    }
-
-    const projectKey = (
-      req.params.projectKey ||
-      req.body.projectKey ||
-      req.query.projectKey ||
-      ''
-    ).toUpperCase();
-
-    if (!projectKey) {
-      return next();
-    }
-
-    const membership = (req.user.projectMemberships || []).find(
-      (pm) => pm.projectKey?.toUpperCase() === projectKey
-    );
-
-    if (!membership) {
-      return next(
-        ApiError.forbidden(`Forbidden: You are not a member of project workspace "${projectKey}"`)
-      );
-    }
-
-    // Check project-specific role if specified
-    if (minProjectRole) {
-      const userProjectRole = membership.projectRole;
-      const isProjectAdmin = userProjectRole === 'Project Admin' || userProjectRole === 'Lead';
-
-      if (!isProjectAdmin && userProjectRole !== minProjectRole) {
-        return next(
-          ApiError.forbidden(
-            `Forbidden: Action requires "${minProjectRole}" role in project "${projectKey}". Your project role is "${userProjectRole}"`
-          )
-        );
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return next(ApiError.unauthorized('Authentication required'));
       }
-    }
 
-    next();
+      // Global ADMIN always has superuser access across all projects
+      if (req.user.role === 'ADMIN') {
+        return next();
+      }
+
+      let projectKey = (
+        req.params.projectKey ||
+        req.body?.projectKey ||
+        req.query?.projectKey ||
+        ''
+      ).trim().toUpperCase();
+
+      // If not directly present in params/body/query, check if ticketKey is in params (e.g. PILOT-104)
+      if (!projectKey && req.params.ticketKey) {
+        const parts = req.params.ticketKey.split('-');
+        if (parts.length >= 2) {
+          projectKey = parts[0].toUpperCase();
+        }
+      }
+
+      // If not directly present, check if sprintId is in params (e.g. sprint-infra-12)
+      if (!projectKey && req.params.sprintId) {
+        const sprint = await SprintRepository.findById(req.params.sprintId);
+        if (!sprint) {
+          return next(ApiError.notFound(`Sprint "${req.params.sprintId}" not found`));
+        }
+        projectKey = sprint.project?.key?.toUpperCase();
+      }
+
+      if (!projectKey) {
+        return next(ApiError.badRequest('Project workspace parameter is required.'));
+      }
+
+      checkUserProjectAccess(req.user, projectKey, minProjectRole);
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 };
+
+

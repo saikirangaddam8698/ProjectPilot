@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useProjectStore } from '@/stores/project.store';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useSprintStore } from '@/stores/sprint.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -15,13 +16,10 @@ import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
 const sprintStore = useSprintStore();
+const authStore = useAuthStore();
 
-const isInitialLoading = computed(() => {
-  return projectStore.isLoading && projectStore.allProjects.length === 0;
-});
-
-const isTicketsLoading = computed(() => {
-  return ticketStore.isLoading && ticketStore.allTickets.length === 0;
+const isDashboardLoading = computed(() => {
+  return projectStore.isLoading || ticketStore.isLoading || sprintStore.isLoading;
 });
 
 const hasServiceError = computed(() => {
@@ -39,8 +37,11 @@ const serviceErrorMessage = computed(() => {
 
 const totalProjects = computed(() => projectStore.allProjects.length);
 const activeProjects = computed(() => projectStore.allProjects.filter((p) => p.status === 'active'));
-const pilotProject = computed(() => projectStore.getProjectByKey('PILOT') || projectStore.allProjects[0]);
-const pilotActiveSprint = computed(() => sprintStore.getActiveSprint('PILOT'));
+const pilotProject = computed(() => projectStore.activeProject || projectStore.allProjects[0] || null);
+const pilotActiveSprint = computed(() => {
+  if (!pilotProject.value) return null;
+  return sprintStore.getActiveSprint(pilotProject.value.key);
+});
 const pilotSprintStats = computed(() => {
   if (!pilotActiveSprint.value) return null;
   return sprintStore.getSprintStats(pilotActiveSprint.value.id);
@@ -75,6 +76,7 @@ function openTicket(ticketKey) {
 }
 
 function openCreateTicketModal() {
+  if (authStore.isViewer) return;
   ticketStore.openCreateModal('PILOT');
 }
 </script>
@@ -92,22 +94,29 @@ function openCreateTicketModal() {
           <template #prefix><AppIcon name="projects" :size="14" /></template>
           View Projects ({{ totalProjects }})
         </BaseButton>
-        <BaseButton variant="primary" size="sm" @click="openCreateTicketModal">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          New Ticket
-        </BaseButton>
+        <div :title="authStore.isViewer ? 'You do not have permission to create tickets (Requires DEVELOPER or higher role)' : ''">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="openCreateTicketModal"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            New Ticket
+          </BaseButton>
+        </div>
       </div>
     </div>
 
     <!-- Service / Database Error Banner -->
     <ServiceUnavailableBanner
-      v-if="hasServiceError && !isInitialLoading"
+      v-if="hasServiceError && !isDashboardLoading"
       :message="serviceErrorMessage"
       @retry="handleRetry"
     />
 
     <!-- Quick Stats Grid (Skeleton vs Loaded Data) -->
-    <KpiSkeleton v-if="isInitialLoading || isTicketsLoading" :count="4" />
+    <KpiSkeleton v-if="isDashboardLoading" :count="4" />
     <div v-else class="stats-grid">
       <div class="stat-card">
         <div class="stat-header">
@@ -161,7 +170,7 @@ function openCreateTicketModal() {
     <!-- Main Content Panels -->
     <div class="panels-grid">
       <!-- Active Sprint Snapshot from PILOT Project -->
-      <div v-if="isTicketsLoading" class="content-panel">
+      <div v-if="isDashboardLoading" class="content-panel">
         <div class="panel-header">
           <h3 class="panel-title">Loading Workspace Sprints...</h3>
         </div>

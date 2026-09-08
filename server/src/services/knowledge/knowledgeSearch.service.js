@@ -56,15 +56,26 @@ export class KnowledgeSearchService {
     let queryVector;
     try {
       queryVector = await EmbeddingService.generateEmbedding(normalizedQuery, 768);
+      if (!queryVector || !Array.isArray(queryVector)) {
+        return {
+          projectKey: pKey,
+          query: normalizedQuery,
+          hasResults: false,
+          results: [],
+          count: 0,
+          status: 'unavailable',
+          message: 'The RAG search service is currently unavailable.'
+        };
+      }
     } catch (embErr) {
-      console.error('[RAG Search Error] Embedding service failed:', embErr.message);
+      console.warn('[RAG Search Warning] Embedding service unavailable:', embErr.message);
       return {
         projectKey: pKey,
         query: normalizedQuery,
         hasResults: false,
-        status: 'unavailable',
         results: [],
         count: 0,
+        status: 'unavailable',
         message: 'The RAG search service is currently unavailable.'
       };
     }
@@ -78,14 +89,14 @@ export class KnowledgeSearchService {
         limit: Math.max(targetLimit * 3, 15)
       });
     } catch (dbErr) {
-      console.error('[RAG Search Error] Database vector query failed:', dbErr.message);
+      console.warn('[RAG Search Warning] Database vector query failed:', dbErr.message);
       return {
         projectKey: pKey,
         query: normalizedQuery,
         hasResults: false,
-        status: 'unavailable',
         results: [],
         count: 0,
+        status: 'unavailable',
         message: 'The RAG search service is currently unavailable.'
       };
     }

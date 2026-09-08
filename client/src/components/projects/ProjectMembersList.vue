@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -29,6 +30,7 @@ const props = defineProps({
 });
 
 const ticketStore = useTicketStore();
+const authStore = useAuthStore();
 
 const effectiveProjectKey = computed(() => props.project?.key || '');
 const effectiveMembers = computed(() => {
@@ -105,15 +107,20 @@ function getRoleBadgeVariant(role) {
         <span class="text-muted members-subtext">Assigned developers, reviewers, and project leads</span>
       </div>
 
-      <BaseButton
+      <div
         v-if="showAddButton && effectiveProjectKey"
-        variant="outline"
-        size="xs"
-        @click="isAddModalOpen = true"
+        :title="!authStore.canManageProject(effectiveProjectKey) ? 'Only Project Managers and Admins can add team members' : ''"
       >
-        <template #prefix><AppIcon name="plus" :size="12" /></template>
-        Add Member
-      </BaseButton>
+        <BaseButton
+          variant="outline"
+          size="xs"
+          :disabled="!authStore.canManageProject(effectiveProjectKey)"
+          @click="isAddModalOpen = true"
+        >
+          <template #prefix><AppIcon name="plus" :size="12" /></template>
+          Add Member
+        </BaseButton>
+      </div>
     </div>
 
     <!-- Fixed Overlay Toast -->
@@ -167,6 +174,7 @@ function getRoleBadgeVariant(role) {
         </div>
 
         <button
+          v-if="authStore.canManageProject(effectiveProjectKey)"
           type="button"
           class="btn-remove-icon"
           title="Remove from project"

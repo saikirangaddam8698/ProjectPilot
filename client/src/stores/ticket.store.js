@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useActivityStore } from './activity.store.js';
+import { useAuthStore } from './auth.store.js';
 import { ticketsApi } from '../services/api/index.js';
 
 const INITIAL_TICKETS = [
@@ -349,7 +350,18 @@ export const useTicketStore = defineStore('ticket', () => {
   const sprintFilter = ref('all');
 
   // Computed / Getters
-  const allTickets = computed(() => tickets.value);
+  const rawTickets = computed(() => tickets.value);
+
+  // Accessible tickets scoped to the logged-in user (or all tickets if ADMIN)
+  const allTickets = computed(() => {
+    const authStore = useAuthStore();
+    const currentUser = authStore.user;
+    if (!currentUser || authStore.isAdmin) {
+      return tickets.value;
+    }
+    const userKeys = (currentUser.projectKeys || []).map((k) => k.toUpperCase());
+    return tickets.value.filter((t) => t.projectKey && userKeys.includes(t.projectKey.toUpperCase()));
+  });
 
   const activeTicket = computed(() => {
     if (!activeTicketKey.value) return null;
@@ -376,12 +388,26 @@ export const useTicketStore = defineStore('ticket', () => {
 
   function getTicketByKey(key) {
     if (!key) return null;
-    return tickets.value.find((t) => t.key.toUpperCase() === key.toUpperCase()) || null;
+    const rawKey = typeof key === 'string' ? key : (key?.key || String(key));
+    if (!rawKey || typeof rawKey !== 'string') return null;
+    const searchKey = rawKey.trim().toUpperCase();
+    return allTickets.value.find((t) => t?.key && String(t.key).trim().toUpperCase() === searchKey) || null;
+  }
+
+  function getTicketById(id) {
+    if (!id) return null;
+    const rawId = typeof id === 'string' ? id : (id?.id || id?.key || String(id));
+    const searchId = String(rawId).trim();
+    const searchIdUpper = searchId.toUpperCase();
+    return allTickets.value.find((t) => 
+      (t?.id && String(t.id).trim() === searchId) ||
+      (t?.key && String(t.key).trim().toUpperCase() === searchIdUpper)
+    ) || null;
   }
 
   function getTicketsByProject(projectKey) {
-    if (!projectKey || projectKey === 'all') return tickets.value;
-    return tickets.value.filter((t) => t.projectKey.toUpperCase() === projectKey.toUpperCase());
+    if (!projectKey || projectKey === 'all') return allTickets.value;
+    return allTickets.value.filter((t) => t.projectKey?.toUpperCase() === projectKey.toUpperCase());
   }
 
   function getTicketsByStatus(projectKey, status) {
@@ -391,7 +417,7 @@ export const useTicketStore = defineStore('ticket', () => {
 
   function getSprintTickets(sprintId) {
     if (!sprintId) return [];
-    return tickets.value.filter((t) => t.sprintId === sprintId);
+    return allTickets.value.filter((t) => t.sprintId === sprintId);
   }
 
   function getBacklogTickets(projectKey) {
@@ -484,7 +510,9 @@ export const useTicketStore = defineStore('ticket', () => {
   }
 
   function openTicketDetail(ticketKey) {
-    activeTicketKey.value = ticketKey;
+    if (!ticketKey) return;
+    const resolvedKey = typeof ticketKey === 'string' ? ticketKey : (ticketKey?.key || null);
+    activeTicketKey.value = resolvedKey;
   }
 
   function closeTicketDetail() {
@@ -884,6 +912,7 @@ export const useTicketStore = defineStore('ticket', () => {
     activeTicket,
     fetchTickets,
     getTicketByKey,
+    getTicketById,
     getTicketsByProject,
     getTicketsByStatus,
     getSprintTickets,

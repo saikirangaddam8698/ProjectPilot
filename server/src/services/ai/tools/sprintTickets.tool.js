@@ -36,11 +36,37 @@ export const sprintTicketsTool = {
     const maxLimit = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 50);
 
     let targetSprint = null;
+    let sprintTickets = [];
+
     if (sprintId) {
       targetSprint = await SprintRepository.findById(sprintId);
+      if (targetSprint && targetSprint.project?.key?.toUpperCase() !== key) {
+        return {
+          projectKey: key,
+          sprintId,
+          sprintName: null,
+          tickets: [],
+          message: `Sprint "${sprintId}" does not belong to project "${key}".`
+        };
+      }
+      if (targetSprint) {
+        sprintTickets = Array.isArray(targetSprint.tickets)
+          ? targetSprint.tickets
+          : await TicketRepository.findAll({ sprintId: targetSprint.id });
+      }
     } else {
-      const sprints = await SprintRepository.findAll({ projectKey: key });
-      targetSprint = sprints.find((s) => s.status === 'ACTIVE') || sprints[0] || null;
+      targetSprint = await SprintRepository.findActiveSprintWithTickets(key);
+      if (targetSprint) {
+        sprintTickets = Array.isArray(targetSprint.tickets) ? targetSprint.tickets : [];
+      } else {
+        const sprints = await SprintRepository.findAll({ projectKey: key });
+        targetSprint = sprints.find((s) => s.status === 'ACTIVE') || sprints[0] || null;
+        if (targetSprint) {
+          sprintTickets = Array.isArray(targetSprint.tickets)
+            ? targetSprint.tickets
+            : await TicketRepository.findAll({ sprintId: targetSprint.id });
+        }
+      }
     }
 
     if (!targetSprint) {
@@ -52,9 +78,6 @@ export const sprintTicketsTool = {
         message: `No sprint found for project "${key}".`
       };
     }
-
-    const allTickets = await TicketRepository.findAll({ projectKey: key });
-    let sprintTickets = allTickets.filter((t) => t.sprintId === targetSprint.id);
 
     if (status) {
       const s = status.toLowerCase();

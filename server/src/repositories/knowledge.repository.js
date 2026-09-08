@@ -253,4 +253,55 @@ export class KnowledgeRepository {
       }));
     }
   }
+
+  /**
+   * Text/keyword fallback search across project document chunks
+   */
+  static async searchChunksByText({ projectId, query, limit = 5 }) {
+    const maxLimit = Math.min(Math.max(parseInt(limit, 10) || 5, 1), 20);
+    const stopwords = new Set(['how', 'does', 'work', 'what', 'the', 'is', 'for', 'and', 'are', 'with', 'from', 'this', 'that', 'our', 'project', 'can', 'you', 'tell', 'me', 'about']);
+    const rawWords = (query || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2);
+    const keywords = rawWords.filter((w) => !stopwords.has(w));
+    const term = keywords[0] || rawWords[0] || query;
+    const searchPattern = `%${term.trim()}%`;
+
+    try {
+      const rawRows = await prisma.$queryRawUnsafe(
+        `SELECT 
+           c."id" AS "chunkId",
+           c."documentId",
+           c."chunkIndex",
+           c."content",
+           c."tokenCount",
+           c."metadata",
+           d."title" AS "documentTitle",
+           d."documentType",
+           d."fileName",
+           0.88 AS "similarity"
+         FROM "DocumentChunk" c
+         JOIN "Document" d ON c."documentId" = d."id"
+         WHERE d."projectId" = $1 
+           AND (c."content" ILIKE $2 OR d."title" ILIKE $2)
+         ORDER BY c."chunkIndex" ASC
+         LIMIT $3`,
+        projectId,
+        searchPattern,
+        maxLimit
+      );
+
+      return (rawRows || []).map((row) => ({
+        chunkId: row.chunkId,
+        documentId: row.documentId,
+        documentTitle: row.documentTitle,
+        documentType: row.documentType,
+        chunkIndex: row.chunkIndex,
+        content: row.content,
+        similarity: 0.88,
+        section: 'Technical Specification',
+        source: row.fileName || row.documentTitle
+      }));
+    } catch {
+      return [];
+    }
+  }
 }

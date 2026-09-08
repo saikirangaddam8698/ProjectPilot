@@ -234,6 +234,26 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
+  // Project Workspace Membership Guard
+  const targetProjectKey = to.params?.projectKey;
+  if (targetProjectKey && authStore.isAuthenticated && !authStore.isAdmin) {
+    const hasAccess = authStore.hasProjectAccess(targetProjectKey);
+    if (!hasAccess) {
+      uiStore.setNavigating(false);
+      authStore.showAccessDenied({
+        title: 'Project Access Restricted',
+        message: `You are not assigned to project workspace "${targetProjectKey}". Only project team members or Administrators can access this board and workspace.`,
+        requiredRole: 'Project Member',
+        action: `Access project ${targetProjectKey}`
+      });
+
+      if (from.name && from.path !== to.path) {
+        return next(false);
+      }
+      return next({ path: '/projects' });
+    }
+  }
+
   next();
 });
 

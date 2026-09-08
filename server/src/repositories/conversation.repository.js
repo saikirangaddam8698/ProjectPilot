@@ -24,15 +24,12 @@ export class ConversationRepository {
   }
 
   /**
-   * Find conversations for a project
+   * Find conversations for a project (strictly isolated by user)
    */
   static async findConversationsByProject({ projectId, userId, limit = 50, offset = 0 }) {
     const where = { projectId };
     if (userId) {
-      where.OR = [
-        { createdById: userId },
-        { createdById: null }
-      ];
+      where.createdById = userId;
     }
 
     return prisma.conversation.findMany({
@@ -51,14 +48,19 @@ export class ConversationRepository {
   }
 
   /**
-   * Find single conversation by ID and project ID
+   * Find single conversation by ID, project ID, and optional owner userId
    */
-  static async findConversationById({ conversationId, projectId }) {
+  static async findConversationById({ conversationId, projectId, userId }) {
+    const where = {
+      id: conversationId,
+      projectId
+    };
+    if (userId) {
+      where.createdById = userId;
+    }
+
     return prisma.conversation.findFirst({
-      where: {
-        id: conversationId,
-        projectId
-      },
+      where,
       include: {
         messages: {
           orderBy: { createdAt: 'asc' }
@@ -78,14 +80,19 @@ export class ConversationRepository {
   }
 
   /**
-   * Delete conversation
+   * Delete conversation (strictly isolated by owner userId)
    */
-  static async deleteConversation({ conversationId, projectId }) {
+  static async deleteConversation({ conversationId, projectId, userId }) {
+    const where = {
+      id: conversationId,
+      projectId
+    };
+    if (userId) {
+      where.createdById = userId;
+    }
+
     return prisma.conversation.deleteMany({
-      where: {
-        id: conversationId,
-        projectId
-      }
+      where
     });
   }
 

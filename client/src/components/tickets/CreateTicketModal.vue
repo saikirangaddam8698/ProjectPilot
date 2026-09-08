@@ -65,7 +65,10 @@ watch(
   () => props.modelValue,
   (isOpen) => {
     if (isOpen) {
-      const targetKey = props.projectKey || ticketStore.createModalProjectKey || 'PILOT';
+      const defaultKey = projectStore.activeProject?.key || projectStore.allProjects[0]?.key || 'PILOT';
+      const candidateKey = props.projectKey || ticketStore.createModalProjectKey || defaultKey;
+      const isCandidateAccessible = projectStore.allProjects.some((p) => p.key.toUpperCase() === candidateKey.toUpperCase());
+      const targetKey = isCandidateAccessible ? candidateKey : defaultKey;
       selectedProjectKey.value = targetKey;
 
       const project = projectStore.getProjectByKey(targetKey);

@@ -7,10 +7,21 @@ export class ProjectRepository {
   /**
    * Find all projects with optional filtering
    */
-  static async findAll({ status, search } = {}) {
+  static async findAll({ status, search, memberId, projectKeys } = {}) {
     const where = {};
     if (status && status !== 'all') {
       where.status = status.toUpperCase();
+    }
+    if (memberId) {
+      where.members = {
+        some: {
+          memberId
+        }
+      };
+    } else if (Array.isArray(projectKeys) && projectKeys.length > 0) {
+      where.key = {
+        in: projectKeys.map((k) => k.toUpperCase())
+      };
     }
     if (search) {
       where.OR = [
@@ -96,6 +107,29 @@ export class ProjectRepository {
             status: true,
             priority: true,
             storyPoints: true
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Find project basic metadata and memberships by key
+   * Optimized for RBAC checks, access guards, and routing without heavy relational overhead
+   */
+  static async findBasicByKey(key) {
+    if (!key) return null;
+    return prisma.project.findUnique({
+      where: { key: key.toUpperCase() },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        status: true,
+        members: {
+          select: {
+            memberId: true,
+            role: true
           }
         }
       }

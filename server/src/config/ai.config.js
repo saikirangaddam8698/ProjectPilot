@@ -5,20 +5,20 @@
  */
 
 export const AI_HARDENING_CONFIG = {
-  /** Gemini API call timeout in ms (15s) */
-  GEMINI_TIMEOUT_MS: parseInt(process.env.GEMINI_TIMEOUT_MS, 10) || 15000,
+  /** Gemini API call timeout in ms (8s for responsive completion) */
+  GEMINI_TIMEOUT_MS: parseInt(process.env.GEMINI_TIMEOUT_MS, 10) || 8000,
 
-  /** Maximum retries for transient Gemini errors (429, 503, network timeout) */
-  MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES, 10) || 2,
+  /** Maximum retries for transient Gemini errors (1 retry with fast 300ms backoff) */
+  MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES, 10) || 1,
 
   /** Initial delay for exponential backoff in ms */
-  RETRY_DELAY_MS: parseInt(process.env.AI_RETRY_DELAY_MS, 10) || 200,
+  RETRY_DELAY_MS: parseInt(process.env.AI_RETRY_DELAY_MS, 10) || 300,
 
-  /** Maximum total wall-clock time for an agent execution turn in ms (30s) */
-  AGENT_EXECUTION_TIMEOUT_MS: parseInt(process.env.AGENT_EXECUTION_TIMEOUT_MS, 10) || 30000,
+  /** Maximum total wall-clock time for an agent execution turn in ms (20s) */
+  AGENT_EXECUTION_TIMEOUT_MS: parseInt(process.env.AGENT_EXECUTION_TIMEOUT_MS, 10) || 20000,
 
   /** Maximum total tool calls executed across all rounds in a single chat turn */
-  MAX_TOTAL_TOOL_CALLS: parseInt(process.env.AI_MAX_TOTAL_TOOL_CALLS, 10) || 10,
+  MAX_TOTAL_TOOL_CALLS: parseInt(process.env.AI_MAX_TOTAL_TOOL_CALLS, 10) || 6,
 
   /** Maximum character budget for conversation context before pruning oldest turns */
   MAX_CONTEXT_CHARACTERS: parseInt(process.env.AI_MAX_CONTEXT_CHARACTERS, 10) || 24000,

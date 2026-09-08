@@ -8,7 +8,11 @@ import { HTTP_STATUS } from '../utils/constants.js';
 export class ProjectController {
   static async getAllProjects(req, res) {
     const { status, search } = req.query;
-    const projects = await ProjectService.getAllProjects({ status, search });
+    const projects = await ProjectService.getAllProjects({
+       status,
+       search,
+       user: req.user
+     });
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'Projects retrieved successfully',

@@ -69,9 +69,9 @@ export class GeminiClient {
   static async generateContent({ systemInstruction, contents, model = null, tools = null }) {
     const selectedModel = model || config.ai.geminiModel || 'gemini-3.6-flash';
     const hardeningConfig = config.ai.hardening || {};
-    const timeoutMs = hardeningConfig.GEMINI_TIMEOUT_MS || 15000;
-    const maxRetries = hardeningConfig.MAX_RETRIES ?? 2;
-    const baseDelayMs = hardeningConfig.RETRY_DELAY_MS || 200;
+    const timeoutMs = Number(hardeningConfig.GEMINI_TIMEOUT_MS) || 7000;
+    const maxRetries = Number.isInteger(hardeningConfig.MAX_RETRIES) ? hardeningConfig.MAX_RETRIES : 0;
+    const baseDelayMs = hardeningConfig.RETRY_DELAY_MS || 300;
 
     let attempt = 0;
     let lastError = null;
@@ -98,6 +98,7 @@ export class GeminiClient {
             timeoutMs
           );
         } else {
+          const ai = this.getClient();
           response = await this.withTimeout(
             ai.models.generateContent({
               model: selectedModel,
@@ -135,21 +136,25 @@ export class GeminiClient {
       } catch (error) {
         lastError = error;
 
-        const status = error?.status || error?.statusCode || 500;
-        const message = error?.message || '';
+        const status = error?.status || error?.statusCode || error?.code || error?.error?.code || (typeof error?.error?.status === 'string' && error?.error?.status === 'RESOURCE_EXHAUSTED' ? 429 : 500);
+        const message = error?.message || error?.error?.message || '';
 
-        // Check if error is retryable (503, 429, timeout, network error)
+        // Check if error is retryable (503, 429, timeout, network error, high demand, resource exhausted)
         const isRetryable =
           status === 503 ||
           status === 429 ||
+          message.includes('429') ||
+          message.includes('503') ||
           message.includes('timed out') ||
           message.includes('ETIMEDOUT') ||
           message.includes('ECONNRESET') ||
           message.includes('high demand') ||
-          message.includes('RESOURCE_EXHAUSTED');
+          message.includes('RESOURCE_EXHAUSTED') ||
+          message.includes('quota') ||
+          message.includes('rate limit');
 
         if (isRetryable && attempt <= maxRetries) {
-          const delay = baseDelayMs * Math.pow(2, attempt - 1);
+          const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.round(Math.random() * 500);
           await new Promise(res => setTimeout(res, delay));
           continue;
         }
@@ -159,7 +164,7 @@ export class GeminiClient {
           throw error;
         }
 
-        if (status === 429 || message.includes('RESOURCE_EXHAUSTED') || message.includes('rate limit')) {
+        if (status === 429 || message.includes('RESOURCE_EXHAUSTED') || message.includes('rate limit') || message.includes('quota')) {
           throw ApiError.tooManyRequests('Gemini AI quota or rate limit exceeded. Please try again later.');
         }
 

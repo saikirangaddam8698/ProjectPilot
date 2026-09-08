@@ -32,16 +32,35 @@ export const projectActivityTool = {
 
     const allActivities = await ActivityRepository.findAll({ projectKey: key, limit: maxLimit, type });
 
-    const activities = allActivities.map((a) => ({
-      actor: a.actor?.name || 'System',
-      type: a.type,
-      action: a.action,
-      targetType: a.targetType,
-      targetKey: a.targetKey,
-      targetTitle: a.targetTitle,
-      message: a.message,
-      createdAt: new Date(a.createdAt).toISOString()
-    }));
+    const activities = allActivities.map((a) => {
+      const meta = (a.metadata && typeof a.metadata === 'object') ? a.metadata : {};
+      const actorName = a.actor?.name || 'A team member';
+      const actorRole = a.actor?.role || null;
+      const createdAtIso = new Date(a.createdAt).toISOString();
+      const oldVal = meta.fromStatus || meta.fromPriority || meta.previousStatus || meta.previousPriority || null;
+      const newVal = meta.toStatus || meta.toPriority || meta.newStatus || meta.newPriority || null;
+
+      return {
+        actor: actorName,
+        actorName,
+        actorRole,
+        type: a.type,
+        action: a.action,
+        targetType: a.targetType,
+        targetKey: a.targetKey || null,
+        targetTitle: a.targetTitle || null,
+        message: a.message || null,
+        oldValue: oldVal,
+        newValue: newVal,
+        priority: meta.toPriority || meta.priority || null,
+        status: meta.toStatus || meta.status || null,
+        sprintName: meta.sprintName || (a.targetType === 'sprint' ? a.targetTitle : null),
+        dueDate: meta.dueDate || null,
+        metadata: meta,
+        createdAt: createdAtIso,
+        timestamp: createdAtIso
+      };
+    });
 
     return {
       projectKey: key,
@@ -50,3 +69,4 @@ export const projectActivityTool = {
     };
   }
 };
+

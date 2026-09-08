@@ -55,7 +55,10 @@ watch(
           capacity: s.capacity || 30
         };
       } else {
-        const targetKey = props.projectKey || sprintStore.createModalProjectKey || 'PILOT';
+        const defaultKey = projectStore.activeProject?.key || projectStore.allProjects[0]?.key || 'PILOT';
+        const candidateKey = props.projectKey || sprintStore.createModalProjectKey || defaultKey;
+        const isCandidateAccessible = projectStore.allProjects.some((p) => p.key.toUpperCase() === candidateKey.toUpperCase());
+        const targetKey = isCandidateAccessible ? candidateKey : defaultKey;
         selectedProjectKey.value = targetKey;
         const defaultStart = new Date().toISOString().slice(0, 10);
         const defaultEnd = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);

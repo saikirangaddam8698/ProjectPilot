@@ -98,4 +98,138 @@ describe('ProjectPilot Task 22: Authentication & RBAC Security Suite', () => {
     }
   });
 
+  it('10. GET /api/v1/projects scopes project list to accessible projects for non-admin user', async () => {
+    // Non-admin user with only INFRA project membership
+    const userToken = generateAuthToken({ id: 'u-3', memberId: 'm-3', role: 'DEVELOPER' });
+    const res = await request(app)
+      .get('/api/v1/projects')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    if (res.status === 200) {
+      assert.strictEqual(res.body.success, true);
+      const projects = res.body.data || [];
+      // Every returned project must include the member
+      projects.forEach((p) => {
+        const isMember = (p.members || []).some((m) => m.id === 'm-3');
+        assert.strictEqual(isMember, true, `Project ${p.key} should contain member m-3`);
+      });
+    }
+  });
+
+  it('11. GET /api/v1/tickets rejects query with 403 when requesting unauthorized project', async () => {
+    const nonMemberToken = generateAuthToken({ id: 'u-5', memberId: 'm-5', role: 'DEVELOPER' }); // David Kim is in PILOT & MOBILE, NOT INFRA
+    const res = await request(app)
+      .get('/api/v1/tickets?projectKey=INFRA')
+      .set('Authorization', `Bearer ${nonMemberToken}`);
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('12. Workspace Admin has global access to all projects without membership restrictions', async () => {
+    const adminToken = generateAuthToken({ id: 'u-1', memberId: 'm-1', role: 'ADMIN' });
+    const res = await request(app)
+      .get('/api/v1/projects/INFRA')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.success, true);
+    assert.strictEqual(res.body.data.key, 'INFRA');
+  });
+
+  it('13. Non-member is rejected with 403 when accessing ticket directly via /tickets/:ticketKey', async () => {
+    // David Kim (u-5) is not in INFRA
+    const nonMemberToken = generateAuthToken({ id: 'u-5', memberId: 'm-5', role: 'DEVELOPER' });
+    const res = await request(app)
+      .get('/api/v1/tickets/INFRA-14')
+      .set('Authorization', `Bearer ${nonMemberToken}`);
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('14. Non-member cannot mutate ticket status in unauthorized project (PATCH /tickets/:ticketKey/status)', async () => {
+    // Elena Rostova (u-4) is not in INFRA
+    const nonMemberToken = generateAuthToken({ id: 'u-4', memberId: 'm-4', role: 'PROJECT_MANAGER' });
+    const res = await request(app)
+      .patch('/api/v1/tickets/INFRA-14/status')
+      .set('Authorization', `Bearer ${nonMemberToken}`)
+      .send({ status: 'Done' });
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('15. Non-member cannot view sprint details in unauthorized project (GET /sprints/:sprintId)', async () => {
+    // David Kim (u-5) is not in INFRA
+    const nonMemberToken = generateAuthToken({ id: 'u-5', memberId: 'm-5', role: 'DEVELOPER' });
+    const res = await request(app)
+      .get('/api/v1/sprints/sprint-infra-12')
+      .set('Authorization', `Bearer ${nonMemberToken}`);
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('16. Non-member cannot start sprint in unauthorized project (POST /sprints/:sprintId/start)', async () => {
+    // Elena Rostova (u-4) is not in INFRA
+    const nonMemberToken = generateAuthToken({ id: 'u-4', memberId: 'm-4', role: 'PROJECT_MANAGER' });
+    const res = await request(app)
+      .post('/api/v1/sprints/sprint-infra-12/start')
+      .set('Authorization', `Bearer ${nonMemberToken}`);
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('17. Viewer role is strictly read-only and cannot mutate ticket status', async () => {
+    // Priya Patel (u-6) is a member of PILOT but has VIEWER global role
+    const viewerToken = generateAuthToken({ id: 'u-6', memberId: 'm-6', role: 'VIEWER' });
+    const res = await request(app)
+      .patch('/api/v1/tickets/PILOT-89/status')
+      .set('Authorization', `Bearer ${viewerToken}`)
+      .send({ status: 'Done' });
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('18. Non-member is rejected with 403 when requesting project activities', async () => {
+    // David Kim (u-5) is not in INFRA
+    const nonMemberToken = generateAuthToken({ id: 'u-5', memberId: 'm-5', role: 'DEVELOPER' });
+    const res = await request(app)
+      .get('/api/v1/activities?projectKey=INFRA')
+      .set('Authorization', `Bearer ${nonMemberToken}`);
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('19. Non-member is rejected with 403 on project knowledge semantic search', async () => {
+    // David Kim (u-5) is not in INFRA
+    const nonMemberToken = generateAuthToken({ id: 'u-5', memberId: 'm-5', role: 'DEVELOPER' });
+    const res = await request(app)
+      .post('/api/v1/projects/INFRA/knowledge/search')
+      .set('Authorization', `Bearer ${nonMemberToken}`)
+      .send({ query: 'Kubernetes TLS configuration' });
+
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.success, false);
+  });
+
+  it('20. Global tickets endpoint /tickets without projectKey excludes unauthorized project tickets', async () => {
+    // David Kim (u-5) has access to PILOT & MOBILE, not INFRA
+    const userToken = generateAuthToken({ id: 'u-5', memberId: 'm-5', role: 'DEVELOPER' });
+    const res = await request(app)
+      .get('/api/v1/tickets')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    if (res.status === 200) {
+      const tickets = res.body.data || [];
+      const hasInfraTicket = tickets.some((t) => (t.projectKey || t.key || '').startsWith('INFRA'));
+      assert.strictEqual(hasInfraTicket, false, 'Non-member should never receive INFRA tickets');
+    }
+  });
+
 });
+

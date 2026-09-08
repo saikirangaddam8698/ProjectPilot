@@ -50,7 +50,7 @@ export const ticketDetailsTool = {
       assignee: ticket.assignee ? { name: ticket.assignee.name, email: ticket.assignee.email, role: ticket.assignee.role } : 'Unassigned',
       reporter: ticket.reporter ? { name: ticket.reporter.name } : 'Unknown',
       sprint: ticket.sprint ? { id: ticket.sprint.id, name: ticket.sprint.name, status: ticket.sprint.status } : 'Backlog',
-      labels: ticket.labels ? ticket.labels.split(',').map((l) => l.trim()).filter(Boolean) : [],
+      labels: Array.isArray(ticket.labels) ? ticket.labels : (typeof ticket.labels === 'string' ? ticket.labels.split(',').map((l) => l.trim()).filter(Boolean) : []),
       dueDate: ticket.dueDate ? new Date(ticket.dueDate).toISOString().split('T')[0] : null,
       createdAt: new Date(ticket.createdAt).toISOString(),
       updatedAt: new Date(ticket.updatedAt).toISOString()

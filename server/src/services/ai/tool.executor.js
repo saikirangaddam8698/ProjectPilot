@@ -80,6 +80,11 @@ export class ToolExecutor {
       throw ApiError.notFound(`Project "${projectKey}" not found`);
     }
 
+    // Check user projectKeys if present
+    if (Array.isArray(user.projectKeys) && user.projectKeys.map((k) => k.toUpperCase()).includes(projectKey.toUpperCase())) {
+      return true;
+    }
+
     // Check project lead
     if (project.leadId && (project.leadId === user.memberId || project.leadId === user.id)) {
       return true;
@@ -92,7 +97,7 @@ export class ToolExecutor {
     });
 
     if (!isMember) {
-      throw ApiError.forbidden(`You do not have access to project "${projectKey}".`);
+      throw ApiError.forbidden(`Forbidden: You do not have access to project "${projectKey}".`);
     }
 
     return true;

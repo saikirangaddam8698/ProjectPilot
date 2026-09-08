@@ -19,7 +19,7 @@ export class ConversationService {
     }
 
     const pKey = projectKey.toUpperCase();
-    const project = await ProjectRepository.findByKey(pKey);
+    const project = (await ProjectRepository.findBasicByKey(pKey)) || (await ProjectRepository.findByKey(pKey));
 
     if (!project) {
       throw ApiError.notFound(`Project '${pKey}' not found`);
@@ -94,7 +94,8 @@ export class ConversationService {
 
     const updatedConv = await ConversationRepository.findConversationById({
       conversationId: conversation.id,
-      projectId: project.id
+      projectId: project.id,
+      userId: user?.id
     });
 
     return {
@@ -117,7 +118,8 @@ export class ConversationService {
 
     const conversation = await ConversationRepository.findConversationById({
       conversationId,
-      projectId: project.id
+      projectId: project.id,
+      userId: user?.id
     });
 
     if (!conversation) {
@@ -143,7 +145,8 @@ export class ConversationService {
 
     const existing = await ConversationRepository.findConversationById({
       conversationId,
-      projectId: project.id
+      projectId: project.id,
+      userId: user?.id
     });
 
     if (!existing) {
@@ -152,7 +155,8 @@ export class ConversationService {
 
     await ConversationRepository.deleteConversation({
       conversationId,
-      projectId: project.id
+      projectId: project.id,
+      userId: user?.id
     });
 
     return { success: true, conversationId };
@@ -170,33 +174,28 @@ export class ConversationService {
 
     const conversation = await ConversationRepository.findConversationById({
       conversationId,
-      projectId: project.id
+      projectId: project.id,
+      userId: user?.id
     });
 
     if (!conversation) {
       throw ApiError.notFound(`Conversation '${conversationId}' not found in project '${project.key}'`);
     }
 
-    // 1. Persist user message turn
+    // 1. Derive history context directly from loaded conversation messages (bounded to latest 19 turns)
+    const history = (conversation.messages || [])
+      .slice(-19)
+      .map((m) => ({
+        role: m.role,
+        content: m.content
+      }));
+
+    // 2. Persist user message turn
     const userMessage = await ConversationRepository.createMessage({
       conversationId: conversation.id,
       role: 'user',
       content: message.trim()
     });
-
-    // 2. Load recent messages for history context (bounded to latest 20 messages)
-    const recentMessages = await ConversationRepository.getRecentMessages({
-      conversationId: conversation.id,
-      limit: 20
-    });
-
-    // Convert stored messages to history format excluding the very last user message just appended
-    const history = recentMessages
-      .slice(0, -1)
-      .map((m) => ({
-        role: m.role,
-        content: m.content
-      }));
 
     // 3. Run AI Agent through AiAgentService with context history
     const aiResponse = await AiAgentService.chat({

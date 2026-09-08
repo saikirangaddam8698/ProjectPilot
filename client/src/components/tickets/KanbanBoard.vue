@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useProjectStore } from '@/stores/project.store';
 import { useSprintStore } from '@/stores/sprint.store';
+import { useAuthStore } from '@/stores/auth.store';
 import KanbanColumn from './KanbanColumn.vue';
 import KanbanBoardSkeleton from '@/components/skeletons/KanbanBoardSkeleton.vue';
 import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.vue';
@@ -26,6 +27,7 @@ const props = defineProps({
 const ticketStore = useTicketStore();
 const projectStore = useProjectStore();
 const sprintStore = useSprintStore();
+const authStore = useAuthStore();
 
 const isCreateModalOpen = ref(false);
 const createPrefillStatus = ref('Todo');
@@ -68,13 +70,41 @@ function handleTicketClick(ticketKey) {
   ticketStore.openTicketDetail(ticketKey);
 }
 
-function handleTicketDrop({ ticketId, newStatus }) {
-  const ticket = ticketStore.getTicketById(ticketId);
-  const oldStatus = ticket?.status;
-  if (!ticket || oldStatus === newStatus) return;
+function handleTicketDrop(payload) {
+  // If user is a viewer, block drag-and-drop mutations cleanly
+  if (authStore.isViewer) {
+    authStore.showAccessDenied({
+      title: 'Action Restricted',
+      message: 'Viewers have read-only permissions and cannot move cards or change ticket statuses.',
+      requiredRole: 'DEVELOPER or higher',
+      action: 'Move ticket'
+    });
+    return;
+  }
 
-  // Safe status update
-  ticketStore.updateTicketStatus(ticketId, newStatus);
+  const key = payload?.ticketKey || payload?.ticketId || payload?.key;
+  const newStatus = payload?.status || payload?.newStatus;
+  if (!key || !newStatus) return;
+
+  const ticket = ticketStore.getTicketByKey(key) || ticketStore.getTicketById(key);
+  if (!ticket) return;
+
+  // Verify project authorization for non-admins
+  if (!authStore.isAdmin && ticket.projectKey && !authStore.hasProjectAccess(ticket.projectKey)) {
+    authStore.showAccessDenied({
+      title: 'Access Restricted',
+      message: `You are not assigned to project "${ticket.projectKey}" and cannot modify its tickets.`,
+      requiredRole: 'Project Member',
+      action: `Move ticket ${ticket.key}`
+    });
+    return;
+  }
+
+  const oldStatus = ticket?.status;
+  if (oldStatus && oldStatus.toLowerCase() === newStatus.toLowerCase()) return;
+
+  // Safe status update using ticket key
+  ticketStore.updateTicketStatus(ticket.key, newStatus);
 
   // Micro feedback toast
   toastMessage.value = `${ticket.key} moved to ${newStatus}`;
@@ -185,10 +215,17 @@ function handleRetry() {
       </div>
 
       <div class="toolbar-right">
-        <BaseButton variant="primary" size="sm" @click="openCreateModal">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Create Ticket
-        </BaseButton>
+        <div :title="authStore.isViewer ? 'Viewers cannot create tickets' : ''">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="openCreateModal"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            Create Ticket
+          </BaseButton>
+        </div>
       </div>
     </div>
 

@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useProjectStore } from '@/stores/project.store';
+import { useAuthStore } from '@/stores/auth.store';
 import KanbanBoard from '@/components/tickets/KanbanBoard.vue';
 import TicketListView from '@/components/tickets/TicketListView.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -10,6 +11,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 
 const ticketStore = useTicketStore();
 const projectStore = useProjectStore();
+const authStore = useAuthStore();
 
 const viewMode = ref('kanban'); // 'kanban' | 'table'
 const selectedProject = ref('all');
@@ -45,11 +47,6 @@ const selectedProject = ref('all');
             <span>Table View</span>
           </button>
         </div>
-
-        <BaseButton variant="primary" size="sm" @click="ticketStore.openCreateModal(selectedProject !== 'all' ? selectedProject : 'PILOT')">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Create Ticket
-        </BaseButton>
       </div>
     </div>
 

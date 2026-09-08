@@ -7,10 +7,14 @@ export class ActivityRepository {
   /**
    * Find all activities with optional filters and pagination
    */
-  static async findAll({ projectId, projectKey, type, actorId, limit = 50, offset = 0 } = {}) {
+  static async findAll({ projectId, projectKey, type, actorId, limit = 50, offset = 0, allowedProjectKeys } = {}) {
     const where = {};
     if (projectId) where.projectId = projectId;
-    if (projectKey) where.project = { key: projectKey.toUpperCase() };
+    if (projectKey && projectKey !== 'all') {
+      where.project = { key: projectKey.toUpperCase() };
+    } else if (Array.isArray(allowedProjectKeys)) {
+      where.project = { key: { in: allowedProjectKeys.map((k) => k.toUpperCase()) } };
+    }
     if (type && type !== 'all') where.type = type;
     if (actorId) where.actorId = actorId;
 

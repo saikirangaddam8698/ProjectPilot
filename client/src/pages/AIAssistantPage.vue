@@ -5,13 +5,16 @@ import { useProjectStore } from '@/stores/project.store';
 import { useAuthStore } from '@/stores/auth.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import ChatThreadSkeleton from '@/components/skeletons/ChatThreadSkeleton.vue';
 
 const aiStore = useAiStore();
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
 
 const promptInput = ref('');
+const selectedQuickPrompt = ref('');
 const messagesContainer = ref(null);
 
 const currentProject = computed(() => {
@@ -63,6 +66,17 @@ watch(
   }
 );
 
+watch(
+  () => authStore.currentUser?.id,
+  (newUserId, oldUserId) => {
+    // Only re-fetch if user changed while page is open (avoids duplicate fetch on initial mount)
+    if (newUserId && oldUserId && newUserId !== oldUserId) {
+      aiStore.clearConversation();
+      aiStore.fetchConversations(undefined, true);
+    }
+  }
+);
+
 const isSidebarCollapsed = ref(false);
 
 function handleNewChat() {
@@ -78,8 +92,9 @@ function formatDate(dateStr) {
 onMounted(() => {
   if (projectStore.allProjects.length > 0 && !aiStore.selectedProjectKey) {
     aiStore.setProject(projectStore.allProjects[0].key);
+  } else if (aiStore.selectedProjectKey) {
+    aiStore.fetchConversations();
   }
-  aiStore.fetchConversations();
   scrollToBottom();
 });
 
@@ -104,17 +119,25 @@ function handleKeydown(e) {
 }
 
 function applyQuickPrompt(prompt) {
+  selectedQuickPrompt.value = prompt;
   promptInput.value = prompt;
   handleSend();
 }
 
 function formatMessageContent(content) {
   if (!content) return '';
-  // Basic safe markdown-like formatting for bold and backticks
+  // Basic safe markdown-like formatting for bold, headers, blockquotes, and lists
   let html = content
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+
+  // Headings
+  html = html.replace(/^###\s+(.+)$/gm, '<h3 class="chat-h3">$1</h3>');
+  html = html.replace(/^####\s+(.+)$/gm, '<h4 class="chat-h4">$1</h4>');
+
+  // Blockquotes: > quote
+  html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote class="chat-quote">$1</blockquote>');
 
   // Bold **text**
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -122,17 +145,29 @@ function formatMessageContent(content) {
   // Inline code `code`
   html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
 
-  // Bullet points
-  html = html.replace(/^\s*-\s+(.+)$/gm, '<li>$1</li>');
+  // Ticket chip formatting for keys like PILOT-104
+  html = html.replace(/\b([A-Z]{2,10}-\d+)\b/g, '<span class="chat-ticket-ref">$1</span>');
+
+  // Bullet points (- or •)
+  html = html.replace(/^\s*[-•]\s+(.+)$/gm, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>)/gs, '<ul class="chat-bullet-list">$1</ul>');
 
-  // Line breaks to paragraphs
+  // Clean empty paragraphs / double breaks
   const paragraphs = html.split(/\n\n+/);
   return paragraphs
-    .map((p) => (p.startsWith('<ul') ? p : `<p>${p.replace(/\n/g, '<br/>')}</p>`))
+    .map((p) => {
+      p = p.trim();
+      if (!p) return '';
+      if (p.startsWith('<h3') || p.startsWith('<h4') || p.startsWith('<ul') || p.startsWith('<blockquote')) {
+        return p;
+      }
+      return `<p>${p.replace(/\n/g, '<br/>')}</p>`;
+    })
+    .filter(Boolean)
     .join('');
 }
 </script>
+
 
 <template>
   <div class="ai-page-container">
@@ -201,19 +236,28 @@ function formatMessageContent(content) {
     <div class="ai-workspace-layout">
       <!-- Conversation History Sidebar -->
       <div class="conv-sidebar" :class="{ 'is-collapsed': isSidebarCollapsed }">
-        <div class="sidebar-action-row">
+        <div class="sidebar-action-row" :class="{ 'is-collapsed': isSidebarCollapsed }">
           <BaseButton
+            v-if="!isSidebarCollapsed"
             variant="primary"
             size="sm"
             class="new-chat-btn"
             @click="handleNewChat"
           >
             <template #prefix><AppIcon name="plus" :size="14" /></template>
-            <span v-if="!isSidebarCollapsed">New Chat</span>
+            New Chat
           </BaseButton>
           <button
+            v-if="isSidebarCollapsed"
+            class="sidebar-new-btn-icon"
+            title="New Chat"
+            @click="handleNewChat"
+          >
+            <AppIcon name="plus" :size="16" />
+          </button>
+          <button
             class="sidebar-toggle-btn"
-            :title="isSidebarCollapsed ? 'Expand History' : 'Collapse History'"
+            :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
             @click="isSidebarCollapsed = !isSidebarCollapsed"
           >
             <AppIcon :name="isSidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="14" />
@@ -223,8 +267,11 @@ function formatMessageContent(content) {
         <div v-if="!isSidebarCollapsed" class="sidebar-scroll-area">
           <div class="sidebar-heading">Conversations</div>
 
-          <div v-if="aiStore.isLoadingConversations" class="sidebar-loading-state">
-            Loading...
+          <div v-if="aiStore.isLoadingConversations" class="sidebar-skeletons-list">
+            <div v-for="n in 4" :key="n" class="sidebar-conv-skeleton">
+              <BaseSkeleton width="85%" height="13px" rounded="xs" />
+              <BaseSkeleton width="40%" height="10px" rounded="xs" />
+            </div>
           </div>
 
           <div v-else-if="aiStore.conversations.length === 0" class="sidebar-empty-state">
@@ -270,8 +317,11 @@ function formatMessageContent(content) {
 
       <!-- Messages Thread Area -->
       <div ref="messagesContainer" class="chat-messages-area">
+        <!-- Chat Loading Skeleton -->
+        <ChatThreadSkeleton v-if="aiStore.isLoadingConversation" :count="2" />
+
         <!-- Empty State Welcome -->
-        <div v-if="!aiStore.hasMessages && !aiStore.isGenerating" class="chat-welcome-state">
+        <div v-else-if="!aiStore.hasMessages && !aiStore.isGenerating" class="chat-welcome-state">
           <div class="welcome-icon-wrap">
             <AppIcon name="ai" :size="32" />
           </div>
@@ -287,9 +337,14 @@ function formatMessageContent(content) {
               :key="idx"
               type="button"
               class="prompt-card-btn"
+              :class="{ 'is-selected': selectedQuickPrompt === prompt && aiStore.isGenerating }"
+              :disabled="aiStore.isGenerating"
               @click="applyQuickPrompt(prompt)"
             >
-              <div class="prompt-card-icon">⚡</div>
+              <div class="prompt-card-icon">
+                <span v-if="selectedQuickPrompt === prompt && aiStore.isGenerating">⏳</span>
+                <span v-else>⚡</span>
+              </div>
               <div class="prompt-card-text">{{ prompt }}</div>
             </button>
           </div>
@@ -318,19 +373,6 @@ function formatMessageContent(content) {
                   {{ msg.role === 'user' ? (authStore.currentUser?.name || 'You') : 'ProjectPilot Copilot' }}
                 </span>
                 <span v-if="msg.model" class="model-badge mono">{{ msg.model }}</span>
-              </div>
-
-              <!-- Executed Tools Badges -->
-              <div v-if="msg.executedTools && msg.executedTools.length > 0" class="executed-tools-row">
-                <div
-                  v-for="(tool, tIdx) in msg.executedTools"
-                  :key="tIdx"
-                  class="tool-badge-pill"
-                >
-                  <span class="tool-icon">⚙️</span>
-                  <span class="tool-label">{{ tool.label || tool.name }}</span>
-                  <span class="tool-name mono">{{ tool.name }}</span>
-                </div>
               </div>
 
               <div
@@ -728,14 +770,26 @@ function formatMessageContent(content) {
   transition: all var(--transition-fast);
 }
 
-.prompt-card-btn:hover {
+.prompt-card-btn:hover:not(:disabled) {
   border-color: var(--color-primary-500);
   background-color: var(--bg-surface-hover);
   transform: translateY(-1px);
 }
 
+.prompt-card-btn.is-selected {
+  border-color: var(--color-primary-500);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.15));
+  box-shadow: 0 0 0 1px var(--color-primary-500), 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.prompt-card-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .prompt-card-icon {
   color: var(--color-primary-400);
+  flex-shrink: 0;
 }
 
 /* Message Rows */
@@ -878,6 +932,50 @@ function formatMessageContent(content) {
   font-size: 0.9em;
 }
 
+.assistant-bubble :deep(.chat-h3) {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: var(--space-3) 0 var(--space-1) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.assistant-bubble :deep(.chat-h3:first-child) {
+  margin-top: 0;
+}
+
+.assistant-bubble :deep(.chat-h4) {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-400);
+  margin: var(--space-2) 0 var(--space-1) 0;
+}
+
+.assistant-bubble :deep(.chat-quote) {
+  margin: var(--space-2) 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-primary-500);
+  background-color: rgba(99, 102, 241, 0.06);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.assistant-bubble :deep(.chat-ticket-ref) {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-family-mono);
+  font-size: 0.85em;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
 .assistant-bubble :deep(.chat-bullet-list) {
   margin: var(--space-2) 0;
   padding-left: var(--space-4);
@@ -885,7 +983,9 @@ function formatMessageContent(content) {
 
 .assistant-bubble :deep(li) {
   margin-bottom: var(--space-1);
+  line-height: 1.5;
 }
+
 
 .msg-meta-row {
   font-size: 10px;
@@ -1312,9 +1412,33 @@ function formatMessageContent(content) {
   margin-bottom: 12px;
 }
 
+.sidebar-action-row.is-collapsed {
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
 .new-chat-btn {
   flex: 1;
   justify-content: center;
+}
+
+.sidebar-new-btn-icon {
+  background: var(--color-brand-600, #6366f1);
+  border: none;
+  color: #fff;
+  border-radius: var(--radius-md, 6px);
+  padding: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+
+.sidebar-new-btn-icon:hover {
+  background: var(--color-brand-500, #7c3aed);
 }
 
 .sidebar-toggle-btn {
@@ -1327,11 +1451,19 @@ function formatMessageContent(content) {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.sidebar-action-row:not(.is-collapsed) .sidebar-toggle-btn {
+  width: auto;
+  flex-shrink: 0;
 }
 
 .sidebar-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-main, #f8fafc);
+  border-color: var(--color-brand-500, #6366f1);
 }
 
 .sidebar-scroll-area {
@@ -1355,6 +1487,22 @@ function formatMessageContent(content) {
   color: var(--color-text-muted, #64748b);
   padding: 12px 4px;
   text-align: center;
+}
+
+.sidebar-skeletons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px;
+}
+
+.sidebar-conv-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 6px);
+  background-color: var(--bg-surface-elevated);
 }
 
 .conv-list {

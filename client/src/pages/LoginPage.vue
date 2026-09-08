@@ -2,12 +2,16 @@
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { useProjectStore } from '@/stores/project.store';
+import { useTicketStore } from '@/stores/ticket.store';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import AppLogo from '@/components/ui/AppLogo.vue';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const projectStore = useProjectStore();
+const ticketStore = useTicketStore();
 
 const email = ref('');
 const password = ref('');
@@ -82,6 +86,8 @@ async function handleLogin() {
     });
 
     if (res.success) {
+      projectStore.fetchProjects();
+      ticketStore.fetchTickets();
       const redirectPath = route.query.redirect || '/dashboard';
       router.push(redirectPath);
     } else {
@@ -97,232 +103,282 @@ async function handleLogin() {
 
 <template>
   <div class="login-page">
-    <div class="login-composition">
+    <!-- Ambient subtle background layers -->
+    <div class="login-bg-grid" aria-hidden="true"></div>
+    <div class="login-bg-glow" aria-hidden="true"></div>
 
-      <!-- ── Left Product Section (desktop only) ── -->
-      <aside class="login-left" aria-hidden="true">
-        <div class="left-inner">
+    <div class="login-container">
+      <div class="login-composition">
 
-          <!-- Brand -->
-          <div class="left-brand">
-            <AppLogo size="lg" :show-text="true" :show-tagline="false" />
-          </div>
+        <!-- ── Left Product Section (desktop only) ── -->
+        <aside class="login-left" aria-hidden="true">
+          <div class="left-inner">
 
-          <!-- Headline -->
-          <div class="left-headline-group">
-            <h1 class="left-headline">
-              AI-powered project intelligence for modern engineering teams.
-            </h1>
-            <p class="left-subline">
-              Manage projects, tickets, sprints and engineering knowledge with an AI copilot that understands your workspace.
-            </p>
-          </div>
-
-          <!-- Capability Rows -->
-          <div class="left-capabilities">
-            <div class="capability-row">
-              <div class="cap-icon">
-                <AppIcon name="cpu" :size="16" />
-              </div>
-              <div class="cap-text">
-                <span class="cap-title">AI Project Intelligence</span>
-                <span class="cap-desc">Natural language queries for sprint progress, ticket inspection, and project risks.</span>
-              </div>
+            <!-- Brand Header -->
+            <div class="left-brand">
+              <AppLogo size="lg" :show-text="true" :show-tagline="false" />
             </div>
 
-            <div class="capability-row">
-              <div class="cap-icon">
-                <AppIcon name="knowledge" :size="16" />
-              </div>
-              <div class="cap-text">
-                <span class="cap-title">RAG-powered Project Knowledge</span>
-                <span class="cap-desc">Semantic vector search across architecture docs, runbooks, and company specs.</span>
-              </div>
+            <!-- Main Headline & Subtitle -->
+            <div class="left-headline-group">
+              <h1 class="left-headline">
+                AI-powered project intelligence for modern engineering teams.
+              </h1>
+              <p class="left-subline">
+                Manage projects, tickets, sprints and engineering knowledge with an AI copilot that understands your workspace.
+              </p>
             </div>
 
-            <div class="capability-row">
-              <div class="cap-icon">
-                <AppIcon name="analytics" :size="16" />
-              </div>
-              <div class="cap-text">
-                <span class="cap-title">Agile Planning & Analytics</span>
-                <span class="cap-desc">Burndown velocity, dynamic capacity utilization, and RBAC project security.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Subtle trust strip -->
-          <div class="left-trust">
-            <span class="trust-dot"></span>
-            <span>End-to-end encrypted workspace access</span>
-          </div>
-        </div>
-      </aside>
-
-      <!-- ── Right Sign-in Section ── -->
-      <main class="login-right">
-        <!-- Mobile top brand (shown only when left panel is hidden) -->
-        <div class="mobile-brand">
-          <AppLogo size="md" :show-text="true" :show-tagline="false" />
-        </div>
-
-        <div class="login-card">
-          <!-- Card Head -->
-          <div class="card-head">
-            <h2 class="signin-title">Sign in to ProjectPilot</h2>
-            <p class="signin-subtitle">Access your workspace and continue where your engineering team left off.</p>
-          </div>
-
-          <!-- Error Banner -->
-          <div v-if="errorMessage" class="error-banner" role="alert" aria-live="assertive">
-            <AppIcon name="alert-triangle" :size="14" class="error-icon" />
-            <span>{{ errorMessage }}</span>
-          </div>
-
-          <!-- Login Form -->
-          <form
-            id="login-form"
-            class="login-form"
-            :aria-busy="isSubmitting"
-            @submit.prevent="handleLogin"
-          >
-            <div class="form-group">
-              <label for="email" class="form-label">Email address</label>
-              <div class="input-wrapper">
-                <AppIcon name="mail" :size="15" class="input-icon" />
-                <input
-                  id="email"
-                  v-model="email"
-                  type="email"
-                  required
-                  autocomplete="email"
-                  placeholder="name@company.com"
-                  class="form-input"
-                  :disabled="isSubmitting"
-                />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="password" class="form-label">Password</label>
-              <div class="input-wrapper">
-                <AppIcon name="lock" :size="15" class="input-icon" />
-                <input
-                  id="password"
-                  v-model="password"
-                  type="password"
-                  required
-                  autocomplete="current-password"
-                  placeholder="••••••••••••"
-                  class="form-input"
-                  :disabled="isSubmitting"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              class="submit-btn"
-              :disabled="isSubmitting"
-              :aria-busy="isSubmitting"
-              :aria-label="isSubmitting ? 'Signing into workspace, please wait' : 'Sign in to workspace'"
-            >
-              <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true"></span>
-              <span class="btn-label">
-                {{ isSubmitting ? 'Signing into workspace…' : 'Sign In to Workspace' }}
-              </span>
-            </button>
-          </form>
-
-          <!-- Demo Mode Section -->
-          <div v-if="showDemoAccounts" class="demo-section">
-            <div class="demo-header">
-              <div class="demo-divider-line"></div>
-              <div class="demo-header-label">
-                <span class="demo-mode-pill">DEMO MODE</span>
-              </div>
-              <div class="demo-divider-line"></div>
-            </div>
-            <p class="demo-intro">Explore ProjectPilot using a preconfigured role</p>
-
-            <div class="demo-grid">
-              <button
-                v-for="acc in DEMO_ACCOUNTS"
-                :key="acc.email"
-                type="button"
-                class="demo-account-btn"
-                :class="{ active: email === acc.email }"
-                :disabled="isSubmitting"
-                @click="selectDemoAccount(acc)"
-              >
-                <div class="demo-avatar" :class="acc.role.toLowerCase()">{{ acc.avatar }}</div>
-                <div class="demo-info">
-                  <div class="demo-name-row">
-                    <span class="demo-name">{{ acc.name }}</span>
-                    <span class="demo-badge" :class="acc.role.toLowerCase()">{{ acc.badge }}</span>
-                  </div>
-                  <span class="demo-desc">{{ acc.desc }}</span>
+            <!-- Feature Cards -->
+            <div class="left-capabilities">
+              <!-- Feature 1: AI Project Intelligence -->
+              <div class="capability-card">
+                <div class="cap-icon-box">
+                  <AppIcon name="cpu" :size="17" />
                 </div>
-              </button>
+                <div class="cap-content">
+                  <span class="cap-title">AI Project Intelligence</span>
+                  <span class="cap-desc">Natural language queries for sprint progress, ticket inspection, and project risks.</span>
+                </div>
+              </div>
+
+              <!-- Feature 2: RAG-powered Project Knowledge -->
+              <div class="capability-card">
+                <div class="cap-icon-box">
+                  <AppIcon name="knowledge" :size="17" />
+                </div>
+                <div class="cap-content">
+                  <span class="cap-title">RAG-powered Project Knowledge</span>
+                  <span class="cap-desc">Semantic vector search across architecture docs, runbooks, and company specs.</span>
+                </div>
+              </div>
+
+              <!-- Feature 3: Agile Planning & Analytics -->
+              <div class="capability-card">
+                <div class="cap-icon-box">
+                  <AppIcon name="analytics" :size="17" />
+                </div>
+                <div class="cap-content">
+                  <span class="cap-title">Agile Planning & Analytics</span>
+                  <span class="cap-desc">Burndown velocity, dynamic capacity utilization, and RBAC project security.</span>
+                </div>
+              </div>
             </div>
+
+            <!-- Subtle Trust Badge -->
+            <div class="left-trust">
+              <span class="trust-dot"></span>
+              <span class="trust-text">End-to-end encrypted workspace access</span>
+            </div>
+
           </div>
-        </div>
+        </aside>
 
-        <!-- Footer -->
-        <footer class="login-footer">
-          <span class="footer-lock">
-            <AppIcon name="lock" :size="11" />
-            Secure workspace access
-          </span>
-        </footer>
-      </main>
+        <!-- ── Right Sign-in Section ── -->
+        <main class="login-right">
+          <!-- Mobile top brand (visible on tablet / mobile when left panel stacks/hides) -->
+          <div class="mobile-brand">
+            <AppLogo size="md" :show-text="true" :show-tagline="false" />
+          </div>
 
+          <div class="login-card">
+            <!-- Card Header -->
+            <div class="card-head">
+              <h2 class="signin-title">Sign in to ProjectPilot</h2>
+              <p class="signin-subtitle">Access your workspace and continue where your engineering team left off.</p>
+            </div>
+
+            <!-- Error Banner -->
+            <div v-if="errorMessage" class="error-banner" role="alert" aria-live="assertive">
+              <AppIcon name="alert-triangle" :size="15" class="error-icon" />
+              <span class="error-text">{{ errorMessage }}</span>
+            </div>
+
+            <!-- Login Form -->
+            <form
+              id="login-form"
+              class="login-form"
+              :aria-busy="isSubmitting"
+              @submit.prevent="handleLogin"
+            >
+              <div class="form-group">
+                <label for="email" class="form-label">EMAIL ADDRESS</label>
+                <div class="input-wrapper">
+                  <AppIcon name="mail" :size="15" class="input-icon" />
+                  <input
+                    id="email"
+                    v-model="email"
+                    type="email"
+                    required
+                    autocomplete="email"
+                    placeholder="name@company.com"
+                    class="form-input"
+                    :disabled="isSubmitting"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="password" class="form-label">PASSWORD</label>
+                <div class="input-wrapper">
+                  <AppIcon name="lock" :size="15" class="input-icon" />
+                  <input
+                    id="password"
+                    v-model="password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                    placeholder="••••••••••••"
+                    class="form-input"
+                    :disabled="isSubmitting"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="submit-btn"
+                :disabled="isSubmitting"
+                :aria-busy="isSubmitting"
+                :aria-label="isSubmitting ? 'Signing into workspace, please wait' : 'Sign in to workspace'"
+              >
+                <span v-if="isSubmitting" class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-label">
+                  {{ isSubmitting ? 'Signing in…' : 'Sign In to Workspace' }}
+                </span>
+              </button>
+            </form>
+
+            <!-- Demo Mode Section -->
+            <div v-if="showDemoAccounts" class="demo-section">
+              <div class="demo-header">
+                <div class="demo-divider-line"></div>
+                <div class="demo-header-label">
+                  <span class="demo-mode-pill">DEMO MODE</span>
+                </div>
+                <div class="demo-divider-line"></div>
+              </div>
+
+              <p class="demo-intro">Explore ProjectPilot using a preconfigured role</p>
+
+              <div class="demo-grid">
+                <button
+                  v-for="acc in DEMO_ACCOUNTS"
+                  :key="acc.email"
+                  type="button"
+                  class="demo-account-btn"
+                  :class="{ active: email === acc.email }"
+                  :disabled="isSubmitting"
+                  @click="selectDemoAccount(acc)"
+                >
+                  <div class="demo-avatar" :class="acc.role.toLowerCase()">
+                    {{ acc.avatar }}
+                  </div>
+                  <div class="demo-info">
+                    <div class="demo-name-row">
+                      <span class="demo-name">{{ acc.name }}</span>
+                      <span class="demo-badge" :class="acc.role.toLowerCase()">{{ acc.badge }}</span>
+                    </div>
+                    <span class="demo-desc">{{ acc.desc }}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="login-footer">
+              <span class="footer-lock">
+                <AppIcon name="lock" :size="12" />
+                Secure workspace access
+              </span>
+            </footer>
+
+          </div>
+        </main>
+
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ─── Page Shell ─── */
+/* ─── Page Shell & Viewport Background ─── */
 .login-page {
+  position: relative;
   min-height: 100vh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: var(--bg-app);
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-8) var(--space-4);
   box-sizing: border-box;
   overflow-y: auto;
+}
+
+/* Very subtle background ambient grid pattern */
+.login-bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle top-center radial gradient aura */
+.login-bg-glow {
+  position: fixed;
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.07) 0%, rgba(99, 102, 241, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Container ─── */
+.login-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1060px;
+  margin: auto;
 }
 
 /* ─── Composition wrapper (two columns) ─── */
 .login-composition {
   width: 100%;
-  max-width: 1100px;
   display: grid;
-  /* Mobile: single column (right only) */
   grid-template-columns: 1fr;
-  gap: 0;
-  margin: auto;
-  animation: pageEnter 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-/* ─── Desktop two-column layout (>= 1024px) ─── */
+/* ─── Desktop Two-Column Layout (>= 1024px) ─── */
 @media (min-width: 1024px) {
   .login-composition {
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    align-items: stretch;
-    min-height: 580px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
+    grid-template-columns: 1.12fr 1fr;
+    min-height: 600px;
   }
 
   .mobile-brand {
@@ -330,37 +386,27 @@ async function handleLogin() {
   }
 }
 
-/* ─── Left Panel ─── */
+/* ─── Left Product Panel ─── */
 .login-left {
-  /* Hidden on mobile and small tablet — shown only >= 1024px */
   display: none;
-  background: linear-gradient(145deg, #0f1118 0%, #111520 50%, #0d1017 100%);
-  border-right: 1px solid var(--border-strong);
+  background: linear-gradient(165deg, #0d1117 0%, #10141d 50%, #0a0d14 100%);
+  border-right: 1px solid var(--border-subtle);
   padding: var(--space-10) var(--space-8);
   position: relative;
   overflow: hidden;
 }
 
-/* Subtle decorative mesh background */
+/* Left panel decorative subtle ambient glow */
 .login-left::before {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-image:
-    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.06) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-/* Subtle grid pattern */
-.login-left::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(79, 70, 229, 0.05) 0%, transparent 45%);
   pointer-events: none;
 }
 
@@ -377,21 +423,21 @@ async function handleLogin() {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .left-brand {
-  /* AppLogo itself */
+  margin-bottom: var(--space-2);
 }
 
 .left-headline-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .left-headline {
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: var(--font-weight-bold);
   color: #f3f4f6;
   line-height: 1.3;
@@ -402,126 +448,56 @@ async function handleLogin() {
 .left-subline {
   font-size: var(--text-sm);
   color: #9ca3af;
-  line-height: 1.6;
+  line-height: 1.55;
   margin: 0;
 }
 
-/* ─── Capability rows with dynamic sliding motion ─── */
+/* ─── Left Feature Cards ─── */
 .left-capabilities {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  position: relative;
+  margin-top: var(--space-1);
 }
 
-.capability-row {
+.capability-card {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(99, 102, 241, 0.18);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all var(--transition-fast);
+}
+
+.capability-card:hover {
   background: rgba(99, 102, 241, 0.05);
-  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  opacity: 0;
-  transform: translateX(-28px);
-  animation: capabilitySlideIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-             capabilitySlideFloat 6s ease-in-out infinite alternate;
-  will-change: transform, opacity;
-  position: relative;
-  overflow: hidden;
+  border-color: rgba(99, 102, 241, 0.25);
+  transform: translateX(3px);
 }
 
-.capability-row::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
-  animation: capabilityShimmer 6s infinite;
-  pointer-events: none;
-}
-
-.capability-row:nth-child(1) {
-  animation-delay: 0.15s, 0.85s;
-}
-
-.capability-row:nth-child(1)::before {
-  animation-delay: 1s;
-}
-
-.capability-row:nth-child(2) {
-  animation-delay: 0.35s, 2.5s;
-}
-
-.capability-row:nth-child(2)::before {
-  animation-delay: 3s;
-}
-
-.capability-row:nth-child(3) {
-  animation-delay: 0.55s, 4.2s;
-}
-
-.capability-row:nth-child(3)::before {
-  animation-delay: 5s;
-}
-
-.capability-row:hover {
-  transform: translateX(8px) translateY(-2px) !important;
-  border-color: rgba(129, 140, 248, 0.5);
+.cap-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
   background: rgba(99, 102, 241, 0.12);
-  box-shadow: 0 8px 24px -4px rgba(99, 102, 241, 0.25);
-}
-
-@keyframes capabilitySlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-32px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes capabilitySlideFloat {
-  0% {
-    transform: translateX(0px) translateY(0px);
-  }
-  50% {
-    transform: translateX(7px) translateY(-2px);
-  }
-  100% {
-    transform: translateX(2px) translateY(2px);
-  }
-}
-
-@keyframes capabilityShimmer {
-  0%, 100% {
-    left: -100%;
-  }
-  50% {
-    left: 100%;
-  }
-}
-
-.cap-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.35));
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(99, 102, 241, 0.22);
   color: #a5b4fc;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 
-.cap-text {
+.capability-card:hover .cap-icon-box {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #c7d2fe;
+}
+
+.cap-content {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -532,22 +508,23 @@ async function handleLogin() {
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   color: #e5e7eb;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .cap-desc {
   font-size: var(--text-xs);
-  color: #6b7280;
-  line-height: 1.4;
+  color: #838e9e;
+  line-height: 1.45;
 }
 
-/* Trust strip */
+/* Left Trust Bar */
 .left-trust {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 11px;
-  color: #4b5563;
+  font-size: var(--text-xs);
+  color: #6b7280;
+  margin-top: var(--space-2);
 }
 
 .trust-dot {
@@ -556,7 +533,12 @@ async function handleLogin() {
   border-radius: 50%;
   background: #10b981;
   flex-shrink: 0;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.45);
+}
+
+.trust-text {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.01em;
 }
 
 /* ─── Right Sign-in Panel ─── */
@@ -567,43 +549,42 @@ async function handleLogin() {
   justify-content: center;
   padding: var(--space-8) var(--space-6);
   background-color: var(--bg-surface);
-  gap: var(--space-4);
 }
 
 @media (min-width: 1024px) {
   .login-right {
-    padding: var(--space-10) var(--space-8);
+    padding: var(--space-10) var(--space-10);
   }
 }
 
-/* Mobile brand (only shown below 1024px) */
+/* Mobile Brand Header */
 .mobile-brand {
   display: flex;
   justify-content: center;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-5);
 }
 
-/* ─── Login Card ─── */
+/* ─── Login Card Form Container ─── */
 .login-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
-/* ─── Card Header ─── */
+/* Card Header */
 .card-head {
   margin-bottom: var(--space-6);
+  text-align: left;
 }
 
 .signin-title {
-  font-size: var(--text-xl);
+  font-size: 1.35rem;
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   margin: 0 0 var(--space-2) 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .signin-subtitle {
@@ -618,13 +599,13 @@ async function handleLogin() {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-3);
   background-color: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: var(--radius-md);
   color: var(--color-danger-500);
   font-size: var(--text-sm);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
   line-height: 1.4;
 }
 
@@ -633,7 +614,11 @@ async function handleLogin() {
   margin-top: 1px;
 }
 
-/* ─── Form ─── */
+.error-text {
+  font-weight: var(--font-weight-medium);
+}
+
+/* ─── Form Inputs ─── */
 .login-form {
   display: flex;
   flex-direction: column;
@@ -644,14 +629,14 @@ async function handleLogin() {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .form-label {
-  font-size: var(--text-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-  letter-spacing: 0.01em;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -663,21 +648,22 @@ async function handleLogin() {
 
 .input-icon {
   position: absolute;
-  left: 11px;
+  left: 12px;
   color: var(--text-muted);
   pointer-events: none;
   flex-shrink: 0;
+  transition: color var(--transition-fast);
 }
 
 .form-input {
   width: 100%;
   height: 40px;
-  padding: 0 var(--space-3) 0 36px;
+  padding: 0 var(--space-3) 0 38px;
   background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-family: var(--font-sans);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
   box-sizing: border-box;
@@ -685,24 +671,30 @@ async function handleLogin() {
 
 .form-input::placeholder {
   color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.input-wrapper:focus-within .input-icon {
+  color: var(--color-primary-400);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   background-color: var(--bg-surface);
 }
 
 .form-input:disabled {
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 /* ─── Submit Button ─── */
 .submit-btn {
   width: 100%;
-  height: 42px;
+  height: 40px;
+  margin-top: var(--space-1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -710,37 +702,41 @@ async function handleLogin() {
   background-color: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
-  border: none;
+  letter-spacing: -0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   position: relative;
 }
 
 .submit-btn:hover:not(:disabled) {
   background-color: var(--btn-primary-hover);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .submit-btn:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .submit-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btn-spinner {
-  width: 15px;
-  height: 15px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #ffffff;
   border-radius: 50%;
-  animation: spin 0.65s linear infinite;
+  animation: spin 0.6s linear infinite;
   flex-shrink: 0;
 }
 
@@ -753,33 +749,33 @@ async function handleLogin() {
   line-height: 1;
 }
 
-/* ─── Demo Section ─── */
+/* ─── Demo Mode Section ─── */
 .demo-section {
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--border-strong);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .demo-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .demo-divider-line {
   flex: 1;
   height: 1px;
-  background: var(--border-strong);
+  background: var(--border-subtle);
 }
 
 .demo-mode-pill {
   display: inline-flex;
   align-items: center;
-  height: 20px;
-  padding: 0 var(--space-2);
-  background: rgba(245, 158, 11, 0.12);
+  height: 19px;
+  padding: 0 7px;
+  background: rgba(245, 158, 11, 0.1);
   color: var(--color-warning-500);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: var(--radius-xs);
   font-size: 10px;
   font-family: var(--font-mono);
@@ -792,41 +788,42 @@ async function handleLogin() {
   font-size: var(--text-xs);
   color: var(--text-muted);
   text-align: center;
-  margin-bottom: var(--space-3);
+  margin: 0 0 var(--space-3) 0;
   line-height: 1.4;
 }
 
 .demo-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .demo-account-btn {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  padding: 8px 10px;
   background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all var(--transition-fast);
   width: 100%;
   font-family: var(--font-sans);
 }
 
 .demo-account-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-500);
+  border-color: var(--border-default);
   background-color: var(--bg-surface-hover);
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
 .demo-account-btn.active {
-  border-color: var(--color-primary-500);
-  background-color: rgba(99, 102, 241, 0.07);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.5);
+  background-color: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
 }
 
 .demo-account-btn:disabled {
@@ -835,8 +832,8 @@ async function handleLogin() {
 }
 
 .demo-avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   font-size: 11px;
   font-weight: var(--font-weight-bold);
@@ -845,33 +842,37 @@ async function handleLogin() {
   justify-content: center;
   flex-shrink: 0;
   font-family: var(--font-sans);
+  letter-spacing: -0.02em;
 }
 
 .demo-avatar.admin {
-  background: rgba(99, 102, 241, 0.18);
+  background: rgba(99, 102, 241, 0.15);
   color: var(--color-primary-400);
   border: 1px solid rgba(99, 102, 241, 0.3);
 }
+
 .demo-avatar.developer {
   background: rgba(16, 185, 129, 0.15);
   color: var(--color-success-500);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
+
 .demo-avatar.project_manager {
   background: rgba(245, 158, 11, 0.15);
   color: var(--color-warning-500);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
+
 .demo-avatar.viewer {
-  background: rgba(107, 114, 128, 0.12);
+  background: rgba(148, 163, 184, 0.12);
   color: var(--text-secondary);
-  border: 1px solid var(--border-strong);
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .demo-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
   flex: 1;
 }
@@ -893,8 +894,8 @@ async function handleLogin() {
 .demo-badge {
   display: inline-flex;
   align-items: center;
-  height: 18px;
-  padding: 0 6px;
+  height: 17px;
+  padding: 0 5px;
   border-radius: var(--radius-xs);
   font-size: 10px;
   font-weight: var(--font-weight-medium);
@@ -904,20 +905,27 @@ async function handleLogin() {
 }
 
 .demo-badge.admin {
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(99, 102, 241, 0.12);
   color: var(--color-primary-400);
+  border: 1px solid rgba(99, 102, 241, 0.25);
 }
+
 .demo-badge.developer {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--color-success-500);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
+
 .demo-badge.project_manager {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.12);
   color: var(--color-warning-500);
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
+
 .demo-badge.viewer {
-  background: rgba(107, 114, 128, 0.12);
+  background: rgba(148, 163, 184, 0.12);
   color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .demo-desc {
@@ -931,7 +939,9 @@ async function handleLogin() {
 
 /* ─── Footer ─── */
 .login-footer {
-  margin-top: var(--space-2);
+  margin-top: var(--space-4);
+  display: flex;
+  justify-content: center;
 }
 
 .footer-lock {
@@ -940,79 +950,28 @@ async function handleLogin() {
   gap: 5px;
   font-size: 11px;
   color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
 }
 
-/* ─── Dark theme border boosts ─── */
-/* Inputs */
-:root[data-theme='dark'] .form-input,
-.dark .form-input {
-  border-color: #505d70;
+/* ─── Light Theme Refinements ─── */
+:root[data-theme='light'] .login-composition,
+.light .login-composition {
+  background: #ffffff;
+  border-color: var(--border-default);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-/* Login composition outer border */
-@media (min-width: 1024px) {
-  :root[data-theme='dark'] .login-composition,
-  .dark .login-composition {
-    border-color: #505d70;
-  }
+:root[data-theme='light'] .login-bg-grid,
+.light .login-bg-grid {
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
 }
 
-/* Left panel separator */
-:root[data-theme='dark'] .login-left,
-.dark .login-left {
-  border-right-color: #505d70;
-}
-
-/* Demo section top border */
-:root[data-theme='dark'] .demo-section,
-.dark .demo-section {
-  border-top-color: #505d70;
-}
-
-/* Demo divider lines */
-:root[data-theme='dark'] .demo-divider-line,
-.dark .demo-divider-line {
-  background: #505d70;
-}
-
-/* Demo account buttons */
-:root[data-theme='dark'] .demo-account-btn,
-.dark .demo-account-btn {
-  border-color: #505d70;
-}
-
-:root[data-theme='dark'] .demo-account-btn:hover:not(:disabled),
-.dark .demo-account-btn:hover:not(:disabled) {
-  border-color: var(--color-primary-500);
-}
-
-/* Mobile/tablet login-right card border */
-@media (max-width: 1023px) {
-  :root[data-theme='dark'] .login-right,
-  .dark .login-right {
-    border-color: #505d70;
-  }
-}
-
-/* ─── Light theme overrides ─── */
 :root[data-theme='light'] .login-left,
 .light .login-left {
-  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
-  border-right-color: var(--border-strong);
-}
-
-:root[data-theme='light'] .login-left::before,
-.light .login-left::before {
-  background-image:
-    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.04) 0%, transparent 50%);
-}
-
-:root[data-theme='light'] .login-left::after,
-.light .login-left::after {
-  background-image:
-    linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+  border-right-color: var(--border-subtle);
 }
 
 :root[data-theme='light'] .left-headline,
@@ -1025,70 +984,74 @@ async function handleLogin() {
   color: var(--text-secondary);
 }
 
+:root[data-theme='light'] .capability-card,
+.light .capability-card {
+  background: #ffffff;
+  border-color: var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme='light'] .capability-card:hover,
+.light .capability-card:hover {
+  background: #fdfdfd;
+  border-color: var(--color-primary-300);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+}
+
 :root[data-theme='light'] .cap-title,
 .light .cap-title {
   color: var(--text-primary);
 }
 
-:root[data-theme='light'] .left-trust,
-.light .left-trust {
-  color: var(--text-muted);
+:root[data-theme='light'] .cap-desc,
+.light .cap-desc {
+  color: var(--text-secondary);
 }
 
-:root[data-theme='light'] .capability-row,
-.light .capability-row {
-  border-color: var(--border-default);
-  background: var(--bg-surface);
-}
-
-:root[data-theme='light'] .capability-row:hover,
-.light .capability-row:hover {
-  border-color: var(--color-primary-300);
-  background: var(--bg-surface-elevated);
-}
-
-:root[data-theme='light'] .cap-icon,
-.light .cap-icon {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(79, 70, 229, 0.18));
-  border-color: rgba(99, 102, 241, 0.25);
+:root[data-theme='light'] .cap-icon-box,
+.light .cap-icon-box {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.2);
   color: var(--color-primary-600);
 }
 
-/* ─── Responsive – Tablet (768px–1023px): stack, keep right only ─── */
+/* ─── Tablet Layout (768px – 1023px) ─── */
 @media (min-width: 768px) and (max-width: 1023px) {
   .login-page {
-    align-items: flex-start;
-    padding-top: var(--space-10);
-    padding-bottom: var(--space-10);
+    padding: var(--space-8) var(--space-4);
+    align-items: center;
+  }
+
+  .login-container {
+    max-width: 480px;
   }
 
   .login-right {
-    max-width: 460px;
-    margin: 0 auto;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    width: 100%;
+    padding: var(--space-8) var(--space-8);
   }
 }
 
-/* ─── Mobile (< 768px) ─── */
+/* ─── Mobile Layout (< 768px) ─── */
 @media (max-width: 767px) {
   .login-page {
     padding: var(--space-4);
     align-items: flex-start;
   }
 
+  .login-container {
+    max-width: 100%;
+  }
+
+  .login-composition {
+    border-radius: var(--radius-lg);
+  }
+
   .login-right {
-    width: 100%;
     padding: var(--space-6) var(--space-4);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
   }
 
   .signin-title {
-    font-size: var(--text-lg);
+    font-size: 1.2rem;
   }
 
   .signin-subtitle {
@@ -1096,8 +1059,8 @@ async function handleLogin() {
   }
 }
 
-/* ─── Short viewport safety ─── */
-@media (max-height: 640px) {
+/* ─── Short Viewport Safety (< 650px height) ─── */
+@media (max-height: 650px) {
   .login-page {
     align-items: flex-start;
     padding-top: var(--space-4);

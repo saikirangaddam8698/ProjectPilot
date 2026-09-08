@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useActivityStore } from './activity.store.js';
+import { useAuthStore } from './auth.store.js';
 import { projectsApi, membersApi } from '../services/api/index.js';
 
 // Master workspace member definitions fallback
@@ -199,10 +200,27 @@ export const useProjectStore = defineStore('project', () => {
   const statusFilter = ref('all'); // 'all' | 'active' | 'planning' | 'completed'
 
   // Getters
-  const allProjects = computed(() => projects.value);
+  // Raw workspace projects in store state
+  const rawProjects = computed(() => projects.value);
+
+  // Accessible projects scoped to the logged-in user (or all projects if ADMIN)
+  const allProjects = computed(() => {
+    const authStore = useAuthStore();
+    const currentUser = authStore.user;
+    if (!currentUser || authStore.isAdmin) {
+      return projects.value;
+    }
+    const userKeys = (currentUser.projectKeys || []).map((k) => k.toUpperCase());
+    const memberId = currentUser.memberId || currentUser.member?.id;
+    return projects.value.filter((p) => {
+      const isKeyMatch = userKeys.includes(p.key.toUpperCase());
+      const isMemberMatch = (p.members || []).some((m) => m.id === memberId || m.email === currentUser.email);
+      return isKeyMatch || isMemberMatch;
+    });
+  });
 
   const filteredProjects = computed(() => {
-    return projects.value.filter((project) => {
+    return allProjects.value.filter((project) => {
       const matchesSearch =
         !searchQuery.value.trim() ||
         project.name.toLowerCase().includes(searchQuery.value.toLowerCase().trim()) ||
@@ -217,11 +235,11 @@ export const useProjectStore = defineStore('project', () => {
   });
 
   const activeProject = computed(() => {
-    if (!activeProjectKey.value) return null;
-    return (
-      projects.value.find((p) => p.key.toUpperCase() === activeProjectKey.value.toUpperCase()) ||
-      null
-    );
+    if (activeProjectKey.value) {
+      const found = allProjects.value.find((p) => p.key.toUpperCase() === activeProjectKey.value.toUpperCase());
+      if (found) return found;
+    }
+    return allProjects.value[0] || null;
   });
 
   /**
@@ -291,12 +309,36 @@ export const useProjectStore = defineStore('project', () => {
   function getProjectByKey(key) {
     if (!key) return null;
     return (
-      projects.value.find((p) => p.key.toUpperCase() === key.toUpperCase()) || null
+      allProjects.value.find((p) => p.key.toUpperCase() === key.toUpperCase()) || null
     );
   }
 
+  function isMemberOfProject(key) {
+    if (!key) return false;
+    const authStore = useAuthStore();
+    if (authStore.isAdmin) return true;
+    return allProjects.value.some((p) => p.key.toUpperCase() === key.toUpperCase());
+  }
+
   function setActiveProjectKey(key) {
-    activeProjectKey.value = key ? key.toUpperCase() : null;
+    if (!key) {
+      activeProjectKey.value = null;
+      return;
+    }
+    const upperKey = key.toUpperCase();
+    const authStore = useAuthStore();
+    if (authStore.isAuthenticated && !authStore.isAdmin && !authStore.hasProjectAccess(upperKey)) {
+      console.warn(`[Security Warning] Blocked attempt to set active project to unauthorized key: ${upperKey}`);
+      return;
+    }
+    activeProjectKey.value = upperKey;
+  }
+
+  function resetProjectState() {
+    activeProjectKey.value = null;
+    searchQuery.value = '';
+    statusFilter.value = 'all';
+    error.value = null;
   }
 
   async function createProject({ name, key, description, status, leadName }) {
@@ -508,12 +550,14 @@ export const useProjectStore = defineStore('project', () => {
     isLoading,
     error,
     isInitialized,
+    rawProjects,
     allProjects,
     filteredProjects,
     activeProject,
     allWorkspaceMembers,
     fetchProjects,
     getProjectByKey,
+    isMemberOfProject,
     setActiveProjectKey,
     setCurrentProject: setActiveProjectKey,
     currentProjectKey: activeProjectKey,
@@ -521,6 +565,7 @@ export const useProjectStore = defineStore('project', () => {
     addMemberToProject,
     removeMemberFromProject,
     setSearchQuery,
-    setStatusFilter
+    setStatusFilter,
+    resetProjectState
   };
 });

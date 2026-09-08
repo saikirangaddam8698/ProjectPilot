@@ -70,8 +70,20 @@ export class ProjectService {
     };
   }
 
-  static async getAllProjects(filters) {
-    const projects = await ProjectRepository.findAll(filters);
+  static async getAllProjects(filters = {}) {
+    const { status, search, user } = filters;
+    let memberId = null;
+    let projectKeys = null;
+
+    if (user && user.role !== 'ADMIN') {
+      if (user.memberId) {
+        memberId = user.memberId;
+      } else if (Array.isArray(user.projectKeys)) {
+        projectKeys = user.projectKeys;
+      }
+    }
+
+    const projects = await ProjectRepository.findAll({ status, search, memberId, projectKeys });
     return projects.map((p) => this.formatProject(p));
   }
 

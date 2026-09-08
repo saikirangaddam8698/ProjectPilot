@@ -176,10 +176,17 @@ function resetFilters() {
       </div>
 
       <div class="page-actions">
-        <BaseButton variant="primary" size="md" @click="handleInviteClick">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Invite Member
-        </BaseButton>
+        <div :title="!authStore.canManageWorkspaceMembers ? 'Only Workspace Admins can invite new team members' : ''">
+          <BaseButton
+            variant="primary"
+            size="md"
+            :disabled="!authStore.canManageWorkspaceMembers"
+            @click="handleInviteClick"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            Invite Member
+          </BaseButton>
+        </div>
       </div>
     </div>
 

@@ -287,10 +287,17 @@ function formatDate(iso) {
           </select>
         </div>
 
-        <BaseButton variant="primary" size="sm" @click="openCreateModal">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Upload Document
-        </BaseButton>
+        <div :title="authStore.isViewer ? 'Viewers cannot upload documents' : ''">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="openCreateModal"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            Upload Document
+          </BaseButton>
+        </div>
       </div>
     </header>
 
@@ -414,9 +421,16 @@ function formatDate(iso) {
         <p class="empty-desc text-muted">
           {{ selectedCategory === 'ALL' ? `No knowledge base documents exist yet for ${currentProject?.name || 'this project'}.` : `No documents found under category "${selectedCategory}".` }}
         </p>
-        <BaseButton variant="primary" size="sm" @click="openCreateModal">
-          Upload First Document
-        </BaseButton>
+        <div :title="authStore.isViewer ? 'Viewers cannot upload documents' : ''">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="openCreateModal"
+          >
+            Upload First Document
+          </BaseButton>
+        </div>
       </div>
 
       <!-- Documents Grid -->
@@ -625,12 +639,26 @@ function formatDate(iso) {
             <BaseButton variant="neutral" size="sm" @click="showDetailModal = false">
               Close
             </BaseButton>
-            <BaseButton variant="outline" size="sm" @click="openEditModal(knowledgeStore.activeDocument)">
-              Edit
-            </BaseButton>
-            <BaseButton variant="danger" size="sm" @click="handleDelete(knowledgeStore.activeDocument.id)">
-              Delete
-            </BaseButton>
+            <div :title="authStore.isViewer ? 'Viewers cannot edit documents' : ''">
+              <BaseButton
+                variant="outline"
+                size="sm"
+                :disabled="authStore.isViewer"
+                @click="openEditModal(knowledgeStore.activeDocument)"
+              >
+                Edit
+              </BaseButton>
+            </div>
+            <div :title="authStore.isViewer ? 'Viewers cannot delete documents' : ''">
+              <BaseButton
+                variant="danger"
+                size="sm"
+                :disabled="authStore.isViewer"
+                @click="handleDelete(knowledgeStore.activeDocument.id)"
+              >
+                Delete
+              </BaseButton>
+            </div>
           </div>
         </div>
       </div>

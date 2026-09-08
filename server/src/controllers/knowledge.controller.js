@@ -24,19 +24,21 @@ export class KnowledgeController {
    * GET /api/v1/projects/:projectKey/knowledge/:documentId
    */
   static async getDocument(req, res) {
-    const { documentId } = req.params;
+    const { projectKey, documentId } = req.params;
     const document = await KnowledgeService.getDocumentById(documentId);
+    if (projectKey && document.project?.key && document.project.key.toUpperCase() !== projectKey.toUpperCase()) {
+      throw ApiError.forbidden(`Forbidden: Document "${documentId}" does not belong to project "${projectKey}"`);
+    }
     return ApiResponse.success(res, {
       data: document
     });
   }
 
-  /**
-   * Create document
-   * POST /api/v1/projects/:projectKey/knowledge
-   */
   static async createDocument(req, res) {
     const { projectKey } = req.params;
+    if (req.user && req.user.role === 'VIEWER') {
+      throw ApiError.forbidden('Forbidden: Viewer role is read-only and cannot create documents');
+    }
     const document = await KnowledgeService.createDocument(projectKey, req.body, req.user);
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.CREATED,
@@ -45,12 +47,15 @@ export class KnowledgeController {
     });
   }
 
-  /**
-   * Update document
-   * PUT /api/v1/projects/:projectKey/knowledge/:documentId
-   */
   static async updateDocument(req, res) {
-    const { documentId } = req.params;
+    const { projectKey, documentId } = req.params;
+    if (req.user && req.user.role === 'VIEWER') {
+      throw ApiError.forbidden('Forbidden: Viewer role is read-only and cannot edit documents');
+    }
+    const existing = await KnowledgeService.getDocumentById(documentId);
+    if (projectKey && existing.project?.key && existing.project.key.toUpperCase() !== projectKey.toUpperCase()) {
+      throw ApiError.forbidden(`Forbidden: Document "${documentId}" does not belong to project "${projectKey}"`);
+    }
     const document = await KnowledgeService.updateDocument(documentId, req.body);
     return ApiResponse.success(res, {
       data: document,
@@ -58,12 +63,22 @@ export class KnowledgeController {
     });
   }
 
-  /**
-   * Delete document
-   * DELETE /api/v1/projects/:projectKey/knowledge/:documentId
-   */
   static async deleteDocument(req, res) {
-    const { documentId } = req.params;
+    const { projectKey, documentId } = req.params;
+    const existing = await KnowledgeService.getDocumentById(documentId);
+    if (projectKey && existing.project?.key && existing.project.key.toUpperCase() !== projectKey.toUpperCase()) {
+      throw ApiError.forbidden(`Forbidden: Document "${documentId}" does not belong to project "${projectKey}"`);
+    }
+    if (req.user && req.user.role !== 'ADMIN') {
+      const membership = (req.user.projectMemberships || []).find(
+        (pm) => pm.projectKey?.toUpperCase() === projectKey.toUpperCase()
+      );
+      const isProjectAdmin = membership?.projectRole === 'Project Admin' || membership?.projectRole === 'Lead';
+      if (!isProjectAdmin && existing.createdById !== req.user.memberId && existing.createdById !== req.user.id) {
+        throw ApiError.forbidden(`Forbidden: Only Project Admins or document authors can delete documents in project "${projectKey}"`);
+      }
+    }
+
     const result = await KnowledgeService.deleteDocument(documentId);
     return ApiResponse.success(res, {
       data: result,
@@ -71,12 +86,15 @@ export class KnowledgeController {
     });
   }
 
-  /**
-   * Process & Index document into vector chunks
-   * POST /api/v1/projects/:projectKey/knowledge/:documentId/index
-   */
   static async indexDocument(req, res) {
-    const { documentId } = req.params;
+    const { projectKey, documentId } = req.params;
+    if (req.user && req.user.role === 'VIEWER') {
+      throw ApiError.forbidden('Forbidden: Viewer role is read-only and cannot index documents');
+    }
+    const existing = await KnowledgeService.getDocumentById(documentId);
+    if (projectKey && existing.project?.key && existing.project.key.toUpperCase() !== projectKey.toUpperCase()) {
+      throw ApiError.forbidden(`Forbidden: Document "${documentId}" does not belong to project "${projectKey}"`);
+    }
     const result = await KnowledgeService.indexDocument(documentId);
     return ApiResponse.success(res, {
       data: result,

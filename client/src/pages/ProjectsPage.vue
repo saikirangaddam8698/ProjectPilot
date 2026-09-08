@@ -88,10 +88,17 @@ function getProjectProgress(key) {
         <h2 class="page-title">Projects</h2>
         <p class="page-subtitle">Manage workspaces, project keys, sprint configurations, and team access.</p>
       </div>
-      <BaseButton variant="primary" size="sm" @click="handleCreateProjectClick">
-        <template #prefix><AppIcon name="plus" :size="14" /></template>
-        Create Project
-      </BaseButton>
+      <div :title="!authStore.canCreateProject ? 'Only Workspace Admins and Project Managers can create projects' : ''">
+        <BaseButton
+          variant="primary"
+          size="sm"
+          :disabled="!authStore.canCreateProject"
+          @click="handleCreateProjectClick"
+        >
+          <template #prefix><AppIcon name="plus" :size="14" /></template>
+          Create Project
+        </BaseButton>
+      </div>
     </div>
 
     <!-- Service / Database Error Banner -->

@@ -23,16 +23,19 @@ export const projectSummaryTool = {
   async execute({ projectKey }) {
     const key = projectKey.toUpperCase();
 
-    const project = await ProjectRepository.findByKey(key);
+    const [project, tickets, sprints] = await Promise.all([
+      ProjectRepository.findByKey(key),
+      TicketRepository.findAll({ projectKey: key }),
+      SprintRepository.findAll({ projectKey: key })
+    ]);
+
     if (!project) {
       return {
         error: `Project "${key}" not found in database.`
       };
     }
 
-    const tickets = await TicketRepository.findAll({ projectKey: key });
-    const sprints = await SprintRepository.findAll({ projectKey: key });
-    const activeSprint = sprints.find((s) => s.status === 'ACTIVE') || null;
+    const activeSprint = (sprints || []).find((s) => s.status === 'ACTIVE') || null;
 
     const todoCount = tickets.filter((t) => t.status === 'Todo' || t.status === 'Backlog').length;
     const inProgressCount = tickets.filter((t) => t.status === 'In Progress').length;

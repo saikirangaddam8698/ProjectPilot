@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 
 const props = defineProps({
@@ -11,9 +12,14 @@ const props = defineProps({
 
 const emit = defineEmits(['click', 'dragstart', 'dragend']);
 
+const authStore = useAuthStore();
 const isDragging = ref(false);
 
 function onDragStart(event) {
+  if (authStore.isViewer) {
+    event.preventDefault();
+    return;
+  }
   isDragging.value = true;
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', props.ticket.key);
@@ -43,11 +49,12 @@ function getPriorityVariant(p) {
 <template>
   <div
     class="kanban-card"
-    :class="{ 'is-dragging': isDragging, 'is-urgent': ticket.priority === 'Urgent' }"
-    draggable="true"
+    :class="{ 'is-dragging': isDragging, 'is-urgent': ticket.priority === 'Urgent', 'is-readonly': authStore.isViewer }"
+    :draggable="!authStore.isViewer"
     tabindex="0"
     role="button"
     :aria-label="`Ticket ${ticket.key}: ${ticket.title}`"
+    :title="authStore.isViewer ? `${ticket.key}: Viewers have read-only permissions` : ''"
     @dragstart="onDragStart"
     @dragend="onDragEnd"
     @click="$emit('click', ticket)"
@@ -145,6 +152,10 @@ function getPriorityVariant(p) {
 .kanban-card.is-dragging {
   opacity: 0.4;
   transform: scale(0.98);
+}
+
+.kanban-card.is-readonly {
+  cursor: pointer;
 }
 
 .kanban-card.is-urgent {

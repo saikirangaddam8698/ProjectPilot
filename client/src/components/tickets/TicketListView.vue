@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useProjectStore } from '@/stores/project.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
@@ -24,6 +25,7 @@ const props = defineProps({
 
 const ticketStore = useTicketStore();
 const projectStore = useProjectStore();
+const authStore = useAuthStore();
 
 const isInitialLoading = computed(() => {
   return ticketStore.isLoading && ticketStore.allTickets.length === 0;
@@ -151,10 +153,17 @@ function getPriorityBadgeVariant(p) {
       </div>
 
       <div class="toolbar-right">
-        <BaseButton variant="primary" size="sm" @click="ticketStore.openCreateModal(projectKey || 'PILOT')">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Create Ticket
-        </BaseButton>
+        <div :title="authStore.isViewer ? 'Viewers cannot create tickets' : ''">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="ticketStore.openCreateModal(projectKey || 'PILOT')"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            Create Ticket
+          </BaseButton>
+        </div>
       </div>
     </div>
 
