@@ -150,8 +150,12 @@ function getPriorityVariant(p) {
 }
 
 .kanban-card.is-dragging {
-  opacity: 0.4;
-  transform: scale(0.98);
+  opacity: 0.85;
+  transform: scale(1.015) translateY(-2px);
+  background-color: var(--glass-card-drag-bg);
+  border-color: var(--color-primary-400);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.35), 0 0 16px rgba(99, 102, 241, 0.25);
+  cursor: grabbing;
 }
 
 .kanban-card.is-readonly {

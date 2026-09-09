@@ -119,7 +119,7 @@ function handleClose() {
     </div>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="handleClose">
+      <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
       <BaseButton variant="danger" size="md" @click="handleConfirmRemove">

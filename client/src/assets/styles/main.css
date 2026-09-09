@@ -119,3 +119,186 @@ img, svg {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   Global Select & Dropdown Styling
+   ========================================================================== */
+select,
+.form-select,
+.toolbar-select,
+.filter-select,
+.project-select,
+.project-select-input,
+.dest-select,
+.meta-select,
+.sprint-quick-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--select-bg, var(--bg-surface));
+  color: var(--text-primary);
+  border: 1px solid var(--select-border, var(--border-default));
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-8) 0 var(--space-3);
+  height: 34px;
+  line-height: normal;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+select:hover:not(:disabled),
+.form-select:hover:not(:disabled),
+.toolbar-select:hover:not(:disabled),
+.filter-select:hover:not(:disabled),
+.project-select:hover:not(:disabled),
+.project-select-input:hover:not(:disabled),
+.dest-select:hover:not(:disabled),
+.meta-select:hover:not(:disabled),
+.sprint-quick-select:hover:not(:disabled) {
+  border-color: var(--select-border-hover, var(--border-strong));
+  background-color: var(--select-bg-hover, var(--bg-surface-elevated));
+}
+
+select:focus,
+.form-select:focus,
+.toolbar-select:focus,
+.filter-select:focus,
+.project-select:focus,
+.project-select-input:focus,
+.dest-select:focus,
+.meta-select:focus,
+.sprint-quick-select:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--select-focus-ring, rgba(99, 102, 241, 0.2));
+  outline: none;
+}
+
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select option {
+  background-color: var(--bg-surface-elevated, #1e293b);
+  color: var(--text-primary, #f1f5f9);
+  padding: 8px 12px;
+}
+
+/* ==========================================================================
+   Centralized Close & X Destructive Interaction (Unified Red Hover & Click)
+   Both X icon buttons and Close/Cancel text buttons share this red hover & click
+   ========================================================================== */
+.btn-close-destructive,
+.modal-close-btn,
+.drawer-close-btn,
+.close-btn,
+.btn-close,
+.btn-cancel,
+.header-btn.close-btn,
+.header-icon-btn.close-btn,
+.toast-close,
+button[aria-label*="close" i],
+button[aria-label*="cancel" i],
+button[title*="close" i],
+button[title*="cancel" i] {
+  color: var(--btn-close-color, var(--text-muted));
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              border-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.btn-close-destructive:hover,
+.modal-close-btn:hover,
+.drawer-close-btn:hover,
+.close-btn:hover,
+.btn-close:hover,
+.btn-cancel:hover,
+.header-btn.close-btn:hover,
+.header-icon-btn.close-btn:hover,
+.toast-close:hover,
+button[aria-label*="close" i]:hover,
+button[aria-label*="cancel" i]:hover,
+button[title*="close" i]:hover,
+button[title*="cancel" i]:hover {
+  background-color: var(--btn-close-bg-hover, rgba(239, 68, 68, 0.20)) !important;
+  color: var(--btn-close-color-hover, #ef4444) !important;
+  border-color: var(--btn-close-border-hover, rgba(239, 68, 68, 0.50)) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-close-destructive:hover .btn-content,
+.btn-close:hover .btn-content,
+.btn-cancel:hover .btn-content {
+  color: var(--btn-close-color-hover, #ef4444) !important;
+}
+
+.btn-close-destructive:hover svg,
+.modal-close-btn:hover svg,
+.drawer-close-btn:hover svg,
+.close-btn:hover svg,
+.btn-close:hover svg,
+.btn-cancel:hover svg,
+.header-btn.close-btn:hover svg,
+.header-icon-btn.close-btn:hover svg,
+.toast-close:hover svg,
+button[aria-label*="close" i]:hover svg,
+button[aria-label*="cancel" i]:hover svg,
+button[title*="close" i]:hover svg,
+button[title*="cancel" i]:hover svg {
+  stroke: var(--btn-close-color-hover, #ef4444) !important;
+  color: var(--btn-close-color-hover, #ef4444) !important;
+}
+
+.btn-close-destructive:active,
+.modal-close-btn:active,
+.drawer-close-btn:active,
+.close-btn:active,
+.btn-close:active,
+.btn-cancel:active,
+.header-btn.close-btn:active,
+.header-icon-btn.close-btn:active,
+.toast-close:active,
+button[aria-label*="close" i]:active,
+button[aria-label*="cancel" i]:active,
+button[title*="close" i]:active,
+button[title*="cancel" i]:active {
+  background-color: var(--btn-close-bg-active, rgba(239, 68, 68, 0.35)) !important;
+  color: var(--btn-close-color-active, #dc2626) !important;
+  border-color: var(--btn-close-border-active, rgba(239, 68, 68, 0.70)) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.40);
+  transform: scale(0.93);
+}
+
+.btn-close-destructive:active .btn-content,
+.btn-close:active .btn-content,
+.btn-cancel:active .btn-content {
+  color: var(--btn-close-color-active, #dc2626) !important;
+}
+
+.btn-close-destructive:active svg,
+.modal-close-btn:active svg,
+.drawer-close-btn:active svg,
+.close-btn:active svg,
+.btn-close:active svg,
+.btn-cancel:active svg,
+.header-btn.close-btn:active svg,
+.header-icon-btn.close-btn:active svg,
+.toast-close:active svg,
+button[aria-label*="close" i]:active svg,
+button[aria-label*="cancel" i]:active svg,
+button[title*="close" i]:active svg,
+button[title*="cancel" i]:active svg {
+  stroke: var(--btn-close-color-active, #dc2626) !important;
+  color: var(--btn-close-color-active, #dc2626) !important;
+}
+

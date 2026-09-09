@@ -4,8 +4,8 @@ import { ref } from 'vue';
 const SIDEBAR_STORAGE_KEY = 'projectpilot_sidebar_collapsed';
 
 export const useUiStore = defineStore('ui', () => {
-  // Sidebar state (collapsed vs expanded on desktop)
-  const isSidebarCollapsed = ref(localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true');
+  // Sidebar state (open by default on every login)
+  const isSidebarCollapsed = ref(false);
 
   // Mobile navigation drawer state
   const isMobileNavOpen = ref(false);
@@ -13,14 +13,25 @@ export const useUiStore = defineStore('ui', () => {
   // Quick command / search palette modal state
   const isSearchModalOpen = ref(false);
 
+  function openSidebar() {
+    isSidebarCollapsed.value = false;
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, 'false');
+    } catch (e) {}
+  }
+
   function toggleSidebar() {
     isSidebarCollapsed.value = !isSidebarCollapsed.value;
-    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarCollapsed.value));
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarCollapsed.value));
+    } catch (e) {}
   }
 
   function setSidebarCollapsed(collapsed) {
     isSidebarCollapsed.value = collapsed;
-    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+    } catch (e) {}
   }
 
   function toggleMobileNav() {
@@ -58,19 +69,60 @@ export const useUiStore = defineStore('ui', () => {
     }, minDurationMs);
   }
 
+  // Floating AI Quick Chat state
+  const isQuickChatOpen = ref(false);
+  const isQuickChatMinimized = ref(false);
+
+  function openQuickChat() {
+    isQuickChatOpen.value = true;
+    isQuickChatMinimized.value = false;
+  }
+
+  function closeQuickChat() {
+    isQuickChatOpen.value = false;
+    isQuickChatMinimized.value = false;
+  }
+
+  function toggleQuickChat() {
+    if (isQuickChatMinimized.value) {
+      isQuickChatMinimized.value = false;
+      isQuickChatOpen.value = true;
+    } else {
+      isQuickChatOpen.value = !isQuickChatOpen.value;
+    }
+  }
+
+  function minimizeQuickChat() {
+    isQuickChatMinimized.value = true;
+    isQuickChatOpen.value = false;
+  }
+
+  function restoreQuickChat() {
+    isQuickChatMinimized.value = false;
+    isQuickChatOpen.value = true;
+  }
+
   return {
     isSidebarCollapsed,
     isMobileNavOpen,
     isSearchModalOpen,
     isNavigating,
     isPageLoading,
+    isQuickChatOpen,
+    isQuickChatMinimized,
     toggleSidebar,
+    openSidebar,
     setSidebarCollapsed,
     toggleMobileNav,
     closeMobileNav,
     openSearchModal,
     closeSearchModal,
     setNavigating,
-    triggerPageLoading
+    triggerPageLoading,
+    openQuickChat,
+    closeQuickChat,
+    toggleQuickChat,
+    minimizeQuickChat,
+    restoreQuickChat
   };
 });

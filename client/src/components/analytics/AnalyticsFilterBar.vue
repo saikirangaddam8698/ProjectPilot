@@ -1,6 +1,8 @@
 <script setup>
+import { computed } from 'vue';
 import { useProjectStore } from '@/stores/project.store';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   projectScope: {
@@ -25,14 +27,34 @@ const emit = defineEmits(['update:projectScope', 'update:sprintScope', 'reset'])
 
 const projectStore = useProjectStore();
 
-function handleProjectChange(e) {
-  emit('update:projectScope', e.target.value);
+const projectOptions = computed(() => [
+  { value: 'all', label: 'All Projects' },
+  ...projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }))
+]);
+
+const sprintOptions = computed(() => [
+  { value: 'all', label: 'All Sprints & Backlog' },
+  { value: 'active', label: '⚡ Active Sprint Only' },
+  { value: 'backlog', label: '📋 Product Backlog Only' },
+  ...props.availableSprints.map((s) => ({
+    value: s.id,
+    label: `${s.name.split('—')[0].trim()} (${s.status})`
+  }))
+]);
+
+function handleProjectChange(val) {
+  const value = typeof val === 'object' && val?.target ? val.target.value : val;
+  emit('update:projectScope', value);
   // Reset sprint to 'all' when switching project
   emit('update:sprintScope', 'all');
 }
 
-function handleSprintChange(e) {
-  emit('update:sprintScope', e.target.value);
+function handleSprintChange(val) {
+  const value = typeof val === 'object' && val?.target ? val.target.value : val;
+  emit('update:sprintScope', value);
 }
 </script>
 
@@ -46,40 +68,24 @@ function handleSprintChange(e) {
 
       <!-- Project Filter (for Global View) -->
       <div v-if="showProjectSelect" class="select-wrapper">
-        <select
-          :value="projectScope"
-          class="filter-select"
-          @change="handleProjectChange"
-        >
-          <option value="all">All Projects</option>
-          <option
-            v-for="p in projectStore.allProjects"
-            :key="p.id"
-            :value="p.key"
-          >
-            {{ p.name }} ({{ p.key }})
-          </option>
-        </select>
+        <BaseSelect
+          :model-value="projectScope"
+          :options="projectOptions"
+          size="sm"
+          aria-label="Project scope filter"
+          @update:model-value="handleProjectChange"
+        />
       </div>
 
       <!-- Sprint Scope Filter -->
       <div class="select-wrapper">
-        <select
-          :value="sprintScope"
-          class="filter-select"
-          @change="handleSprintChange"
-        >
-          <option value="all">All Sprints & Backlog</option>
-          <option value="active">⚡ Active Sprint Only</option>
-          <option value="backlog">📋 Product Backlog Only</option>
-          <option
-            v-for="s in availableSprints"
-            :key="s.id"
-            :value="s.id"
-          >
-            {{ s.name.split('—')[0].trim() }} ({{ s.status }})
-          </option>
-        </select>
+        <BaseSelect
+          :model-value="sprintScope"
+          :options="sprintOptions"
+          size="sm"
+          aria-label="Sprint scope filter"
+          @update:model-value="handleSprintChange"
+        />
       </div>
 
       <!-- Reset Filter Button -->
@@ -134,6 +140,7 @@ function handleSprintChange(e) {
 .select-wrapper {
   display: flex;
   align-items: center;
+  min-width: 190px;
 }
 
 .filter-select {

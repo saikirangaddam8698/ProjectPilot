@@ -1,7 +1,7 @@
 <script setup>
-import TicketDetailModal from './TicketDetailModal.vue';
+// TicketDetailModal is globally mounted in AppShell.vue
 </script>
 
 <template>
-  <TicketDetailModal />
+  <!-- Global instance in AppShell.vue manages ticket detail modal -->
 </template>

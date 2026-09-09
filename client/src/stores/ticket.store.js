@@ -337,6 +337,7 @@ export const useTicketStore = defineStore('ticket', () => {
   const activeTicketKey = ref(null);
   const isCreateModalOpen = ref(false);
   const createModalProjectKey = ref('PILOT');
+  const createModalPrefillStatus = ref('Todo');
   const isLoading = ref(false);
   const error = ref(null);
   const isInitialized = ref(false);
@@ -391,7 +392,8 @@ export const useTicketStore = defineStore('ticket', () => {
     const rawKey = typeof key === 'string' ? key : (key?.key || String(key));
     if (!rawKey || typeof rawKey !== 'string') return null;
     const searchKey = rawKey.trim().toUpperCase();
-    return allTickets.value.find((t) => t?.key && String(t.key).trim().toUpperCase() === searchKey) || null;
+    return allTickets.value.find((t) => t?.key && String(t.key).trim().toUpperCase() === searchKey) ||
+           tickets.value.find((t) => t?.key && String(t.key).trim().toUpperCase() === searchKey) || null;
   }
 
   function getTicketById(id) {
@@ -500,8 +502,9 @@ export const useTicketStore = defineStore('ticket', () => {
   }
 
   // Actions
-  function openCreateModal(prefillProjectKey = 'PILOT') {
+  function openCreateModal(prefillProjectKey = 'PILOT', prefillStatus = 'Todo') {
     createModalProjectKey.value = prefillProjectKey || 'PILOT';
+    createModalPrefillStatus.value = prefillStatus || 'Todo';
     isCreateModalOpen.value = true;
   }
 
@@ -921,6 +924,9 @@ export const useTicketStore = defineStore('ticket', () => {
     getFilteredTickets,
     openCreateModal,
     closeCreateModal,
+    isCreateModalOpen,
+    createModalProjectKey,
+    createModalPrefillStatus,
     openTicketDetail,
     closeTicketDetail,
     generateNextKey,

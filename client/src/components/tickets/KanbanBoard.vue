@@ -11,6 +11,7 @@ import TicketDetailDrawer from './TicketDetailDrawer.vue';
 import CreateTicketModal from './CreateTicketModal.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const props = defineProps({
@@ -56,6 +57,39 @@ const availableSprints = computed(() => {
   }
   return sprintStore.allSprints;
 });
+
+const projectScopeOptions = computed(() => [
+  { value: 'all', label: 'All Projects' },
+  ...projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }))
+]);
+
+const sprintFilterOptions = computed(() => [
+  { value: 'all', label: 'All Sprints & Backlog' },
+  { value: 'backlog', label: 'Backlog Only (Unscheduled)' },
+  ...availableSprints.value.map((s) => ({
+    value: s.id,
+    label: `${s.name.split('—')[0].trim()} (${s.status})`
+  }))
+]);
+
+const typeFilterOptions = [
+  { value: 'all', label: 'All Types' },
+  { value: 'Story', label: 'Story' },
+  { value: 'Task', label: 'Task' },
+  { value: 'Bug', label: 'Bug' },
+  { value: 'Epic', label: 'Epic' }
+];
+
+const priorityFilterOptions = [
+  { value: 'all', label: 'All Priorities' },
+  { value: 'Urgent', label: 'Urgent' },
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Low', label: 'Low' }
+];
 
 // Filtered tickets based on search, filters, and active project
 const currentTickets = computed(() => {
@@ -115,11 +149,13 @@ function handleTicketDrop(payload) {
 
 function handleCreateInColumn(statusId) {
   createPrefillStatus.value = statusId;
+  ticketStore.openCreateModal(activeScope.value || 'PILOT', statusId);
   isCreateModalOpen.value = true;
 }
 
 function openCreateModal() {
   createPrefillStatus.value = 'Todo';
+  ticketStore.openCreateModal(activeScope.value || 'PILOT', 'Todo');
   isCreateModalOpen.value = true;
 }
 
@@ -154,53 +190,38 @@ function handleRetry() {
 
         <!-- Optional Project Scope Switcher (for Global View) -->
         <div v-if="showProjectFilter" class="filter-select-wrap">
-          <select v-model="selectedProjectScope" class="toolbar-select">
-            <option value="all">All Projects</option>
-            <option
-              v-for="p in projectStore.allProjects"
-              :key="p.id"
-              :value="p.key"
-            >
-              {{ p.name }} ({{ p.key }})
-            </option>
-          </select>
+          <BaseSelect
+            v-model="selectedProjectScope"
+            :options="projectScopeOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Sprint Filter (Step 15) -->
         <div class="filter-select-wrap">
-          <select v-model="ticketStore.sprintFilter" class="toolbar-select">
-            <option value="all">All Sprints & Backlog</option>
-            <option value="backlog">Backlog Only (Unscheduled)</option>
-            <option
-              v-for="s in availableSprints"
-              :key="s.id"
-              :value="s.id"
-            >
-              {{ s.name.split('—')[0].trim() }} ({{ s.status }})
-            </option>
-          </select>
+          <BaseSelect
+            v-model="ticketStore.sprintFilter"
+            :options="sprintFilterOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Type Filter -->
         <div class="filter-select-wrap">
-          <select v-model="ticketStore.typeFilter" class="toolbar-select">
-            <option value="all">All Types</option>
-            <option value="Story">Story</option>
-            <option value="Task">Task</option>
-            <option value="Bug">Bug</option>
-            <option value="Epic">Epic</option>
-          </select>
+          <BaseSelect
+            v-model="ticketStore.typeFilter"
+            :options="typeFilterOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Priority Filter -->
         <div class="filter-select-wrap">
-          <select v-model="ticketStore.priorityFilter" class="toolbar-select">
-            <option value="all">All Priorities</option>
-            <option value="Urgent">Urgent</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
+          <BaseSelect
+            v-model="ticketStore.priorityFilter"
+            :options="priorityFilterOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Reset Button -->
@@ -259,7 +280,7 @@ function handleRetry() {
     <!-- Modals and Drawers -->
     <TicketDetailDrawer />
     <CreateTicketModal
-      :isOpen="isCreateModalOpen"
+      v-model="isCreateModalOpen"
       :defaultProjectKey="activeScope || 'PILOT'"
       :defaultStatus="createPrefillStatus"
       @close="isCreateModalOpen = false"
@@ -296,6 +317,10 @@ function handleRetry() {
 
 .search-wrap {
   width: 240px;
+}
+
+.filter-select-wrap {
+  min-width: 145px;
 }
 
 .toolbar-select {

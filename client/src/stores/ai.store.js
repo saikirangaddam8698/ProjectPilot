@@ -18,6 +18,8 @@ export const useAiStore = defineStore('ai', () => {
   // ── State ──────────────────────────────────────────────
   const selectedProjectKey = ref('PILOT');
   const conversations = ref([]);
+  const conversationsByProject = ref({});
+  const historyLoadedByProject = ref({});
   const activeConversationId = ref(null);
   const messages = ref([]);
   const isGenerating = ref(false);
@@ -55,12 +57,22 @@ export const useAiStore = defineStore('ai', () => {
 
   // ── Actions ────────────────────────────────────────────
   function setProject(projectKey) {
-    if (projectKey && selectedProjectKey.value !== projectKey) {
-      selectedProjectKey.value = projectKey.toUpperCase();
+    if (!projectKey) return;
+    const pKey = projectKey.toUpperCase();
+    if (selectedProjectKey.value !== pKey) {
+      selectedProjectKey.value = pKey;
       activeConversationId.value = null;
       messages.value = [];
       error.value = null;
-      fetchConversations();
+      stopActivityCycle();
+
+      // If conversations already cached for this project, restore them immediately with 0 network calls
+      if (historyLoadedByProject.value[pKey]) {
+        conversations.value = conversationsByProject.value[pKey] || [];
+      } else {
+        conversations.value = [];
+        fetchConversations(pKey);
+      }
     }
   }
 
@@ -71,32 +83,51 @@ export const useAiStore = defineStore('ai', () => {
     stopActivityCycle();
   }
 
-  let fetchPromise = null;
+  const fetchPromiseByProject = {};
 
   /**
-   * Fetch conversation list for current project with in-flight request deduplication
+   * Fetch conversation list for current project with in-flight request deduplication and caching
    */
   async function fetchConversations(projectKey = selectedProjectKey.value, force = false) {
     if (!projectKey) return [];
-    if (fetchPromise && !force) return fetchPromise;
+    const pKey = projectKey.toUpperCase();
+
+    // 1. If already loaded for this project and not forced, return cached Pinia conversations
+    if (!force && historyLoadedByProject.value[pKey]) {
+      const cached = conversationsByProject.value[pKey] || [];
+      if (selectedProjectKey.value.toUpperCase() === pKey) {
+        conversations.value = cached;
+      }
+      return cached;
+    }
+
+    // 2. In-flight request deduplication per project key
+    if (!force && fetchPromiseByProject[pKey]) {
+      return fetchPromiseByProject[pKey];
+    }
 
     isLoadingConversations.value = true;
-    fetchPromise = (async () => {
+    fetchPromiseByProject[pKey] = (async () => {
       try {
-        const response = await aiApi.listConversations(projectKey);
+        const response = await aiApi.listConversations(pKey);
         const data = response?.data || response || [];
-        conversations.value = Array.isArray(data) ? data : [];
-        return conversations.value;
+        const convList = Array.isArray(data) ? data : [];
+        conversationsByProject.value[pKey] = convList;
+        historyLoadedByProject.value[pKey] = true;
+        if (selectedProjectKey.value.toUpperCase() === pKey) {
+          conversations.value = convList;
+        }
+        return convList;
       } catch (err) {
-        console.error('Failed to fetch conversations:', err);
-        return [];
+        console.error(`Failed to fetch conversations for ${pKey}:`, err);
+        return conversationsByProject.value[pKey] || [];
       } finally {
         isLoadingConversations.value = false;
-        fetchPromise = null;
+        delete fetchPromiseByProject[pKey];
       }
     })();
 
-    return fetchPromise;
+    return fetchPromiseByProject[pKey];
   }
 
   /**
@@ -116,7 +147,7 @@ export const useAiStore = defineStore('ai', () => {
         // Insert into local conversation list if not already present
         const existingIdx = conversations.value.findIndex((c) => c.id === data.id);
         if (existingIdx === -1) {
-          conversations.value.unshift({
+          const newConv = {
             id: data.id,
             projectId: data.projectId,
             projectKey: selectedProjectKey.value,
@@ -125,7 +156,11 @@ export const useAiStore = defineStore('ai', () => {
             lastMessageAt: new Date().toISOString(),
             createdAt: data.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
-          });
+          };
+          conversations.value.unshift(newConv);
+          const pKey = selectedProjectKey.value.toUpperCase();
+          if (!conversationsByProject.value[pKey]) conversationsByProject.value[pKey] = [];
+          conversationsByProject.value[pKey].unshift(newConv);
         }
         return data;
       }
@@ -166,6 +201,10 @@ export const useAiStore = defineStore('ai', () => {
     try {
       await aiApi.deleteConversation(selectedProjectKey.value, conversationId);
       conversations.value = conversations.value.filter((c) => c.id !== conversationId);
+      const pKey = selectedProjectKey.value.toUpperCase();
+      if (conversationsByProject.value[pKey]) {
+        conversationsByProject.value[pKey] = conversationsByProject.value[pKey].filter((c) => c.id !== conversationId);
+      }
       if (activeConversationId.value === conversationId) {
         clearConversation();
       }
@@ -214,7 +253,7 @@ export const useAiStore = defineStore('ai', () => {
           // Optimistically unshift into conversations list without an extra HTTP GET
           const existingIdx = conversations.value.findIndex((c) => c.id === data.id);
           if (existingIdx === -1) {
-            conversations.value.unshift({
+            const newConv = {
               id: data.id,
               projectId: data.projectId,
               projectKey: selectedProjectKey.value,
@@ -223,7 +262,11 @@ export const useAiStore = defineStore('ai', () => {
               lastMessageAt: new Date().toISOString(),
               createdAt: data.createdAt || new Date().toISOString(),
               updatedAt: new Date().toISOString()
-            });
+            };
+            conversations.value.unshift(newConv);
+            const pKey = selectedProjectKey.value.toUpperCase();
+            if (!conversationsByProject.value[pKey]) conversationsByProject.value[pKey] = [];
+            conversationsByProject.value[pKey].unshift(newConv);
           }
           return true;
         } else {
@@ -272,6 +315,12 @@ export const useAiStore = defineStore('ai', () => {
         activeConv.lastMessageAt = new Date().toISOString();
         activeConv.messageCount = messages.value.length;
       }
+      const pKey = selectedProjectKey.value.toUpperCase();
+      const cachedConv = conversationsByProject.value[pKey]?.find((c) => c.id === activeConversationId.value);
+      if (cachedConv) {
+        cachedConv.lastMessageAt = new Date().toISOString();
+        cachedConv.messageCount = messages.value.length;
+      }
       return true;
     } catch (err) {
       error.value = err.message || 'Failed to generate AI response. Please try again.';
@@ -291,6 +340,8 @@ export const useAiStore = defineStore('ai', () => {
   }
 
   return {
+    historyLoadedByProject,
+    conversationsByProject,
     selectedProjectKey,
     conversations,
     activeConversationId,

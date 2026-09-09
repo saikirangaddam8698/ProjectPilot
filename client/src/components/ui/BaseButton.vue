@@ -1,11 +1,13 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
+
+const slots = useSlots();
 
 const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (v) => ['primary', 'secondary', 'ghost', 'danger', 'outline'].includes(v)
+    validator: (v) => ['primary', 'secondary', 'ghost', 'danger', 'outline', 'close', 'cancel'].includes(v)
   },
   size: {
     type: String,
@@ -42,6 +44,17 @@ const props = defineProps({
   }
 });
 
+const isCloseOrCancel = computed(() => {
+  if (props.variant === 'close' || props.variant === 'cancel') return true;
+  if (props.ariaLabel && /close|cancel/i.test(props.ariaLabel)) return true;
+  const def = slots.default?.();
+  if (def && def.length === 1 && typeof def[0].children === 'string') {
+    const txt = def[0].children.trim();
+    if (/^(close|cancel)$/i.test(txt)) return true;
+  }
+  return false;
+});
+
 const componentTag = computed(() => {
   if (props.to) return 'router-link';
   if (props.as === 'a') return 'a';
@@ -50,9 +63,10 @@ const componentTag = computed(() => {
 
 const classes = computed(() => [
   'btn',
-  `btn-${props.variant}`,
+  isCloseOrCancel.value ? 'btn-close' : `btn-${props.variant}`,
   `btn-${props.size}`,
   {
+    'btn-close-destructive': isCloseOrCancel.value,
     'btn-icon-only': props.iconOnly,
     'btn-loading': props.loading,
     'btn-disabled': props.disabled || props.loading
@@ -197,6 +211,47 @@ const classes = computed(() => [
 
 .btn-danger:hover:not(:disabled) {
   background-color: var(--color-danger-600);
+}
+
+/* Close & Cancel Action Buttons (Unified Red Hover/Active with X buttons) */
+.btn-close,
+.btn-cancel {
+  background-color: transparent;
+  color: var(--btn-close-color, var(--text-secondary));
+  border: 1px solid var(--border-default);
+}
+
+.btn-close:hover:not(:disabled),
+.btn-cancel:hover:not(:disabled) {
+  background-color: var(--btn-close-bg-hover, rgba(239, 68, 68, 0.20)) !important;
+  color: var(--btn-close-color-hover, #ef4444) !important;
+  border-color: var(--btn-close-border-hover, rgba(239, 68, 68, 0.50)) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25) !important;
+}
+
+.btn-close:hover:not(:disabled) .btn-content,
+.btn-cancel:hover:not(:disabled) .btn-content,
+.btn-close:hover:not(:disabled) svg,
+.btn-cancel:hover:not(:disabled) svg {
+  color: var(--btn-close-color-hover, #ef4444) !important;
+  stroke: var(--btn-close-color-hover, #ef4444) !important;
+}
+
+.btn-close:active:not(:disabled),
+.btn-cancel:active:not(:disabled) {
+  background-color: var(--btn-close-bg-active, rgba(239, 68, 68, 0.35)) !important;
+  color: var(--btn-close-color-active, #dc2626) !important;
+  border-color: var(--btn-close-border-active, rgba(239, 68, 68, 0.70)) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.40) !important;
+  transform: scale(0.96);
+}
+
+.btn-close:active:not(:disabled) .btn-content,
+.btn-cancel:active:not(:disabled) .btn-content,
+.btn-close:active:not(:disabled) svg,
+.btn-cancel:active:not(:disabled) svg {
+  color: var(--btn-close-color-active, #dc2626) !important;
+  stroke: var(--btn-close-color-active, #dc2626) !important;
 }
 
 /* Disabled state */

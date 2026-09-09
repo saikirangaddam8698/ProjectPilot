@@ -176,38 +176,40 @@ onUnmounted(() => {
         </button>
 
         <!-- Dropdown Menu -->
-        <div v-if="isProfileMenuOpen" class="profile-dropdown-card">
-          <div class="dropdown-header">
-            <div class="dropdown-avatar">{{ userAvatar }}</div>
-            <div class="dropdown-user-details">
-              <span class="dropdown-user-name">{{ userName }}</span>
-              <span class="dropdown-user-email">{{ userEmail }}</span>
-              <span class="dropdown-role-badge" :class="userRole.toLowerCase()">
-                {{ userRole.replace('_', ' ') }}
-              </span>
+        <Transition name="dropdown-pop">
+          <div v-if="isProfileMenuOpen" class="profile-dropdown-card">
+            <div class="dropdown-header">
+              <div class="dropdown-avatar">{{ userAvatar }}</div>
+              <div class="dropdown-user-details">
+                <span class="dropdown-user-name">{{ userName }}</span>
+                <span class="dropdown-user-email">{{ userEmail }}</span>
+                <span class="dropdown-role-badge" :class="userRole.toLowerCase()">
+                  {{ userRole.replace('_', ' ') }}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div class="dropdown-divider"></div>
+            <div class="dropdown-divider"></div>
 
-          <div class="dropdown-section">
-            <div class="dropdown-item-info">
-              <span class="info-label">Assigned Projects</span>
-              <span class="info-value">{{ user?.projectKeys?.join(', ') || 'All Workspace' }}</span>
+            <div class="dropdown-section">
+              <div class="dropdown-item-info">
+                <span class="info-label">Assigned Projects</span>
+                <span class="info-value">{{ user?.projectKeys?.join(', ') || 'All Workspace' }}</span>
+              </div>
             </div>
+
+            <div class="dropdown-divider"></div>
+
+            <button
+              type="button"
+              class="dropdown-action-btn logout"
+              @click="handleLogout"
+            >
+              <AppIcon name="log-out" :size="15" />
+              <span>Sign Out</span>
+            </button>
           </div>
-
-          <div class="dropdown-divider"></div>
-
-          <button
-            type="button"
-            class="dropdown-action-btn logout"
-            @click="handleLogout"
-          >
-            <AppIcon name="log-out" :size="15" />
-            <span>Sign Out</span>
-          </button>
-        </div>
+        </Transition>
       </div>
     </div>
   </header>
@@ -216,8 +218,11 @@ onUnmounted(() => {
 <style scoped>
 .app-header {
   height: var(--header-height);
-  background-color: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-nav);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border-bottom: 1px solid var(--glass-border-subtle);
+  box-shadow: var(--glass-shadow-nav);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -225,6 +230,7 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: var(--z-header);
+  transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
 .header-left {
@@ -295,20 +301,21 @@ onUnmounted(() => {
   align-items: center;
   height: 32px;
   padding: 0 var(--space-3);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--glass-bg-subtle);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-muted);
   font-size: var(--text-sm);
   gap: var(--space-2);
   width: 250px;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .search-trigger:hover {
-  border-color: var(--border-strong);
+  border-color: var(--glass-border-active);
   color: var(--text-secondary);
   background-color: var(--bg-surface-hover);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.15);
 }
 
 .search-placeholder {
@@ -339,12 +346,16 @@ onUnmounted(() => {
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   position: relative;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
 
 .icon-action-btn:hover {
   background-color: var(--bg-surface-hover);
   color: var(--text-primary);
+}
+
+.icon-action-btn:active {
+  transform: scale(0.95);
 }
 
 .notification-dot {
@@ -447,15 +458,30 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   width: 240px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border-glow);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glass-shadow-modal);
   padding: var(--space-3);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  transform-origin: top right;
+}
+
+.dropdown-pop-enter-active,
+.dropdown-pop-leave-active {
+  transition: opacity 160ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              transform 160ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.dropdown-pop-enter-from,
+.dropdown-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96) translateY(-4px);
 }
 
 .dropdown-header {

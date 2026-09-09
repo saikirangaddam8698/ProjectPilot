@@ -5,6 +5,7 @@ import { useTicketStore } from '@/stores/ticket.store';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   sprintId: {
@@ -41,6 +42,14 @@ const availableFutureSprints = computed(() => {
   if (!sprint.value) return [];
   return sprintStore.getPlannedSprints(sprint.value.projectKey);
 });
+
+const moveTargetOptions = computed(() => [
+  { value: 'backlog', label: 'Product Backlog (Unassigned)' },
+  ...availableFutureSprints.value.map((nextSprint) => ({
+    value: nextSprint.id,
+    label: `${nextSprint.name} (Planned)`
+  }))
+]);
 
 function handleComplete() {
   if (!props.sprintId) return;
@@ -103,16 +112,11 @@ function handleComplete() {
         <!-- Destination Selector for Incomplete Tickets -->
         <div class="destination-picker">
           <label class="dest-label font-medium">Move open issues to:</label>
-          <select v-model="moveTarget" class="dest-select">
-            <option value="backlog">Product Backlog (Unassigned)</option>
-            <option
-              v-for="nextSprint in availableFutureSprints"
-              :key="nextSprint.id"
-              :value="nextSprint.id"
-            >
-              {{ nextSprint.name }} (Planned)
-            </option>
-          </select>
+          <BaseSelect
+            v-model="moveTarget"
+            :options="moveTargetOptions"
+            size="md"
+          />
         </div>
       </div>
 
@@ -122,7 +126,7 @@ function handleComplete() {
     </div>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="$emit('close')">
+      <BaseButton variant="close" size="md" @click="$emit('close')">
         Cancel
       </BaseButton>
       <BaseButton variant="primary" size="md" @click="handleComplete">

@@ -86,16 +86,20 @@ const handleInput = (event) => {
   display: flex;
   align-items: center;
   width: 100%;
-  background-color: var(--bg-surface);
+  background-color: var(--glass-bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
   color: var(--text-primary);
 }
 
+.input-wrapper:hover:not(.is-disabled) {
+  border-color: var(--border-strong);
+}
+
 .input-wrapper:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus);
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 .input-wrapper.has-error {

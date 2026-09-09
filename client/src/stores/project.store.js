@@ -542,6 +542,46 @@ export const useProjectStore = defineStore('project', () => {
     statusFilter.value = status;
   }
 
+  async function deleteProject(projectKey) {
+    if (!projectKey) return false;
+    const targetKey = projectKey.toUpperCase();
+    const index = projects.value.findIndex((p) => p.key.toUpperCase() === targetKey);
+    if (index === -1) return false;
+
+    const removedProject = projects.value[index];
+
+    try {
+      await projectsApi.delete(targetKey);
+    } catch (err) {
+      console.warn('API delete project failed, applied locally:', err.message);
+    }
+
+    projects.value.splice(index, 1);
+
+    if (activeProjectKey.value?.toUpperCase() === targetKey) {
+      activeProjectKey.value = projects.value[0]?.key || null;
+    }
+
+    try {
+      const activityStore = useActivityStore();
+      activityStore.recordActivity({
+        projectKey: targetKey,
+        type: 'project',
+        action: 'project_deleted',
+        targetType: 'project',
+        targetId: removedProject.id,
+        targetKey: removedProject.key,
+        targetTitle: removedProject.name,
+        message: `deleted project workspace ${removedProject.name} (${targetKey})`,
+        metadata: { projectKey: targetKey, projectName: removedProject.name }
+      });
+    } catch (e) {
+      console.warn('Could not record activity:', e);
+    }
+
+    return true;
+  }
+
   return {
     projects,
     activeProjectKey,
@@ -562,6 +602,7 @@ export const useProjectStore = defineStore('project', () => {
     setCurrentProject: setActiveProjectKey,
     currentProjectKey: activeProjectKey,
     createProject,
+    deleteProject,
     addMemberToProject,
     removeMemberFromProject,
     setSearchQuery,

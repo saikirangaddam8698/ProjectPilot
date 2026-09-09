@@ -7,6 +7,7 @@ import CompleteSprintModal from '@/components/sprints/CompleteSprintModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 
 const props = defineProps({
   project: {
@@ -20,6 +21,8 @@ const sprintStore = useSprintStore();
 const activeTab = ref('active'); // 'active' | 'planned' | 'history'
 const completingSprint = ref(null);
 const toastMessage = ref('');
+const isDeleteConfirmOpen = ref(false);
+const sprintToDelete = ref(null);
 
 const activeSprint = computed(() => {
   return sprintStore.getActiveSprint(props.project.key);
@@ -54,13 +57,19 @@ function handleEditSprint(sprint) {
 }
 
 function handleDeleteSprint(sprint) {
-  if (confirm(`Are you sure you want to delete "${sprint.name}"? All assigned tickets will return to the backlog.`)) {
-    sprintStore.deleteSprint(sprint.id);
-    toastMessage.value = `Sprint deleted. Tickets returned to Backlog.`;
-    setTimeout(() => {
-      toastMessage.value = '';
-    }, 3000);
-  }
+  sprintToDelete.value = sprint;
+  isDeleteConfirmOpen.value = true;
+}
+
+function handleConfirmDeleteSprint() {
+  if (!sprintToDelete.value) return;
+  sprintStore.deleteSprint(sprintToDelete.value.id);
+  toastMessage.value = `Sprint deleted. Tickets returned to Backlog.`;
+  setTimeout(() => {
+    toastMessage.value = '';
+  }, 3000);
+  isDeleteConfirmOpen.value = false;
+  sprintToDelete.value = null;
 }
 
 function onSprintCompleted(result) {
@@ -228,6 +237,18 @@ function onSprintCompleted(result) {
     />
 
     <TicketDetailDrawer />
+
+    <!-- Delete Sprint Confirmation Modal -->
+    <BaseConfirmModal
+      v-model="isDeleteConfirmOpen"
+      title="Delete Sprint"
+      :message="`Are you sure you want to delete &quot;${sprintToDelete?.name}&quot;? All assigned tickets will return to the backlog.`"
+      :itemName="sprintToDelete?.name"
+      itemType="SPRINT"
+      confirmText="Delete Sprint"
+      @confirm="handleConfirmDeleteSprint"
+      @cancel="isDeleteConfirmOpen = false"
+    />
   </div>
 </template>
 

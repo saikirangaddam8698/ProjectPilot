@@ -10,6 +10,8 @@ import CompleteSprintModal from '@/components/sprints/CompleteSprintModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const sprintStore = useSprintStore();
 const projectStore = useProjectStore();
@@ -17,6 +19,8 @@ const projectStore = useProjectStore();
 const selectedProject = ref('all');
 const completingSprint = ref(null);
 const toastMessage = ref('');
+const isDeleteConfirmOpen = ref(false);
+const sprintToDelete = ref(null);
 
 const isInitialLoading = computed(() => {
   return sprintStore.isLoading && sprintStore.allSprints.length === 0;
@@ -24,6 +28,16 @@ const isInitialLoading = computed(() => {
 
 const allSprints = computed(() => {
   return sprintStore.getSprintsByProject(selectedProject.value);
+});
+
+const projectOptions = computed(() => {
+  return [
+    { value: 'all', label: 'All Projects' },
+    ...projectStore.allProjects.map((p) => ({
+      value: p.key,
+      label: `${p.name} (${p.key})`
+    }))
+  ];
 });
 
 const activeSprints = computed(() => {
@@ -63,13 +77,19 @@ function handleEditSprint(sprint) {
 }
 
 function handleDeleteSprint(sprint) {
-  if (confirm(`Are you sure you want to delete "${sprint.name}"? All assigned tickets will return to the backlog.`)) {
-    sprintStore.deleteSprint(sprint.id);
-    toastMessage.value = `Sprint deleted.`;
-    setTimeout(() => {
-      toastMessage.value = '';
-    }, 3000);
-  }
+  sprintToDelete.value = sprint;
+  isDeleteConfirmOpen.value = true;
+}
+
+function handleConfirmDeleteSprint() {
+  if (!sprintToDelete.value) return;
+  sprintStore.deleteSprint(sprintToDelete.value.id);
+  toastMessage.value = `Sprint deleted.`;
+  setTimeout(() => {
+    toastMessage.value = '';
+  }, 3000);
+  isDeleteConfirmOpen.value = false;
+  sprintToDelete.value = null;
 }
 </script>
 
@@ -84,16 +104,13 @@ function handleDeleteSprint(sprint) {
 
       <div class="page-header-actions">
         <!-- Project Filter -->
-        <select v-model="selectedProject" class="project-select">
-          <option value="all">All Projects</option>
-          <option
-            v-for="p in projectStore.allProjects"
-            :key="p.id"
-            :value="p.key"
-          >
-            {{ p.name }} ({{ p.key }})
-          </option>
-        </select>
+        <div class="project-filter-box">
+          <BaseSelect
+            v-model="selectedProject"
+            :options="projectOptions"
+            size="sm"
+          />
+        </div>
 
         <BaseButton variant="primary" size="sm" @click="sprintStore.openCreateModal(selectedProject !== 'all' ? selectedProject : 'PILOT')">
           <template #prefix><AppIcon name="plus" :size="14" /></template>
@@ -204,6 +221,18 @@ function handleDeleteSprint(sprint) {
       @close="completingSprint = null"
     />
     <TicketDetailDrawer />
+
+    <!-- Delete Sprint Confirmation Modal -->
+    <BaseConfirmModal
+      v-model="isDeleteConfirmOpen"
+      title="Delete Sprint"
+      :message="`Are you sure you want to delete &quot;${sprintToDelete?.name}&quot;? All assigned tickets will return to the backlog.`"
+      :itemName="sprintToDelete?.name"
+      itemType="SPRINT"
+      confirmText="Delete Sprint"
+      @confirm="handleConfirmDeleteSprint"
+      @cancel="isDeleteConfirmOpen = false"
+    />
   </div>
 </template>
 
@@ -246,22 +275,10 @@ function handleDeleteSprint(sprint) {
   gap: var(--space-3);
 }
 
-.project-select {
-  height: 36px;
-  padding: 0 var(--space-3);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  outline: none;
-  cursor: pointer;
-  transition: border-color var(--transition-fast);
+.project-filter-box {
+  min-width: 200px;
 }
 
-.project-select:focus {
-  border-color: var(--color-primary-500);
-}
 
 /* Sprints Section */
 .sprints-section {

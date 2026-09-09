@@ -119,7 +119,9 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   z-index: var(--z-drawer);
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
 }
 
@@ -127,9 +129,10 @@ onUnmounted(() => {
   position: fixed;
   top: 0;
   bottom: 0;
-  background-color: var(--bg-surface-elevated);
-  border-left: 1px solid var(--border-default);
-  box-shadow: var(--shadow-drawer);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  box-shadow: var(--glass-shadow-drawer);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -138,12 +141,12 @@ onUnmounted(() => {
 
 .drawer-right {
   right: 0;
-  border-left: 1px solid var(--border-default);
+  border-left: 1px solid var(--glass-border-glow);
 }
 
 .drawer-left {
   left: 0;
-  border-right: 1px solid var(--border-default);
+  border-right: 1px solid var(--glass-border-glow);
 }
 
 .drawer-header {
@@ -168,13 +171,34 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  color: var(--btn-close-color, var(--text-muted));
+  background-color: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .drawer-close-btn:hover {
-  background-color: var(--bg-surface-hover);
-  color: var(--text-primary);
+  background-color: var(--btn-close-bg-hover, rgba(239, 68, 68, 0.20)) !important;
+  color: var(--btn-close-color-hover, #ef4444) !important;
+  border-color: var(--btn-close-border-hover, rgba(239, 68, 68, 0.50)) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.drawer-close-btn:hover svg {
+  stroke: var(--btn-close-color-hover, #ef4444) !important;
+}
+
+.drawer-close-btn:active {
+  background-color: var(--btn-close-bg-active, rgba(239, 68, 68, 0.35)) !important;
+  color: var(--btn-close-color-active, #dc2626) !important;
+  border-color: var(--btn-close-border-active, rgba(239, 68, 68, 0.70)) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.40);
+  transform: scale(0.92);
+}
+
+.drawer-close-btn:active svg {
+  stroke: var(--btn-close-color-active, #dc2626) !important;
 }
 
 .drawer-body {
@@ -196,7 +220,7 @@ onUnmounted(() => {
 /* Animations */
 .drawer-fade-enter-active,
 .drawer-fade-leave-active {
-  transition: opacity var(--transition-base);
+  transition: opacity 200ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .drawer-fade-enter-from,
@@ -208,7 +232,7 @@ onUnmounted(() => {
 .slide-right-leave-active,
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: transform var(--transition-base);
+  transition: transform 220ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .slide-right-enter-from,
@@ -219,5 +243,17 @@ onUnmounted(() => {
 .slide-left-enter-from,
 .slide-left-leave-to {
   transform: translateX(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-fade-enter-active,
+  .drawer-fade-leave-active,
+  .slide-right-enter-active,
+  .slide-right-leave-active,
+  .slide-left-enter-active,
+  .slide-left-leave-active {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 </style>

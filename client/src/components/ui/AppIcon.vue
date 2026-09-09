@@ -65,8 +65,8 @@ const props = defineProps({
       <line x1="6" y1="20" x2="6" y2="14"></line>
     </template>
 
-    <!-- AI Assistant -->
-    <template v-else-if="name === 'ai'">
+    <!-- AI Assistant / Spark -->
+    <template v-else-if="name === 'ai' || name === 'spark' || name === 'sparkles'">
       <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"></path>
       <path d="m19 5 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"></path>
     </template>
@@ -129,7 +129,7 @@ const props = defineProps({
     </template>
 
     <!-- Close / X -->
-    <template v-else-if="name === 'close'">
+    <template v-else-if="name === 'close' || name === 'x'">
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </template>
@@ -230,6 +230,19 @@ const props = defineProps({
       <polyline points="6 9 12 15 18 9"></polyline>
     </template>
 
+    <!-- Check -->
+    <template v-else-if="name === 'check'">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </template>
+
+    <!-- Trash / Trash 2 / Delete -->
+    <template v-else-if="name === 'trash' || name === 'trash-2' || name === 'delete'">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      <line x1="10" y1="11" x2="10" y2="17"></line>
+      <line x1="14" y1="11" x2="14" y2="17"></line>
+    </template>
+
     <!-- Log Out -->
     <template v-else-if="name === 'log-out'">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -269,6 +282,17 @@ const props = defineProps({
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
       <polyline points="15 3 21 3 21 9"></polyline>
       <line x1="10" y1="14" x2="21" y2="3"></line>
+    </template>
+
+    <!-- Send Message -->
+    <template v-else-if="name === 'send'">
+      <line x1="22" y1="2" x2="11" y2="13"></line>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+    </template>
+
+    <!-- Minus / Minimize to Bar -->
+    <template v-else-if="name === 'minus'">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
     </template>
   </svg>
 </template>

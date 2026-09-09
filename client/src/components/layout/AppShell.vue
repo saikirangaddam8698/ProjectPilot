@@ -9,6 +9,8 @@ import BaseDrawer from '@/components/ui/BaseDrawer.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import TicketDetailModal from '@/components/tickets/TicketDetailModal.vue';
+import FloatingAIButton from '@/components/ai/FloatingAIButton.vue';
+import AIQuickChat from '@/components/ai/AIQuickChat.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import { NAVIGATION_GROUPS } from '@/utils/navigation';
 import { useRouter } from 'vue-router';
@@ -237,6 +239,10 @@ onUnmounted(() => {
 
     <!-- Global Jira-Style Ticket Detail Modal -->
     <TicketDetailModal />
+
+    <!-- Global Floating AI Quick Chat Widget -->
+    <FloatingAIButton />
+    <AIQuickChat />
   </div>
 </template>
 
@@ -335,11 +341,14 @@ onUnmounted(() => {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color var(--transition-fast);
+  border: 1px solid transparent;
+  transition: all var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .command-item:hover {
-  background-color: var(--bg-surface-hover);
+  background-color: var(--glass-bg-subtle);
+  border-color: var(--glass-border-subtle);
+  transform: translateX(2px);
 }
 
 .command-item-icon {

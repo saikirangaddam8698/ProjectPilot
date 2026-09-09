@@ -5,6 +5,7 @@ import { useSprintStore } from '@/stores/sprint.store';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   modelValue: {
@@ -21,6 +22,13 @@ const emit = defineEmits(['update:modelValue', 'created', 'updated', 'close']);
 
 const projectStore = useProjectStore();
 const sprintStore = useSprintStore();
+
+const projectOptions = computed(() => {
+  return projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }));
+});
 
 const selectedProjectKey = ref('PILOT');
 const form = ref({
@@ -155,20 +163,13 @@ function handleClose() {
       <!-- Project Selection (Disabled in edit mode) -->
       <div class="form-group">
         <label for="sprint-project" class="form-label required">Target Project Workspace</label>
-        <select
+        <BaseSelect
           id="sprint-project"
           v-model="selectedProjectKey"
-          class="form-select"
+          :options="projectOptions"
           :disabled="isEditing || !!projectKey"
-        >
-          <option
-            v-for="p in projectStore.allProjects"
-            :key="p.id"
-            :value="p.key"
-          >
-            {{ p.name }} ({{ p.key }})
-          </option>
-        </select>
+          size="md"
+        />
         <span v-if="errors.project" class="form-error">{{ errors.project }}</span>
       </div>
 
@@ -240,7 +241,7 @@ function handleClose() {
     </form>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="handleClose">
+      <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
       <BaseButton variant="primary" size="md" @click="handleSubmit">

@@ -6,8 +6,10 @@ import { useAuthStore } from '@/stores/auth.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import ChatThreadSkeleton from '@/components/skeletons/ChatThreadSkeleton.vue';
+import { formatMessageContent } from '@/utils/formatMessage';
 
 const aiStore = useAiStore();
 const projectStore = useProjectStore();
@@ -23,6 +25,13 @@ const currentProject = computed(() => {
     projectStore.allProjects[0] ||
     null
   );
+});
+
+const projectOptions = computed(() => {
+  return projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }));
 });
 
 const quickPrompts = [
@@ -98,8 +107,11 @@ onMounted(() => {
   scrollToBottom();
 });
 
-function handleProjectChange(e) {
-  aiStore.setProject(e.target.value);
+function handleProjectChange(val) {
+  const key = typeof val === 'object' && val?.target ? val.target.value : val;
+  if (key) {
+    aiStore.setProject(key);
+  }
 }
 
 async function handleSend() {
@@ -124,48 +136,7 @@ function applyQuickPrompt(prompt) {
   handleSend();
 }
 
-function formatMessageContent(content) {
-  if (!content) return '';
-  // Basic safe markdown-like formatting for bold, headers, blockquotes, and lists
-  let html = content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 
-  // Headings
-  html = html.replace(/^###\s+(.+)$/gm, '<h3 class="chat-h3">$1</h3>');
-  html = html.replace(/^####\s+(.+)$/gm, '<h4 class="chat-h4">$1</h4>');
-
-  // Blockquotes: > quote
-  html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote class="chat-quote">$1</blockquote>');
-
-  // Bold **text**
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-  // Inline code `code`
-  html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-
-  // Ticket chip formatting for keys like PILOT-104
-  html = html.replace(/\b([A-Z]{2,10}-\d+)\b/g, '<span class="chat-ticket-ref">$1</span>');
-
-  // Bullet points (- or •)
-  html = html.replace(/^\s*[-•]\s+(.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/gs, '<ul class="chat-bullet-list">$1</ul>');
-
-  // Clean empty paragraphs / double breaks
-  const paragraphs = html.split(/\n\n+/);
-  return paragraphs
-    .map((p) => {
-      p = p.trim();
-      if (!p) return '';
-      if (p.startsWith('<h3') || p.startsWith('<h4') || p.startsWith('<ul') || p.startsWith('<blockquote')) {
-        return p;
-      }
-      return `<p>${p.replace(/\n/g, '<br/>')}</p>`;
-    })
-    .filter(Boolean)
-    .join('');
-}
 </script>
 
 
@@ -190,19 +161,15 @@ function formatMessageContent(content) {
         <!-- Project Scope Dropdown -->
         <div class="project-selector-wrap">
           <span class="selector-label">Workspace:</span>
-          <select
-            :value="aiStore.selectedProjectKey"
-            class="project-select"
-            @change="handleProjectChange"
-          >
-            <option
-              v-for="p in projectStore.allProjects"
-              :key="p.id"
-              :value="p.key"
-            >
-              {{ p.name }} ({{ p.key }})
-            </option>
-          </select>
+          <div class="selector-select-box">
+            <BaseSelect
+              :model-value="aiStore.selectedProjectKey"
+              :options="projectOptions"
+              size="sm"
+              @change="handleProjectChange"
+              @update:model-value="handleProjectChange"
+            />
+          </div>
         </div>
 
         <BaseButton
@@ -619,27 +586,16 @@ function formatMessageContent(content) {
   gap: var(--space-2);
 }
 
+.selector-select-box {
+  min-width: 220px;
+}
+
 .selector-label {
   font-size: var(--text-xs);
   color: var(--text-secondary);
   font-weight: var(--font-weight-medium);
 }
 
-.project-select {
-  height: 32px;
-  padding: 0 var(--space-3);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-xs);
-  outline: none;
-  cursor: pointer;
-}
-
-.project-select:focus {
-  border-color: var(--color-primary-500);
-}
 
 /* Context Strip */
 .context-strip {
@@ -647,7 +603,9 @@ function formatMessageContent(content) {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2) var(--space-4);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   font-size: var(--text-xs);
@@ -1083,25 +1041,29 @@ function formatMessageContent(content) {
   white-space: nowrap;
   padding: 4px 10px;
   font-size: 11px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-full);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .prompt-chip:hover:not(:disabled) {
-  border-color: var(--color-primary-500);
+  border-color: var(--glass-border-active);
   color: var(--color-primary-400);
   background-color: var(--bg-surface-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.12);
 }
 
 /* Chat Input Bar */
 .chat-input-bar {
   padding: var(--space-3) var(--space-5) var(--space-4);
   border-top: 1px solid var(--border-subtle);
-  background-color: var(--bg-surface);
+  background-color: var(--glass-bg-nav);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1114,7 +1076,7 @@ function formatMessageContent(content) {
 .chat-textarea {
   width: 100%;
   padding: var(--space-3);
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--glass-bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
@@ -1122,11 +1084,12 @@ function formatMessageContent(content) {
   font-size: var(--text-sm);
   resize: none;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .chat-textarea:focus {
   border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
 }
 
 .input-actions-bar {
@@ -1300,7 +1263,7 @@ function formatMessageContent(content) {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
 }
 
 .ev-type-icon {
@@ -1391,7 +1354,7 @@ function formatMessageContent(content) {
 .conv-sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--color-surface-card, #1e293b);
+  background: var(--bg-surface);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-lg, 8px);
   display: flex;
@@ -1462,7 +1425,7 @@ function formatMessageContent(content) {
 
 .sidebar-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
   border-color: var(--color-brand-500, #6366f1);
 }
 
@@ -1540,7 +1503,7 @@ function formatMessageContent(content) {
 .conv-item-title {
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -319,7 +319,9 @@ function openCreateTicketModal() {
 }
 
 .stat-card {
-  background-color: var(--bg-surface);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
@@ -327,11 +329,15 @@ function openCreateTicketModal() {
   flex-direction: column;
   gap: var(--space-2);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1)),
+              border-color var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1)),
+              box-shadow var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .stat-card:hover {
-  border-color: var(--border-strong);
+  border-color: var(--glass-border-glow);
+  box-shadow: var(--shadow-md), 0 0 16px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
 }
 
 .stat-header {
@@ -474,8 +480,11 @@ function openCreateTicketModal() {
   gap: var(--space-3);
   padding: var(--space-4);
   background-color: rgba(168, 85, 247, 0.08);
-  border: 1px solid rgba(168, 85, 247, 0.2);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  border: 1px solid rgba(168, 85, 247, 0.25);
   border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.08);
 }
 
 .ai-insight-icon {
@@ -524,7 +533,14 @@ function openCreateTicketModal() {
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.quick-link-card:hover {
+  background-color: var(--glass-bg-subtle);
+  border-color: var(--glass-border-subtle);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .quick-link-card:hover {

@@ -4,6 +4,7 @@ import { useProjectStore } from '@/stores/project.store';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   modelValue: {
@@ -15,6 +16,23 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'invited', 'close']);
 
 const projectStore = useProjectStore();
+
+const roleOptions = [
+  { value: 'Project Admin', label: 'Project Admin' },
+  { value: 'Senior Developer', label: 'Senior Developer' },
+  { value: 'Developer', label: 'Developer' },
+  { value: 'DevOps Lead', label: 'DevOps Lead' },
+  { value: 'DevOps Engineer', label: 'DevOps Engineer' },
+  { value: 'AI / ML Engineer', label: 'AI / ML Engineer' },
+  { value: 'QA Lead', label: 'QA Lead' },
+  { value: 'Viewer', label: 'Viewer' }
+];
+
+const statusOptions = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Away', label: 'Away' },
+  { value: 'Offline', label: 'Offline' }
+];
 
 const form = ref({
   name: '',
@@ -140,16 +158,12 @@ function toggleProject(key) {
       <div class="form-row">
         <div class="form-group flex-1">
           <label for="invite-role" class="form-label">Role</label>
-          <select id="invite-role" v-model="form.role" class="form-select">
-            <option value="Project Admin">Project Admin</option>
-            <option value="Senior Developer">Senior Developer</option>
-            <option value="Developer">Developer</option>
-            <option value="DevOps Lead">DevOps Lead</option>
-            <option value="DevOps Engineer">DevOps Engineer</option>
-            <option value="AI / ML Engineer">AI / ML Engineer</option>
-            <option value="QA Lead">QA Lead</option>
-            <option value="Viewer">Viewer</option>
-          </select>
+          <BaseSelect
+            id="invite-role"
+            v-model="form.role"
+            :options="roleOptions"
+            size="md"
+          />
         </div>
 
         <div class="form-group flex-1">
@@ -178,11 +192,12 @@ function toggleProject(key) {
 
         <div class="form-group flex-1">
           <label for="invite-status" class="form-label">Initial Status</label>
-          <select id="invite-status" v-model="form.status" class="form-select">
-            <option value="Active">Active</option>
-            <option value="Away">Away</option>
-            <option value="Offline">Offline</option>
-          </select>
+          <BaseSelect
+            id="invite-status"
+            v-model="form.status"
+            :options="statusOptions"
+            size="md"
+          />
         </div>
       </div>
 
@@ -206,7 +221,7 @@ function toggleProject(key) {
     </form>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="handleClose">
+      <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
       <BaseButton variant="primary" size="md" @click="handleSubmit">

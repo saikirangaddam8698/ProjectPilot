@@ -11,6 +11,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.vue';
 import ProjectGridSkeleton from '@/components/skeletons/ProjectGridSkeleton.vue';
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -19,6 +20,34 @@ const authStore = useAuthStore();
 
 const isCreateModalOpen = ref(false);
 const toastMessage = ref('');
+const isDeleteModalOpen = ref(false);
+const projectToDelete = ref(null);
+const isDeleting = ref(false);
+
+function promptDeleteProject(project) {
+  projectToDelete.value = project;
+  isDeleteModalOpen.value = true;
+}
+
+async function handleConfirmDelete() {
+  if (!projectToDelete.value) return;
+  isDeleting.value = true;
+  try {
+    const success = await projectStore.deleteProject(projectToDelete.value.key);
+    if (success) {
+      toastMessage.value = `Project workspace "${projectToDelete.value.name}" deleted.`;
+      setTimeout(() => {
+        toastMessage.value = '';
+      }, 4000);
+    }
+  } catch (err) {
+    console.error('Failed to delete project:', err);
+  } finally {
+    isDeleting.value = false;
+    isDeleteModalOpen.value = false;
+    projectToDelete.value = null;
+  }
+}
 
 function handleCreateProjectClick() {
   if (!authStore.canCreateProject) {
@@ -195,9 +224,21 @@ function getProjectProgress(key) {
             <span class="project-key mono">{{ project.key }}</span>
           </div>
 
-          <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
-            {{ project.status === 'active' ? 'Active' : 'Planning' }}
-          </BaseBadge>
+          <div class="topbar-right">
+            <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
+              {{ project.status === 'active' ? 'Active' : 'Planning' }}
+            </BaseBadge>
+            <button
+              v-if="authStore.canDeleteProject"
+              type="button"
+              class="card-action-btn delete-proj-btn btn-close-destructive"
+              title="Delete Project Workspace"
+              aria-label="Delete project"
+              @click.stop="promptDeleteProject(project)"
+            >
+              <AppIcon name="trash" :size="13" />
+            </button>
+          </div>
         </div>
 
         <!-- Project Title & Lead -->
@@ -258,9 +299,23 @@ function getProjectProgress(key) {
 
     <!-- Create Project Modal -->
     <CreateProjectModal
+      v-model="isCreateModalOpen"
       :isOpen="isCreateModalOpen"
       @close="isCreateModalOpen = false"
       @created="handleProjectCreated"
+    />
+
+    <!-- Delete Project Confirmation Modal -->
+    <BaseConfirmModal
+      v-model="isDeleteModalOpen"
+      title="Delete Project Workspace"
+      :message="`Are you sure you want to delete the project workspace &quot;${projectToDelete?.name}&quot;? All associated tickets, sprints, and documentation will be permanently removed.`"
+      :itemName="projectToDelete ? `${projectToDelete.name} (${projectToDelete.key})` : ''"
+      itemType="PROJECT"
+      confirmText="Delete Workspace"
+      :loading="isDeleting"
+      @confirm="handleConfirmDelete"
+      @cancel="isDeleteModalOpen = false"
     />
   </div>
 </template>
@@ -309,10 +364,12 @@ function getProjectProgress(key) {
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--color-success-500);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glass-shadow-modal), 0 0 16px rgba(16, 185, 129, 0.15);
 }
 
 .toast-left {
@@ -430,6 +487,21 @@ function getProjectProgress(key) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.delete-proj-btn {
+  opacity: 0.5;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.project-card:hover .delete-proj-btn {
+  opacity: 1;
 }
 
 .project-avatar {

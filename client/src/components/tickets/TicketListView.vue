@@ -11,6 +11,7 @@ import TicketListSkeleton from '@/components/skeletons/TicketListSkeleton.vue';
 import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.vue';
 import TicketDetailDrawer from './TicketDetailDrawer.vue';
 import CreateTicketModal from './CreateTicketModal.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   projectKey: {
@@ -34,6 +35,39 @@ const isInitialLoading = computed(() => {
 const tickets = computed(() => {
   return ticketStore.getFilteredTickets(props.projectKey);
 });
+
+const projectScopeOptions = computed(() => [
+  { value: 'all', label: 'All Projects' },
+  ...projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }))
+]);
+
+const statusFilterOptions = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'Backlog', label: 'Backlog' },
+  { value: 'Todo', label: 'To Do' },
+  { value: 'In Progress', label: 'In Progress' },
+  { value: 'In Review', label: 'In Review' },
+  { value: 'Done', label: 'Done' }
+];
+
+const typeFilterOptions = [
+  { value: 'all', label: 'All Types' },
+  { value: 'Story', label: 'Story' },
+  { value: 'Task', label: 'Task' },
+  { value: 'Bug', label: 'Bug' },
+  { value: 'Epic', label: 'Epic' }
+];
+
+const priorityFilterOptions = [
+  { value: 'all', label: 'All Priorities' },
+  { value: 'Urgent', label: 'Urgent' },
+  { value: 'High', label: 'High' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'Low', label: 'Low' }
+];
 
 function openTicket(ticketKey) {
   ticketStore.openTicketDetail(ticketKey);
@@ -91,54 +125,39 @@ function getPriorityBadgeVariant(p) {
 
         <!-- Optional Project Scope Switcher (for Global View) -->
         <div v-if="showProjectFilter" class="filter-select-wrap">
-          <select
-            :value="ticketStore.activeProjectFilter"
-            class="toolbar-select"
-            @change="ticketStore.setProjectFilter($event.target.value)"
-          >
-            <option value="all">All Projects</option>
-            <option
-              v-for="p in projectStore.allProjects"
-              :key="p.id"
-              :value="p.key"
-            >
-              {{ p.name }} ({{ p.key }})
-            </option>
-          </select>
+          <BaseSelect
+            :model-value="ticketStore.activeProjectFilter"
+            :options="projectScopeOptions"
+            size="sm"
+            @update:model-value="ticketStore.setProjectFilter"
+          />
         </div>
 
         <!-- Status Filter -->
         <div class="filter-select-wrap">
-          <select v-model="ticketStore.statusFilter" class="toolbar-select">
-            <option value="all">All Statuses</option>
-            <option value="Backlog">Backlog</option>
-            <option value="Todo">To Do</option>
-            <option value="In Progress">In Progress</option>
-            <option value="In Review">In Review</option>
-            <option value="Done">Done</option>
-          </select>
+          <BaseSelect
+            v-model="ticketStore.statusFilter"
+            :options="statusFilterOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Type Filter -->
         <div class="filter-select-wrap">
-          <select v-model="ticketStore.typeFilter" class="toolbar-select">
-            <option value="all">All Types</option>
-            <option value="Story">Story</option>
-            <option value="Task">Task</option>
-            <option value="Bug">Bug</option>
-            <option value="Epic">Epic</option>
-          </select>
+          <BaseSelect
+            v-model="ticketStore.typeFilter"
+            :options="typeFilterOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Priority Filter -->
         <div class="filter-select-wrap">
-          <select v-model="ticketStore.priorityFilter" class="toolbar-select">
-            <option value="all">All Priorities</option>
-            <option value="Urgent">Urgent</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
+          <BaseSelect
+            v-model="ticketStore.priorityFilter"
+            :options="priorityFilterOptions"
+            size="sm"
+          />
         </div>
 
         <!-- Reset Button -->
@@ -286,6 +305,10 @@ function getPriorityBadgeVariant(p) {
 
 .search-box {
   width: 280px;
+}
+
+.filter-select-wrap {
+  min-width: 140px;
 }
 
 .toolbar-select {

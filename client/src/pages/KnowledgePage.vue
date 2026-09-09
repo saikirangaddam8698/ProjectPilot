@@ -6,6 +6,9 @@ import { useAuthStore } from '@/stores/auth.store.js';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const knowledgeStore = useKnowledgeStore();
 const projectStore = useProjectStore();
@@ -19,6 +22,25 @@ const showDetailModal = ref(false);
 const isEditing = ref(false);
 const editingDocId = ref(null);
 const fileInput = ref(null);
+const isDeleteConfirmOpen = ref(false);
+const docIdToDelete = ref(null);
+
+const projectOptions = computed(() => {
+  return projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }));
+});
+
+const docCategoryOptions = [
+  { value: 'ARCHITECTURE', label: 'Architecture' },
+  { value: 'API_SPEC', label: 'API Specification' },
+  { value: 'RUNBOOK', label: 'Runbook' },
+  { value: 'REQUIREMENTS', label: 'Requirements' },
+  { value: 'TROUBLESHOOTING', label: 'Troubleshooting' },
+  { value: 'GENERAL', label: 'General' }
+];
+const docTitleToDelete = ref('');
 
 const selectedFileName = ref('');
 const selectedFileSize = ref('');
@@ -72,10 +94,12 @@ watch(
   }
 );
 
-function handleProjectChange(e) {
-  const newKey = e.target.value;
-  knowledgeStore.setSelectedProject(newKey);
-  projectStore.setActiveProjectKey(newKey);
+function handleProjectChange(val) {
+  const newKey = typeof val === 'object' && val?.target ? val.target.value : val;
+  if (newKey) {
+    knowledgeStore.setSelectedProject(newKey);
+    projectStore.setActiveProjectKey(newKey);
+  }
 }
 
 // Semantic Search handling
@@ -216,15 +240,22 @@ async function handleReindex(docId) {
   }
 }
 
-async function handleDelete(docId) {
-  if (!confirm('Are you sure you want to delete this document and all its indexed vector chunks?')) {
-    return;
-  }
+function promptDeleteDoc(docId, docTitle) {
+  docIdToDelete.value = docId;
+  docTitleToDelete.value = docTitle || 'this document';
+  isDeleteConfirmOpen.value = true;
+}
+
+async function handleConfirmDelete() {
+  if (!docIdToDelete.value) return;
   try {
-    await knowledgeStore.deleteDocument(knowledgeStore.selectedProjectKey, docId);
+    await knowledgeStore.deleteDocument(knowledgeStore.selectedProjectKey, docIdToDelete.value);
     showDetailModal.value = false;
-  } catch {
-    // Handled in store
+  } catch (err) {
+    console.error('Failed to delete document:', err);
+  } finally {
+    isDeleteConfirmOpen.value = false;
+    docIdToDelete.value = null;
   }
 }
 
@@ -272,19 +303,15 @@ function formatDate(iso) {
         <!-- Project Switcher -->
         <div class="project-selector-wrap">
           <label class="project-selector-label text-muted">Project:</label>
-          <select
-            :value="knowledgeStore.selectedProjectKey"
-            class="project-select-input"
-            @change="handleProjectChange"
-          >
-            <option
-              v-for="p in projectStore.allProjects"
-              :key="p.id"
-              :value="p.key"
-            >
-              {{ p.name }} ({{ p.key }})
-            </option>
-          </select>
+          <div class="selector-select-box">
+            <BaseSelect
+              :model-value="knowledgeStore.selectedProjectKey"
+              :options="projectOptions"
+              size="sm"
+              @change="handleProjectChange"
+              @update:model-value="handleProjectChange"
+            />
+          </div>
         </div>
 
         <div :title="authStore.isViewer ? 'Viewers cannot upload documents' : ''">
@@ -490,179 +517,177 @@ function formatDate(iso) {
     </main>
 
     <!-- Create / Upload Document Modal -->
-    <div v-if="showEditorModal" class="modal-backdrop" @click.self="showEditorModal = false">
-      <div class="modal-dialog editor-dialog">
-        <div class="modal-header">
-          <h2 class="modal-title">{{ isEditing ? 'Edit Document' : 'Upload / Add Project Document' }}</h2>
-          <button type="button" class="close-btn" @click="showEditorModal = false">✕</button>
+    <BaseModal
+      v-model="showEditorModal"
+      :title="isEditing ? 'Edit Document' : 'Upload / Add Project Document'"
+      description="Upload project specifications, architecture decision records, or runbooks into vector search."
+      size="lg"
+      @close="showEditorModal = false"
+    >
+      <div class="knowledge-modal-form">
+        <div v-if="formError" class="form-alert error-alert">
+          {{ formError }}
         </div>
 
-        <div class="modal-body">
-          <div v-if="formError" class="form-alert error-alert">
-            {{ formError }}
+        <!-- File Upload Dropzone -->
+        <div class="file-upload-box" @click="$refs.fileInput.click()">
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".pdf,.docx,.txt,.md,.markdown"
+            class="hidden-file-input"
+            @change="handleFileChange"
+          />
+          <div class="upload-box-content">
+            <span class="upload-icon">📁</span>
+            <span class="upload-title font-medium">Click to select document (PDF, DOCX, TXT, MD)</span>
+            <span class="upload-hint text-muted">Or type/paste document content in the editor below</span>
           </div>
+        </div>
 
-          <!-- File Upload Dropzone -->
-          <div class="file-upload-box" @click="$refs.fileInput.click()">
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".pdf,.docx,.txt,.md,.markdown"
-              class="hidden-file-input"
-              @change="handleFileChange"
+        <div v-if="selectedFileName" class="uploaded-file-pill">
+          <span>📄 <strong>{{ selectedFileName }}</strong> ({{ selectedFileSize }})</span>
+          <button type="button" class="remove-file-btn btn-close-destructive" @click="clearSelectedFile">✕</button>
+        </div>
+
+        <div class="form-group margin-top">
+          <label class="form-label required">Document Title *</label>
+          <input
+            v-model="docForm.title"
+            type="text"
+            class="form-input"
+            placeholder="e.g. Authentication & RBAC Architecture Blueprint"
+          />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Document Category</label>
+            <BaseSelect
+              v-model="docForm.documentType"
+              :options="docCategoryOptions"
+              size="md"
             />
-            <div class="upload-box-content">
-              <span class="upload-icon">📁</span>
-              <span class="upload-title">Click to select document (PDF, DOCX, TXT, MD)</span>
-              <span class="upload-hint text-muted">Or type/paste document content in the editor below</span>
-            </div>
-          </div>
-
-          <div v-if="selectedFileName" class="uploaded-file-pill">
-            📄 <strong>{{ selectedFileName }}</strong> ({{ selectedFileSize }})
-            <button type="button" class="remove-file-btn" @click="clearSelectedFile">✕</button>
-          </div>
-
-          <div class="form-group margin-top">
-            <label class="form-label">Document Title *</label>
-            <input
-              v-model="docForm.title"
-              type="text"
-              class="form-input"
-              placeholder="e.g. Authentication & RBAC Architecture Blueprint"
-            />
-          </div>
-
-          <div class="form-row-2">
-            <div class="form-group">
-              <label class="form-label">Document Category</label>
-              <select v-model="docForm.documentType" class="form-input">
-                <option value="ARCHITECTURE">Architecture</option>
-                <option value="API_SPEC">API Specification</option>
-                <option value="RUNBOOK">Runbook</option>
-                <option value="REQUIREMENTS">Requirements</option>
-                <option value="TROUBLESHOOTING">Troubleshooting</option>
-                <option value="GENERAL">General</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Brief Summary</label>
-              <input
-                v-model="docForm.description"
-                type="text"
-                class="form-input"
-                placeholder="High-level summary for team context..."
-              />
-            </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Document Content *</label>
-            <textarea
-              v-model="docForm.content"
-              rows="10"
-              class="form-input mono content-textarea"
-              placeholder="# Heading 1&#10;&#10;Describe system architecture, API contracts, or runbooks here..."
-            ></textarea>
+            <label class="form-label">Brief Summary</label>
+            <input
+              v-model="docForm.description"
+              type="text"
+              class="form-input"
+              placeholder="High-level summary for team context..."
+            />
           </div>
         </div>
 
-        <div class="modal-footer">
-          <BaseButton variant="neutral" size="sm" @click="showEditorModal = false">
-            Cancel
-          </BaseButton>
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :loading="knowledgeStore.isSaving || knowledgeStore.isIndexing"
-            @click="handleSaveDocument"
-          >
-            {{ isEditing ? 'Save Changes' : 'Ingest & Index Document' }}
-          </BaseButton>
+        <div class="form-group">
+          <label class="form-label required">Document Content *</label>
+          <textarea
+            v-model="docForm.content"
+            rows="10"
+            class="form-input mono content-textarea"
+            placeholder="# Heading 1&#10;&#10;Describe system architecture, API contracts, or runbooks here..."
+          ></textarea>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <BaseButton variant="close" size="sm" @click="showEditorModal = false">
+          Cancel
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="sm"
+          :loading="knowledgeStore.isSaving || knowledgeStore.isIndexing"
+          @click="handleSaveDocument"
+        >
+          {{ isEditing ? 'Save Changes' : 'Ingest & Index Document' }}
+        </BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Document Detail / Viewer Modal -->
-    <div v-if="showDetailModal" class="modal-backdrop" @click.self="showDetailModal = false">
-      <div class="modal-dialog detail-dialog">
-        <div v-if="knowledgeStore.activeDocument" class="detail-content">
-          <div class="modal-header">
-            <div class="detail-header-group">
-              <span class="detail-icon">{{ getDocumentTypeIcon(knowledgeStore.activeDocument.documentType) }}</span>
-              <div>
-                <h2 class="modal-title">{{ knowledgeStore.activeDocument.title }}</h2>
-                <div class="detail-meta-row text-muted">
-                  <span>{{ knowledgeStore.activeDocument.documentType }}</span>
-                  <span>•</span>
-                  <span>{{ formatDate(knowledgeStore.activeDocument.updatedAt) }}</span>
-                  <BaseBadge
-                    :variant="knowledgeStore.activeDocument.status === 'READY' || knowledgeStore.activeDocument.status === 'INDEXED' ? 'success' : 'neutral'"
-                    size="sm"
-                  >
-                    {{ knowledgeStore.activeDocument.status }}
-                  </BaseBadge>
-                </div>
-              </div>
-            </div>
-            <button type="button" class="close-btn" @click="showDetailModal = false">✕</button>
+    <BaseModal
+      v-model="showDetailModal"
+      :title="knowledgeStore.activeDocument?.title || 'Document Detail'"
+      :description="knowledgeStore.activeDocument ? `${knowledgeStore.activeDocument.documentType} • Updated ${formatDate(knowledgeStore.activeDocument.updatedAt)}` : ''"
+      size="lg"
+      @close="showDetailModal = false"
+    >
+      <div v-if="knowledgeStore.activeDocument" class="detail-content">
+        <div v-if="knowledgeStore.activeDocument.description" class="detail-description text-secondary">
+          {{ knowledgeStore.activeDocument.description }}
+        </div>
+
+        <!-- Chunks List -->
+        <div class="chunks-section">
+          <div class="chunks-header-row">
+            <h3 class="chunks-heading font-medium">
+              Vector Chunks ({{ knowledgeStore.activeDocument.chunks?.length || 0 }})
+            </h3>
+            <BaseBadge
+              :variant="knowledgeStore.activeDocument.status === 'READY' || knowledgeStore.activeDocument.status === 'INDEXED' ? 'success' : 'neutral'"
+              size="sm"
+            >
+              {{ knowledgeStore.activeDocument.status }}
+            </BaseBadge>
           </div>
-
-          <div class="modal-body">
-            <div v-if="knowledgeStore.activeDocument.description" class="detail-description text-secondary">
-              {{ knowledgeStore.activeDocument.description }}
-            </div>
-
-            <!-- Chunks List -->
-            <div class="chunks-section">
-              <h3 class="chunks-heading font-medium">
-                Vector Chunks ({{ knowledgeStore.activeDocument.chunks?.length || 0 }})
-              </h3>
-              <div class="chunks-list">
-                <div
-                  v-for="chunk in knowledgeStore.activeDocument.chunks"
-                  :key="chunk.id"
-                  class="chunk-box"
-                >
-                  <div class="chunk-box-header">
-                    <span class="chunk-index font-medium">Chunk #{{ chunk.chunkIndex + 1 }}</span>
-                    <span class="chunk-tokens mono text-muted">{{ chunk.tokenCount }} tokens</span>
-                  </div>
-                  <pre class="chunk-text mono">{{ chunk.content }}</pre>
-                </div>
+          <div class="chunks-list">
+            <div
+              v-for="chunk in knowledgeStore.activeDocument.chunks"
+              :key="chunk.id"
+              class="chunk-box"
+            >
+              <div class="chunk-box-header">
+                <span class="chunk-index font-medium">Chunk #{{ chunk.chunkIndex + 1 }}</span>
+                <span class="chunk-tokens mono text-muted">{{ chunk.tokenCount }} tokens</span>
               </div>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <BaseButton variant="neutral" size="sm" @click="showDetailModal = false">
-              Close
-            </BaseButton>
-            <div :title="authStore.isViewer ? 'Viewers cannot edit documents' : ''">
-              <BaseButton
-                variant="outline"
-                size="sm"
-                :disabled="authStore.isViewer"
-                @click="openEditModal(knowledgeStore.activeDocument)"
-              >
-                Edit
-              </BaseButton>
-            </div>
-            <div :title="authStore.isViewer ? 'Viewers cannot delete documents' : ''">
-              <BaseButton
-                variant="danger"
-                size="sm"
-                :disabled="authStore.isViewer"
-                @click="handleDelete(knowledgeStore.activeDocument.id)"
-              >
-                Delete
-              </BaseButton>
+              <pre class="chunk-text mono">{{ chunk.content }}</pre>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <template #footer>
+        <BaseButton variant="close" size="sm" @click="showDetailModal = false">
+          Close
+        </BaseButton>
+        <div :title="authStore.isViewer ? 'Viewers cannot edit documents' : ''">
+          <BaseButton
+            variant="outline"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="openEditModal(knowledgeStore.activeDocument)"
+          >
+            Edit
+          </BaseButton>
+        </div>
+        <div :title="authStore.isViewer ? 'Viewers cannot delete documents' : ''">
+          <BaseButton
+            variant="danger"
+            size="sm"
+            :disabled="authStore.isViewer"
+            @click="promptDeleteDoc(knowledgeStore.activeDocument.id, knowledgeStore.activeDocument.title)"
+          >
+            <template #prefix><AppIcon name="trash" :size="13" /></template>
+            Delete
+          </BaseButton>
+        </div>
+      </template>
+    </BaseModal>
+
+    <!-- Delete Document Confirmation Modal -->
+    <BaseConfirmModal
+      v-model="isDeleteConfirmOpen"
+      title="Delete Project Document"
+      :message="`Are you sure you want to delete &quot;${docTitleToDelete}&quot;? All associated 768-dim vector embeddings and chunk indexes will be permanently removed.`"
+      :itemName="docTitleToDelete"
+      itemType="DOCUMENT"
+      confirmText="Delete Document"
+      @confirm="handleConfirmDelete"
+      @cancel="isDeleteConfirmOpen = false"
+    />
   </div>
 </template>
 
@@ -694,7 +719,7 @@ function formatDate(iso) {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
 }
 
 .badge-row {
@@ -709,7 +734,7 @@ function formatDate(iso) {
   gap: 6px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-success-500, #22c55e);
+  color: var(--color-success, #22c55e);
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.25);
   border-radius: var(--radius-full);
@@ -735,19 +760,14 @@ function formatDate(iso) {
   gap: 8px;
 }
 
-.project-select-input {
-  background: var(--color-surface-card, #1e293b);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  color: var(--color-text-main, #f8fafc);
-  padding: 6px 12px;
-  border-radius: var(--radius-md, 6px);
-  font-size: 13px;
+.selector-select-box {
+  min-width: 220px;
 }
 
 .rag-learning-banner {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12));
   border: 1px solid rgba(99, 102, 241, 0.3);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--radius-lg);
   padding: 12px 16px;
   display: flex;
   gap: 12px;
@@ -761,14 +781,14 @@ function formatDate(iso) {
 .rag-banner-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .rag-banner-desc {
   font-size: 12px;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
 }
@@ -793,17 +813,18 @@ function formatDate(iso) {
 
 .semantic-search-input {
   width: 100%;
-  background: var(--color-surface-card, #1e293b);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  color: var(--color-text-main, #f8fafc);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
   padding: 10px 36px 10px 36px;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .semantic-search-input:focus {
-  border-color: var(--color-primary-500, #6366f1);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   outline: none;
 }
 
@@ -812,14 +833,14 @@ function formatDate(iso) {
   right: 12px;
   background: transparent;
   border: none;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
   cursor: pointer;
 }
 
 .search-results-panel {
-  background: var(--color-surface-card, #1e293b);
-  border: 1px solid var(--color-primary-500, #6366f1);
-  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-md);
   padding: 12px;
 }
 
@@ -833,12 +854,12 @@ function formatDate(iso) {
 .search-results-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-primary-400, #818cf8);
+  color: var(--brand-primary);
 }
 
 .search-result-item {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.03));
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
   margin-bottom: 6px;
   cursor: pointer;
@@ -846,7 +867,7 @@ function formatDate(iso) {
 }
 
 .search-result-item:hover {
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(99, 102, 241, 0.12);
 }
 
 .result-top-row {
@@ -867,7 +888,7 @@ function formatDate(iso) {
   font-size: 11px;
   font-weight: 700;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .high-score {
@@ -882,7 +903,7 @@ function formatDate(iso) {
 
 .result-excerpt {
   font-size: 12px;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
 }
@@ -896,22 +917,22 @@ function formatDate(iso) {
 
 .meta-tag {
   font-size: 11px;
-  color: var(--color-text-muted, #94a3b8);
+  color: var(--text-muted);
   background: rgba(255, 255, 255, 0.05);
   padding: 1px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 .source-tag {
-  color: var(--color-primary-400, #818cf8);
-  border-color: rgba(99, 102, 241, 0.2);
+  color: var(--brand-primary);
+  border-color: rgba(99, 102, 241, 0.25);
 }
 
 .no-search-results-panel {
-  background: var(--color-surface-card, #1e293b);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-md, 6px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 16px;
   display: flex;
   align-items: flex-start;
@@ -925,7 +946,7 @@ function formatDate(iso) {
 .no-result-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
@@ -944,18 +965,19 @@ function formatDate(iso) {
 
 .category-tab {
   background: transparent;
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  color: var(--color-text-secondary, #94a3b8);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
   padding: 6px 12px;
-  border-radius: var(--radius-full, 9999px);
+  border-radius: var(--radius-full);
   font-size: 12px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .category-tab.active {
-  background: var(--color-primary-500, #6366f1);
+  background: var(--brand-primary);
   color: #ffffff;
-  border-color: var(--color-primary-500, #6366f1);
+  border-color: var(--brand-primary);
 }
 
 .docs-grid {
@@ -965,20 +987,21 @@ function formatDate(iso) {
 }
 
 .doc-card {
-  background: var(--color-surface-card, #1e293b);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-lg, 8px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .doc-card:hover {
   transform: translateY(-2px);
   border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .doc-card-header {
@@ -999,13 +1022,13 @@ function formatDate(iso) {
 .doc-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
   margin: 0 0 2px 0;
 }
 
 .doc-excerpt {
   font-size: 12.5px;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--text-secondary);
   line-height: 1.4;
   margin-bottom: 12px;
 }
@@ -1014,19 +1037,20 @@ function formatDate(iso) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-subtle);
   padding-top: 10px;
 }
 
 .reindex-btn {
   background: rgba(99, 102, 241, 0.1);
   border: 1px solid rgba(99, 102, 241, 0.3);
-  color: var(--color-primary-400, #818cf8);
+  color: var(--brand-primary);
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .reindex-btn:hover {
@@ -1040,24 +1064,24 @@ function formatDate(iso) {
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   margin-right: 4px;
 }
 
 .file-upload-box {
-  border: 2px dashed var(--color-border-subtle, rgba(255, 255, 255, 0.15));
-  border-radius: var(--radius-md, 6px);
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-md);
   padding: 20px;
   text-align: center;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.02);
-  transition: background 0.15s ease;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.02));
+  transition: all 0.15s ease;
 }
 
 .file-upload-box:hover {
   background: rgba(99, 102, 241, 0.05);
-  border-color: var(--color-primary-500, #6366f1);
+  border-color: var(--brand-primary);
 }
 
 .hidden-file-input {
@@ -1078,7 +1102,7 @@ function formatDate(iso) {
 .upload-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-main, #f8fafc);
+  color: var(--text-primary);
 }
 
 .uploaded-file-pill {
@@ -1090,7 +1114,7 @@ function formatDate(iso) {
   color: #22c55e;
   font-size: 12px;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-top: 8px;
 }
 
@@ -1099,66 +1123,6 @@ function formatDate(iso) {
   border: none;
   color: #ef4444;
   cursor: pointer;
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal-dialog {
-  background: var(--color-surface-card, #1e293b);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-lg, 8px);
-  width: 90%;
-  max-width: 680px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.close-btn {
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted, #64748b);
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.modal-footer {
-  padding: 12px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .form-group {
@@ -1176,16 +1140,22 @@ function formatDate(iso) {
 .form-label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--text-secondary);
 }
 
 .form-input {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  color: var(--color-text-main, #f8fafc);
+  background: var(--bg-surface-elevated, var(--bg-surface));
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
   padding: 8px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.form-input:focus {
+  border-color: var(--brand-primary);
+  outline: none;
 }
 
 .content-textarea {
@@ -1194,7 +1164,7 @@ function formatDate(iso) {
 
 .form-alert {
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
 }
 
@@ -1213,9 +1183,9 @@ function formatDate(iso) {
 }
 
 .chunk-box {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 8px 10px;
 }
 
@@ -1228,7 +1198,7 @@ function formatDate(iso) {
 
 .chunk-text {
   font-size: 11.5px;
-  color: var(--color-text-secondary, #94a3b8);
+  color: var(--text-secondary);
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;

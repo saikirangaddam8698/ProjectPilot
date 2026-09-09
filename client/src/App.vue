@@ -25,11 +25,12 @@ function loadDomainData() {
   activityStore.fetchActivities();
 }
 
-// When user authenticates or session restores, fetch domain data
+// When user authenticates or session restores, fetch domain data and ensure sidebar is open
 watch(
   () => authStore.isAuthenticated,
   (isAuth) => {
     if (isAuth) {
+      uiStore.openSidebar();
       loadDomainData();
     }
   }

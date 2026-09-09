@@ -14,6 +14,7 @@ import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.v
 import MemberDetailDrawer from '@/components/team/MemberDetailDrawer.vue';
 import InviteMemberModal from '@/components/team/InviteMemberModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
@@ -28,6 +29,34 @@ const selectedMember = ref(null);
 const isMemberDrawerOpen = ref(false);
 const isInviteModalOpen = ref(false);
 const toastMessage = ref('');
+
+const roleFilterOptions = [
+  { value: 'all', label: 'All Roles' },
+  { value: 'Project Admin', label: 'Project Admin' },
+  { value: 'Senior Developer', label: 'Senior Developer' },
+  { value: 'Developer', label: 'Developer' },
+  { value: 'DevOps Lead', label: 'DevOps Lead' },
+  { value: 'DevOps Engineer', label: 'DevOps Engineer' },
+  { value: 'Frontend Engineer', label: 'Frontend Engineer' },
+  { value: 'AI / ML Engineer', label: 'AI / ML Engineer' },
+  { value: 'QA Lead', label: 'QA Lead' },
+  { value: 'Viewer', label: 'Viewer' }
+];
+
+const statusFilterOptions = [
+  { value: 'all', label: 'All Statuses' },
+  { value: 'Active', label: 'Active Only' },
+  { value: 'Away', label: 'Away' },
+  { value: 'Offline', label: 'Offline' }
+];
+
+const projectFilterOptions = computed(() => [
+  { value: 'all', label: 'All Projects' },
+  ...projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }))
+]);
 
 function handleInviteClick() {
   if (!authStore.canManageWorkspaceMembers) {
@@ -260,38 +289,31 @@ function resetFilters() {
         </div>
 
         <!-- Role Filter -->
-        <select v-model="roleFilter" class="filter-select">
-          <option value="all">All Roles</option>
-          <option value="Project Admin">Project Admin</option>
-          <option value="Senior Developer">Senior Developer</option>
-          <option value="Developer">Developer</option>
-          <option value="DevOps Lead">DevOps Lead</option>
-          <option value="DevOps Engineer">DevOps Engineer</option>
-          <option value="Frontend Engineer">Frontend Engineer</option>
-          <option value="AI / ML Engineer">AI / ML Engineer</option>
-          <option value="QA Lead">QA Lead</option>
-          <option value="Viewer">Viewer</option>
-        </select>
+        <div class="team-filter-item">
+          <BaseSelect
+            v-model="roleFilter"
+            :options="roleFilterOptions"
+            size="sm"
+          />
+        </div>
 
         <!-- Status Filter -->
-        <select v-model="statusFilter" class="filter-select">
-          <option value="all">All Statuses</option>
-          <option value="Active">Active Only</option>
-          <option value="Away">Away</option>
-          <option value="Offline">Offline</option>
-        </select>
+        <div class="team-filter-item">
+          <BaseSelect
+            v-model="statusFilter"
+            :options="statusFilterOptions"
+            size="sm"
+          />
+        </div>
 
         <!-- Project Filter -->
-        <select v-model="projectFilter" class="filter-select">
-          <option value="all">All Projects</option>
-          <option
-            v-for="p in projectStore.allProjects"
-            :key="p.id"
-            :value="p.key"
-          >
-            {{ p.name }} ({{ p.key }})
-          </option>
-        </select>
+        <div class="team-filter-item">
+          <BaseSelect
+            v-model="projectFilter"
+            :options="projectFilterOptions"
+            size="sm"
+          />
+        </div>
 
         <!-- Reset Button -->
         <button
@@ -545,22 +567,39 @@ function resetFilters() {
   width: 260px;
 }
 
+.team-filter-item {
+  min-width: 140px;
+}
+
 .filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   height: 32px;
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 0 var(--space-3);
+  background-color: var(--select-bg, var(--bg-surface));
+  border: 1px solid var(--select-border, var(--border-default));
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-8) 0 var(--space-3);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   outline: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.filter-select:hover {
+  border-color: var(--select-border-hover, var(--border-strong));
+  background-color: var(--select-bg-hover, var(--bg-surface-elevated));
 }
 
 .filter-select:focus {
-  border-color: var(--border-focus);
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--select-focus-ring, rgba(99, 102, 241, 0.2));
 }
 
 .reset-link-btn {

@@ -22,7 +22,8 @@ import AppShell from '@/components/layout/AppShell.vue';
 /* Page Transition Effects */
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 200ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              transform 200ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .page-fade-enter-from {
@@ -33,5 +34,13 @@ import AppShell from '@/components/layout/AppShell.vue';
 .page-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-enter-active,
+  .page-fade-leave-active {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 </style>

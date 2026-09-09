@@ -22,6 +22,10 @@ const props = defineProps({
   hideClose: {
     type: Boolean,
     default: false
+  },
+  zIndex: {
+    type: [Number, String],
+    default: null
   }
 });
 
@@ -66,6 +70,7 @@ onUnmounted(() => {
       <div
         v-if="modelValue"
         class="modal-backdrop"
+        :style="zIndex ? { zIndex } : undefined"
         @click="handleBackdropClick"
         role="dialog"
         aria-modal="true"
@@ -115,8 +120,9 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background-color: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(2px);
+  background-color: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,16 +130,17 @@ onUnmounted(() => {
 }
 
 .modal-card {
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border-glow);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow-modal);
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modalPop var(--transition-base);
 }
 
 .modal-sm { max-width: 420px; }
@@ -174,13 +181,34 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  color: var(--btn-close-color, var(--text-muted));
+  background-color: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .modal-close-btn:hover {
-  background-color: var(--bg-surface-hover);
-  color: var(--text-primary);
+  background-color: var(--btn-close-bg-hover, rgba(239, 68, 68, 0.20)) !important;
+  color: var(--btn-close-color-hover, #ef4444) !important;
+  border-color: var(--btn-close-border-hover, rgba(239, 68, 68, 0.50)) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.modal-close-btn:hover svg {
+  stroke: var(--btn-close-color-hover, #ef4444) !important;
+}
+
+.modal-close-btn:active {
+  background-color: var(--btn-close-bg-active, rgba(239, 68, 68, 0.35)) !important;
+  color: var(--btn-close-color-active, #dc2626) !important;
+  border-color: var(--btn-close-border-active, rgba(239, 68, 68, 0.70)) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.40);
+  transform: scale(0.92);
+}
+
+.modal-close-btn:active svg {
+  stroke: var(--btn-close-color-active, #dc2626) !important;
 }
 
 .modal-body {
@@ -199,10 +227,16 @@ onUnmounted(() => {
   gap: var(--space-3);
 }
 
-/* Transitions */
+/* Transitions & Animation */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
-  transition: opacity var(--transition-base);
+  transition: opacity 200ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.modal-fade-enter-active .modal-card,
+.modal-fade-leave-active .modal-card {
+  transition: transform 200ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+              opacity 200ms var(--motion-spring, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .modal-fade-enter-from,
@@ -210,14 +244,19 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-@keyframes modalPop {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
+.modal-fade-enter-from .modal-card,
+.modal-fade-leave-to .modal-card {
+  opacity: 0;
+  transform: scale(0.97) translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-fade-enter-active,
+  .modal-fade-leave-active,
+  .modal-fade-enter-active .modal-card,
+  .modal-fade-leave-active .modal-card {
+    transition: none !important;
+    transform: none !important;
   }
 }
 </style>

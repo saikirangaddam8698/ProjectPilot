@@ -4,9 +4,14 @@ import { useProjectStore } from '@/stores/project.store';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   modelValue: {
+    type: Boolean,
+    default: false
+  },
+  isOpen: {
     type: Boolean,
     default: false
   }
@@ -14,7 +19,21 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'created', 'close']);
 
+const isVisible = computed(() => props.modelValue || props.isOpen);
+
 const projectStore = useProjectStore();
+
+const leadOptions = [
+  { value: 'Alex Morgan', label: 'Alex Morgan (Lead Architect)' },
+  { value: 'Samir Khan', label: 'Samir Khan (DevOps Lead)' },
+  { value: 'Elena Rostova', label: 'Elena Rostova (Mobile Lead)' },
+  { value: 'Jane Doe', label: 'Jane Doe (Senior Engineer)' }
+];
+
+const statusOptions = [
+  { value: 'active', label: 'Active (Sprint Active)' },
+  { value: 'planning', label: 'Planning (Backlog Mode)' }
+];
 
 const form = ref({
   name: '',
@@ -134,8 +153,8 @@ function handleClose() {
 
 <template>
   <BaseModal
-    :modelValue="modelValue"
-    @update:modelValue="$emit('update:modelValue', $event)"
+    :modelValue="isVisible"
+    @update:modelValue="(val) => { emit('update:modelValue', val); if (!val) emit('close'); }"
     @close="handleClose"
     size="md"
     title="Create New Project"
@@ -188,27 +207,29 @@ function handleClose() {
         <!-- Project Lead -->
         <div class="form-group">
           <label for="proj-lead" class="form-label">Project Lead</label>
-          <select id="proj-lead" v-model="form.leadName" class="form-select">
-            <option value="Alex Morgan">Alex Morgan (Lead Architect)</option>
-            <option value="Samir Khan">Samir Khan (DevOps Lead)</option>
-            <option value="Elena Rostova">Elena Rostova (Mobile Lead)</option>
-            <option value="Jane Doe">Jane Doe (Senior Engineer)</option>
-          </select>
+          <BaseSelect
+            id="proj-lead"
+            v-model="form.leadName"
+            :options="leadOptions"
+            size="md"
+          />
         </div>
 
         <!-- Initial Status -->
         <div class="form-group">
           <label for="proj-status" class="form-label">Initial Status</label>
-          <select id="proj-status" v-model="form.status" class="form-select">
-            <option value="active">Active (Sprint Active)</option>
-            <option value="planning">Planning (Backlog Mode)</option>
-          </select>
+          <BaseSelect
+            id="proj-status"
+            v-model="form.status"
+            :options="statusOptions"
+            size="md"
+          />
         </div>
       </div>
     </form>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="handleClose">
+      <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
       <BaseButton

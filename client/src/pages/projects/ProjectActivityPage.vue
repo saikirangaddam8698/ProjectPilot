@@ -8,6 +8,7 @@ import MemberDetailDrawer from '@/components/team/MemberDetailDrawer.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   project: {
@@ -21,6 +22,14 @@ const activityStore = useActivityStore();
 const typeFilter = ref('all'); // 'all' | 'ticket' | 'sprint' | 'team' | 'project'
 const actorFilter = ref('all');
 const searchQuery = ref('');
+
+const typeOptions = [
+  { value: 'all', label: 'All Events' },
+  { value: 'ticket', label: 'Ticket Changes' },
+  { value: 'sprint', label: 'Sprint Cycles' },
+  { value: 'team', label: 'Team Allocation' },
+  { value: 'project', label: 'Project Updates' }
+];
 
 const selectedMember = ref(null);
 const isMemberDrawerOpen = ref(false);
@@ -49,6 +58,14 @@ const projectActors = computed(() => {
   });
   return Array.from(actorMap.values());
 });
+
+const actorOptions = computed(() => [
+  { value: 'all', label: 'All Contributors' },
+  ...projectActors.value.map((actor) => ({
+    value: actor.id,
+    label: actor.name
+  }))
+]);
 
 function handleOpenMember(memberSummary) {
   const fullMember = props.project.members.find((m) => m.id === memberSummary.id) || {
@@ -96,25 +113,24 @@ function resetFilters() {
 
       <div class="filters-row">
         <!-- Event Type Filter -->
-        <select v-model="typeFilter" class="filter-select">
-          <option value="all">All Events</option>
-          <option value="ticket">Ticket Changes</option>
-          <option value="sprint">Sprint Cycles</option>
-          <option value="team">Team Allocation</option>
-          <option value="project">Project Updates</option>
-        </select>
+        <div class="activity-filter-item">
+          <BaseSelect
+            v-model="typeFilter"
+            :options="typeOptions"
+            size="sm"
+            aria-label="Event type filter"
+          />
+        </div>
 
         <!-- Contributor Filter -->
-        <select v-model="actorFilter" class="filter-select">
-          <option value="all">All Contributors</option>
-          <option
-            v-for="actor in projectActors"
-            :key="actor.id"
-            :value="actor.id"
-          >
-            {{ actor.name }}
-          </option>
-        </select>
+        <div class="activity-filter-item">
+          <BaseSelect
+            v-model="actorFilter"
+            :options="actorOptions"
+            size="sm"
+            aria-label="Contributor filter"
+          />
+        </div>
 
         <button
           v-if="typeFilter !== 'all' || actorFilter !== 'all' || searchQuery"
@@ -190,21 +206,38 @@ function resetFilters() {
   flex-wrap: wrap;
 }
 
+.activity-filter-item {
+  min-width: 165px;
+}
+
 .filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   height: 32px;
-  padding: 0 var(--space-3);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  padding: 0 var(--space-8) 0 var(--space-3);
+  background-color: var(--select-bg, var(--bg-surface));
+  border: 1px solid var(--select-border, var(--border-default));
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: var(--text-xs);
   outline: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.filter-select:hover {
+  border-color: var(--select-border-hover, var(--border-strong));
+  background-color: var(--select-bg-hover, var(--bg-surface-elevated));
 }
 
 .filter-select:focus {
   border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--select-focus-ring, rgba(99, 102, 241, 0.2));
 }
 
 .reset-btn {

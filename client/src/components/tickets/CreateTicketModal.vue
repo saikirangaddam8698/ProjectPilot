@@ -7,23 +7,45 @@ import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
   },
+  isOpen: {
+    type: Boolean,
+    default: false
+  },
   projectKey: {
+    type: String,
+    default: null
+  },
+  defaultProjectKey: {
+    type: String,
+    default: null
+  },
+  defaultStatus: {
     type: String,
     default: null
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'created', 'close']);
+const emit = defineEmits(['update:modelValue', 'update:isOpen', 'created', 'close']);
 
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
 const sprintStore = useSprintStore();
+
+const isVisible = computed({
+  get: () => Boolean(props.modelValue || props.isOpen || ticketStore.isCreateModalOpen),
+  set: (val) => {
+    if (!val) {
+      handleClose();
+    }
+  }
+});
 
 const selectedProjectKey = ref('PILOT');
 const form = ref({
@@ -62,11 +84,11 @@ const availableProjectSprints = computed(() => {
 });
 
 watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (isOpen) {
+  isVisible,
+  (open) => {
+    if (open) {
       const defaultKey = projectStore.activeProject?.key || projectStore.allProjects[0]?.key || 'PILOT';
-      const candidateKey = props.projectKey || ticketStore.createModalProjectKey || defaultKey;
+      const candidateKey = props.defaultProjectKey || props.projectKey || ticketStore.createModalProjectKey || defaultKey;
       const isCandidateAccessible = projectStore.allProjects.some((p) => p.key.toUpperCase() === candidateKey.toUpperCase());
       const targetKey = isCandidateAccessible ? candidateKey : defaultKey;
       selectedProjectKey.value = targetKey;
@@ -74,13 +96,14 @@ watch(
       const project = projectStore.getProjectByKey(targetKey);
       const defaultAssigneeId = project?.members?.[0]?.id || '';
       const activeSprint = sprintStore.getActiveSprint(targetKey);
+      const prefillStatus = props.defaultStatus || ticketStore.createModalPrefillStatus || 'Todo';
 
       form.value = {
         title: '',
         description: '',
         type: 'Task',
         priority: 'Medium',
-        status: 'Todo',
+        status: prefillStatus,
         assigneeId: defaultAssigneeId,
         sprintId: activeSprint ? activeSprint.id : 'backlog',
         storyPoints: 3,
@@ -114,6 +137,59 @@ function validate() {
 
   return valid;
 }
+
+const projectOptions = computed(() => {
+  return projectStore.allProjects.map((p) => ({
+    value: p.key,
+    label: `${p.name} (${p.key})`
+  }));
+});
+
+const typeOptions = [
+  { value: 'Task', label: 'Task' },
+  { value: 'Story', label: 'Story / Feature' },
+  { value: 'Bug', label: 'Bug / Defect' },
+  { value: 'Epic', label: 'Epic' }
+];
+
+const statusOptions = [
+  { value: 'Backlog', label: 'Backlog' },
+  { value: 'Todo', label: 'Todo' },
+  { value: 'In Progress', label: 'In Progress' },
+  { value: 'In Review', label: 'In Review' },
+  { value: 'Done', label: 'Done' }
+];
+
+const priorityOptions = [
+  { value: 'Low', label: 'Low' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'High', label: 'High' },
+  { value: 'Urgent', label: 'Urgent (Blocker)' }
+];
+
+const storyPointsOptions = [
+  { value: 1, label: '1 pt' },
+  { value: 2, label: '2 pts' },
+  { value: 3, label: '3 pts' },
+  { value: 5, label: '5 pts' },
+  { value: 8, label: '8 pts' },
+  { value: 13, label: '13 pts' }
+];
+
+const assigneeOptions = computed(() => {
+  return projectMembers.value.map((m) => ({
+    value: m.id,
+    label: `${m.name} (${m.role})`
+  }));
+});
+
+const sprintOptions = computed(() => {
+  const list = [{ value: 'backlog', label: 'Product Backlog (Unassigned)' }];
+  availableProjectSprints.value.forEach((s) => {
+    list.push({ value: s.id, label: `${s.name} (${s.status})` });
+  });
+  return list;
+});
 
 function handleSubmit() {
   if (!validate()) return;
@@ -157,6 +233,7 @@ function handleSubmit() {
 
 function handleClose() {
   emit('update:modelValue', false);
+  emit('update:isOpen', false);
   ticketStore.closeCreateModal();
   emit('close');
 }
@@ -164,37 +241,33 @@ function handleClose() {
 
 <template>
   <BaseModal
-    :modelValue="modelValue || ticketStore.isCreateModalOpen"
-    @update:modelValue="handleClose"
-    @close="handleClose"
+    v-model="isVisible"
     size="lg"
     title="Create Ticket"
     description="Create a task, story, or bug in the selected project workspace."
+    @close="handleClose"
   >
     <form @submit.prevent="handleSubmit" class="create-ticket-form">
       <!-- Project Selection & Issue Type Row -->
       <div class="form-row-dual">
         <div class="form-group">
           <label for="ticket-project" class="form-label required">Target Project Workspace</label>
-          <select id="ticket-project" v-model="selectedProjectKey" class="form-select">
-            <option
-              v-for="p in projectStore.allProjects"
-              :key="p.id"
-              :value="p.key"
-            >
-              {{ p.name }} ({{ p.key }})
-            </option>
-          </select>
+          <BaseSelect
+            id="ticket-project"
+            v-model="selectedProjectKey"
+            :options="projectOptions"
+            size="md"
+          />
         </div>
 
         <div class="form-group">
           <label for="ticket-type" class="form-label required">Issue Type</label>
-          <select id="ticket-type" v-model="form.type" class="form-select">
-            <option value="Task">Task</option>
-            <option value="Story">Story / Feature</option>
-            <option value="Bug">Bug / Defect</option>
-            <option value="Epic">Epic</option>
-          </select>
+          <BaseSelect
+            id="ticket-type"
+            v-model="form.type"
+            :options="typeOptions"
+            size="md"
+          />
         </div>
       </div>
 
@@ -226,35 +299,32 @@ function handleClose() {
       <div class="form-row-triple">
         <div class="form-group">
           <label for="ticket-status" class="form-label">Initial Status</label>
-          <select id="ticket-status" v-model="form.status" class="form-select">
-            <option value="Backlog">Backlog</option>
-            <option value="Todo">Todo</option>
-            <option value="In Progress">In Progress</option>
-            <option value="In Review">In Review</option>
-            <option value="Done">Done</option>
-          </select>
+          <BaseSelect
+            id="ticket-status"
+            v-model="form.status"
+            :options="statusOptions"
+            size="md"
+          />
         </div>
 
         <div class="form-group">
           <label for="ticket-priority" class="form-label">Priority</label>
-          <select id="ticket-priority" v-model="form.priority" class="form-select">
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Urgent">Urgent (Blocker)</option>
-          </select>
+          <BaseSelect
+            id="ticket-priority"
+            v-model="form.priority"
+            :options="priorityOptions"
+            size="md"
+          />
         </div>
 
         <div class="form-group">
           <label for="ticket-points" class="form-label">Story Points</label>
-          <select id="ticket-points" v-model="form.storyPoints" class="form-select">
-            <option :value="1">1 pt</option>
-            <option :value="2">2 pts</option>
-            <option :value="3">3 pts</option>
-            <option :value="5">5 pts</option>
-            <option :value="8">8 pts</option>
-            <option :value="13">13 pts</option>
-          </select>
+          <BaseSelect
+            id="ticket-points"
+            v-model="form.storyPoints"
+            :options="storyPointsOptions"
+            size="md"
+          />
         </div>
       </div>
 
@@ -262,25 +332,22 @@ function handleClose() {
       <div class="form-row-dual">
         <div class="form-group">
           <label for="ticket-assignee" class="form-label">Assignee</label>
-          <select id="ticket-assignee" v-model="form.assigneeId" class="form-select">
-            <option v-for="m in projectMembers" :key="m.id" :value="m.id">
-              {{ m.name }} ({{ m.role }})
-            </option>
-          </select>
+          <BaseSelect
+            id="ticket-assignee"
+            v-model="form.assigneeId"
+            :options="assigneeOptions"
+            size="md"
+          />
         </div>
 
         <div class="form-group">
           <label for="ticket-sprint" class="form-label">Sprint Target</label>
-          <select id="ticket-sprint" v-model="form.sprintId" class="form-select">
-            <option value="backlog">Product Backlog (Unassigned)</option>
-            <option
-              v-for="s in availableProjectSprints"
-              :key="s.id"
-              :value="s.id"
-            >
-              {{ s.name }} ({{ s.status }})
-            </option>
-          </select>
+          <BaseSelect
+            id="ticket-sprint"
+            v-model="form.sprintId"
+            :options="sprintOptions"
+            size="md"
+          />
         </div>
       </div>
 
@@ -308,7 +375,7 @@ function handleClose() {
     </form>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="handleClose">
+      <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
       <BaseButton

@@ -93,10 +93,13 @@ function isRouteActive(path) {
   width: var(--sidebar-width-expanded);
   height: 100%;
   max-height: 100vh;
-  background-color: var(--bg-surface);
+  background-color: var(--glass-bg-nav);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border-right: 1px solid var(--glass-border-subtle);
   display: flex;
   flex-direction: column;
-  transition: width var(--transition-base);
+  transition: width var(--transition-base), background-color var(--transition-base);
   user-select: none;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -113,7 +116,7 @@ function isRouteActive(path) {
   padding: 0 var(--space-4);
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--glass-border-subtle);
   flex-shrink: 0;
 }
 
@@ -205,7 +208,8 @@ function isRouteActive(path) {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  border: 1px solid transparent;
+  transition: all var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
   gap: var(--space-3);
   position: relative;
 }
@@ -220,7 +224,7 @@ function isRouteActive(path) {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -231,14 +235,15 @@ function isRouteActive(path) {
 
 .nav-link:hover .nav-icon {
   color: var(--text-primary);
+  transform: scale(1.04);
 }
 
 /* Active route */
 .nav-link.is-active {
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--glass-bg-elevated);
   color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--glass-border-active);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .nav-link.is-active .nav-icon {
@@ -259,7 +264,7 @@ function isRouteActive(path) {
 /* Footer / Collapse */
 .sidebar-footer {
   padding: var(--space-2);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--glass-border-subtle);
   flex-shrink: 0;
 }
 

@@ -4,6 +4,7 @@ import { useProjectStore } from '@/stores/project.store';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   modelValue: {
@@ -19,6 +20,15 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'added', 'close']);
 
 const projectStore = useProjectStore();
+
+const roleOptions = [
+  { value: 'Project Admin', label: 'Project Admin (Full Control)' },
+  { value: 'Senior Developer', label: 'Senior Developer' },
+  { value: 'Developer', label: 'Developer' },
+  { value: 'DevOps Engineer', label: 'DevOps Engineer' },
+  { value: 'QA Lead', label: 'QA Lead' },
+  { value: 'Viewer', label: 'Viewer (Read Only)' }
+];
 
 const form = ref({
   name: '',
@@ -109,19 +119,17 @@ function handleClose() {
 
       <div class="form-group">
         <label for="member-role" class="form-label">Project Role</label>
-        <select id="member-role" v-model="form.role" class="form-select">
-          <option value="Project Admin">Project Admin (Full Control)</option>
-          <option value="Senior Developer">Senior Developer</option>
-          <option value="Developer">Developer</option>
-          <option value="DevOps Engineer">DevOps Engineer</option>
-          <option value="QA Lead">QA Lead</option>
-          <option value="Viewer">Viewer (Read Only)</option>
-        </select>
+        <BaseSelect
+          id="member-role"
+          v-model="form.role"
+          :options="roleOptions"
+          size="md"
+        />
       </div>
     </form>
 
     <template #footer>
-      <BaseButton variant="ghost" size="md" @click="handleClose">
+      <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
       <BaseButton variant="primary" size="md" @click="handleSubmit">

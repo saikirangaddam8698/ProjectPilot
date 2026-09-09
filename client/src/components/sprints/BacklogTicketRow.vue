@@ -4,6 +4,7 @@ import { useSprintStore } from '@/stores/sprint.store';
 import { useTicketStore } from '@/stores/ticket.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 
 const props = defineProps({
   ticket: {
@@ -29,6 +30,14 @@ const availableSprints = computed(() => {
   return sprintStore.getSprintsByProject(props.ticket.projectKey).filter((s) => s.status !== 'completed');
 });
 
+const sprintOptions = computed(() => [
+  { value: 'backlog', label: 'Backlog' },
+  ...availableSprints.value.map((s) => ({
+    value: s.id,
+    label: `${s.name.split('—')[0].trim()} (${s.status})`
+  }))
+]);
+
 function onDragStart(event) {
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', props.ticket.key);
@@ -39,8 +48,8 @@ function onDragEnd() {
   emit('dragend', props.ticket);
 }
 
-function handleSprintChange(event) {
-  const newSprintId = event.target.value;
+function handleSprintChange(val) {
+  const newSprintId = typeof val === 'object' && val?.target ? val.target.value : val;
   if (newSprintId === 'backlog') {
     ticketStore.removeTicketFromSprint(props.ticket.key);
   } else {
@@ -135,21 +144,13 @@ function getStatusBadgeVariant(status) {
 
     <!-- Accessible Sprint Switcher Dropdown (Step 19) -->
     <div class="row-sprint-switcher" @click.stop>
-      <select
-        :value="ticket.sprintId || 'backlog'"
-        class="sprint-quick-select"
-        title="Move ticket to sprint or backlog"
-        @change="handleSprintChange"
-      >
-        <option value="backlog">Backlog</option>
-        <option
-          v-for="s in availableSprints"
-          :key="s.id"
-          :value="s.id"
-        >
-          {{ s.name.split('—')[0].trim() }} ({{ s.status }})
-        </option>
-      </select>
+      <BaseSelect
+        :model-value="ticket.sprintId || 'backlog'"
+        :options="sprintOptions"
+        size="sm"
+        aria-label="Move ticket to sprint or backlog"
+        @update:model-value="handleSprintChange"
+      />
     </div>
   </div>
 </template>

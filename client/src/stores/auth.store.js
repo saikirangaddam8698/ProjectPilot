@@ -137,6 +137,9 @@ export const useAuthStore = defineStore('auth', () => {
       showSessionExpiredModal.value = false;
       if (user.value) {
         startSessionTimer();
+        try {
+          localStorage.setItem('projectpilot_sidebar_collapsed', 'false');
+        } catch {}
       }
       return { success: true, user: user.value };
     } catch (err) {
@@ -159,6 +162,9 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null;
       isLoading.value = false;
       showSessionExpiredModal.value = false;
+      try {
+        localStorage.setItem('projectpilot_sidebar_collapsed', 'false');
+      } catch {}
     }
   }
 

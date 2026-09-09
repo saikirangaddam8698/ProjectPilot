@@ -126,9 +126,9 @@ function getStatusDotColor(status) {
 }
 
 .kanban-column.is-drag-over {
-  background-color: var(--bg-surface-hover);
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 1px var(--color-primary-500);
+  background-color: var(--glass-column-highlight);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.12), inset 0 0 0 1px rgba(99, 102, 241, 0.3);
 }
 
 .column-header {

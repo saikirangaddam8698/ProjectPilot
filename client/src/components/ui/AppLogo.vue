@@ -14,6 +14,10 @@ const props = defineProps({
   showTagline: {
     type: Boolean,
     default: false
+  },
+  textColor: {
+    type: String,
+    default: null
   }
 });
 
@@ -70,7 +74,11 @@ const logoDimensions = computed(() => {
 
     <div v-if="showText" class="logo-text-wrapper">
       <div class="title-row">
-        <span class="logo-title" :class="logoDimensions.titleClass">ProjectPilot</span>
+        <span
+          class="logo-title"
+          :class="logoDimensions.titleClass"
+          :style="textColor ? { color: textColor } : {}"
+        >ProjectPilot</span>
         <span v-if="isDemoMode" class="demo-badge" title="Running in Demo Environment Mode">DEMO</span>
       </div>
       <span v-if="showTagline" class="logo-tagline">AI-Powered Project Intelligence & Agile Workspace</span>

@@ -1,12 +1,14 @@
 <script setup>
-import { computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project.store';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useSprintStore } from '@/stores/sprint.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import ProjectNotFound from './ProjectNotFound.vue';
 
 const route = useRoute();
@@ -14,6 +16,26 @@ const router = useRouter();
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
 const sprintStore = useSprintStore();
+const authStore = useAuthStore();
+
+const isDeleteModalOpen = ref(false);
+const isDeleting = ref(false);
+
+async function handleConfirmDelete() {
+  if (!project.value) return;
+  isDeleting.value = true;
+  try {
+    const success = await projectStore.deleteProject(project.value.key);
+    if (success) {
+      router.push('/projects');
+    }
+  } catch (err) {
+    console.error('Failed to delete project:', err);
+  } finally {
+    isDeleting.value = false;
+    isDeleteModalOpen.value = false;
+  }
+}
 
 const projectKey = computed(() => route.params.projectKey);
 const project = computed(() => projectStore.getProjectByKey(projectKey.value));
@@ -113,6 +135,18 @@ function getAvatarBgColor(key) {
                 +{{ project.members.length - 4 }}
               </div>
             </div>
+
+            <!-- Delete Workspace Option for Admin -->
+            <button
+              v-if="authStore.canDeleteProject"
+              type="button"
+              class="workspace-delete-btn btn-close-destructive"
+              title="Delete Project Workspace"
+              aria-label="Delete project workspace"
+              @click="isDeleteModalOpen = true"
+            >
+              <AppIcon name="trash" :size="14" />
+            </button>
           </div>
         </div>
 
@@ -145,6 +179,19 @@ function getAvatarBgColor(key) {
         <router-view :project="project" />
       </div>
     </div>
+
+    <!-- Delete Project Workspace Confirmation Modal -->
+    <BaseConfirmModal
+      v-model="isDeleteModalOpen"
+      title="Delete Project Workspace"
+      :message="`Are you sure you want to delete the project workspace &quot;${project?.name}&quot;? All associated tickets, sprints, and documentation will be permanently removed.`"
+      :itemName="project ? `${project.name} (${project.key})` : ''"
+      itemType="PROJECT"
+      confirmText="Delete Workspace"
+      :loading="isDeleting"
+      @confirm="handleConfirmDelete"
+      @cancel="isDeleteModalOpen = false"
+    />
   </div>
 </template>
 
@@ -327,6 +374,10 @@ function getAvatarBgColor(key) {
   background-color: var(--badge-neutral-bg);
   color: var(--text-secondary);
   font-size: 10px;
+}
+
+.workspace-delete-btn {
+  margin-left: var(--space-2);
 }
 
 /* Tabs Navigation */

@@ -7,7 +7,9 @@ import { useSprintStore } from '@/stores/sprint.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -17,6 +19,8 @@ const sprintStore = useSprintStore();
 
 const modalRef = ref(null);
 const isMaximized = ref(false);
+const isDeleteConfirmOpen = ref(false);
+const ticketToDelete = ref(null);
 
 const isOpen = computed({
   get: () => !!ticketStore.activeTicketKey,
@@ -25,7 +29,10 @@ const isOpen = computed({
   }
 });
 
-const ticket = computed(() => ticketStore.activeTicket);
+const ticket = computed(() => {
+  return ticketStore.activeTicket || 
+         (ticketStore.activeTicketKey ? ticketStore.getTicketByKey(ticketStore.activeTicketKey) : null);
+});
 
 const isEditingTitle = ref(false);
 const editedTitle = ref('');
@@ -95,6 +102,49 @@ const availableSprints = computed(() => {
   return sprintStore.getSprintsByProject(ticket.value.projectKey).filter((s) => s.status !== 'completed');
 });
 
+const statusOptions = [
+  { value: 'Backlog', label: 'Backlog' },
+  { value: 'Todo', label: 'Todo' },
+  { value: 'In Progress', label: 'In Progress' },
+  { value: 'In Review', label: 'In Review' },
+  { value: 'Done', label: 'Done' }
+];
+
+const priorityOptions = [
+  { value: 'Low', label: 'Low' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'High', label: 'High' },
+  { value: 'Urgent', label: 'Urgent (Blocker)' }
+];
+
+const storyPointOptions = [
+  { value: 0, label: '0 pts' },
+  { value: 1, label: '1 pt' },
+  { value: 2, label: '2 pts' },
+  { value: 3, label: '3 pts' },
+  { value: 5, label: '5 pts' },
+  { value: 8, label: '8 pts' },
+  { value: 13, label: '13 pts' }
+];
+
+const assigneeOptions = computed(() => {
+  return availableMembers.value.map((m) => ({
+    value: m.id,
+    label: m.name
+  }));
+});
+
+const sprintOptions = computed(() => {
+  const list = [{ value: 'backlog', label: 'Backlog (Unassigned)' }];
+  availableSprints.value.forEach((s) => {
+    list.push({
+      value: s.id,
+      label: s.name.split('—')[0].trim()
+    });
+  });
+  return list;
+});
+
 function toggleMaximize() {
   isMaximized.value = !isMaximized.value;
 }
@@ -131,9 +181,9 @@ function copyKey() {
   }, 2000);
 }
 
-function handleSprintChange(event) {
+function handleSprintChange(val) {
   if (!ticket.value) return;
-  const newSprintId = event.target.value;
+  const newSprintId = typeof val === 'object' && val?.target ? val.target.value : val;
   if (newSprintId === 'backlog') {
     ticketStore.removeTicketFromSprint(ticket.value.key);
   } else {
@@ -152,9 +202,9 @@ function handlePriorityChange(newPriority) {
   ticketStore.updateTicketPriority(ticket.value.key, newPriority);
 }
 
-function handleAssigneeChange(event) {
+function handleAssigneeChange(val) {
   if (!ticket.value) return;
-  const memberId = event.target.value;
+  const memberId = typeof val === 'object' && val?.target ? val.target.value : val;
   const member = availableMembers.value.find((m) => m.id === memberId);
   if (member) {
     ticketStore.updateTicketAssignee(ticket.value.key, {
@@ -180,10 +230,27 @@ function saveDesc() {
 
 function deleteCurrentTicket() {
   if (!ticket.value) return;
-  if (confirm(`Are you sure you want to delete ${ticket.value.key}?`)) {
-    ticketStore.deleteTicket(ticket.value.key);
-    closeModal();
+  // Snapshot target ticket before closing the detail modal
+  ticketToDelete.value = { ...ticket.value };
+  isDeleteConfirmOpen.value = true;
+  closeModal();
+}
+
+function handleConfirmDeleteTicket() {
+  if (!ticketToDelete.value) return;
+  const targetKey = ticketToDelete.value.key;
+  ticketStore.deleteTicket(targetKey);
+  isDeleteConfirmOpen.value = false;
+  ticketToDelete.value = null;
+}
+
+function handleCancelDelete() {
+  isDeleteConfirmOpen.value = false;
+  if (ticketToDelete.value?.key) {
+    // Re-open ticket detail modal if user cancels deletion
+    ticketStore.openTicketDetail(ticketToDelete.value.key);
   }
+  ticketToDelete.value = null;
 }
 
 function getTypeBadgeVariant(type) {
@@ -300,7 +367,7 @@ onUnmounted(() => {
                 />
                 <div class="edit-actions">
                   <BaseButton variant="primary" size="xs" @click="saveTitle">Save</BaseButton>
-                  <BaseButton variant="ghost" size="xs" @click="isEditingTitle = false">Cancel</BaseButton>
+                  <BaseButton variant="close" size="xs" @click="isEditingTitle = false">Cancel</BaseButton>
                 </div>
               </div>
             </div>
@@ -336,7 +403,7 @@ onUnmounted(() => {
                     ></textarea>
                     <div class="edit-actions">
                       <BaseButton variant="primary" size="xs" @click="saveDesc">Save</BaseButton>
-                      <BaseButton variant="ghost" size="xs" @click="isEditingDesc = false">Cancel</BaseButton>
+                      <BaseButton variant="close" size="xs" @click="isEditingDesc = false">Cancel</BaseButton>
                     </div>
                   </div>
                 </div>
@@ -365,44 +432,35 @@ onUnmounted(() => {
               <div class="meta-sidebar-col">
                 <div class="meta-field">
                   <label class="meta-label">Status</label>
-                  <select
-                    :value="ticket.status"
-                    class="meta-select"
-                    @change="handleStatusChange($event.target.value)"
-                  >
-                    <option value="Backlog">Backlog</option>
-                    <option value="Todo">Todo</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="In Review">In Review</option>
-                    <option value="Done">Done</option>
-                  </select>
+                  <BaseSelect
+                    :model-value="ticket.status"
+                    :options="statusOptions"
+                    size="sm"
+                    aria-label="Ticket status"
+                    @update:model-value="handleStatusChange"
+                  />
                 </div>
 
                 <div class="meta-field">
                   <label class="meta-label">Priority</label>
-                  <select
-                    :value="ticket.priority"
-                    class="meta-select"
-                    @change="handlePriorityChange($event.target.value)"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent (Blocker)</option>
-                  </select>
+                  <BaseSelect
+                    :model-value="ticket.priority"
+                    :options="priorityOptions"
+                    size="sm"
+                    aria-label="Ticket priority"
+                    @update:model-value="handlePriorityChange"
+                  />
                 </div>
 
                 <div class="meta-field">
                   <label class="meta-label">Assignee</label>
-                  <select
-                    :value="ticket.assignee?.id"
-                    class="meta-select"
-                    @change="handleAssigneeChange"
-                  >
-                    <option v-for="m in availableMembers" :key="m.id" :value="m.id">
-                      {{ m.name }}
-                    </option>
-                  </select>
+                  <BaseSelect
+                    :model-value="ticket.assignee?.id"
+                    :options="assigneeOptions"
+                    size="sm"
+                    aria-label="Ticket assignee"
+                    @update:model-value="handleAssigneeChange"
+                  />
                 </div>
 
                 <div class="meta-field">
@@ -415,37 +473,25 @@ onUnmounted(() => {
 
                 <div class="meta-field">
                   <label class="meta-label">Story Points</label>
-                  <select
-                    :value="ticket.storyPoints"
-                    class="meta-select"
-                    @change="ticketStore.updateTicket(ticket.key, { storyPoints: Number($event.target.value) })"
-                  >
-                    <option :value="0">0 pts</option>
-                    <option :value="1">1 pt</option>
-                    <option :value="2">2 pts</option>
-                    <option :value="3">3 pts</option>
-                    <option :value="5">5 pts</option>
-                    <option :value="8">8 pts</option>
-                    <option :value="13">13 pts</option>
-                  </select>
+                  <BaseSelect
+                    :model-value="ticket.storyPoints"
+                    :options="storyPointOptions"
+                    size="sm"
+                    aria-label="Ticket story points"
+                    @update:model-value="ticketStore.updateTicket(ticket.key, { storyPoints: Number($event) })"
+                  />
                 </div>
 
                 <div class="meta-field">
                   <label class="meta-label">Sprint</label>
-                  <select
-                    :value="ticket.sprintId || 'backlog'"
-                    class="meta-select"
-                    @change="handleSprintChange"
-                  >
-                    <option value="backlog">Backlog (Unassigned)</option>
-                    <option
-                      v-for="s in availableSprints"
-                      :key="s.id"
-                      :value="s.id"
-                    >
-                      {{ s.name.split('—')[0].trim() }}
-                    </option>
-                  </select>
+                  <BaseSelect
+                    :model-value="ticket.sprintId || 'backlog'"
+                    :options="sprintOptions"
+                    size="sm"
+                    aria-label="Ticket sprint"
+                    menu-placement="top"
+                    @update:model-value="handleSprintChange"
+                  />
                 </div>
 
                 <div class="meta-field">
@@ -458,16 +504,30 @@ onUnmounted(() => {
 
           <!-- Fixed Modal Footer -->
           <footer class="modal-footer">
-            <BaseButton variant="ghost" size="xs" class="text-danger" @click="deleteCurrentTicket">
+            <BaseButton variant="danger" size="sm" @click="deleteCurrentTicket">
+              <template #prefix><AppIcon name="trash" :size="13" /></template>
               Delete Ticket
             </BaseButton>
-            <BaseButton variant="secondary" size="sm" @click="closeModal">
+            <BaseButton variant="close" size="sm" @click="closeModal">
               Close
             </BaseButton>
           </footer>
         </div>
       </div>
     </Transition>
+
+    <!-- Delete Ticket Confirmation Modal -->
+    <BaseConfirmModal
+      v-model="isDeleteConfirmOpen"
+      title="Delete Ticket"
+      :message="ticketToDelete ? `Are you sure you want to delete ${ticketToDelete.key}? All comments, attachments, and sprint assignments will be removed.` : 'Are you sure you want to delete this ticket? All comments, attachments, and sprint assignments will be removed.'"
+      :itemName="ticketToDelete ? `${ticketToDelete.key} — ${ticketToDelete.title}` : ''"
+      itemType="TICKET"
+      confirmText="Delete Ticket"
+      @confirm="handleConfirmDeleteTicket"
+      @cancel="handleCancelDelete"
+      @close="handleCancelDelete"
+    />
   </Teleport>
 </template>
 
@@ -575,9 +635,26 @@ onUnmounted(() => {
 }
 
 .header-btn.close-btn:hover {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger-500);
-  border-color: var(--color-danger-500);
+  background-color: var(--btn-close-bg-hover, rgba(239, 68, 68, 0.20)) !important;
+  color: var(--btn-close-color-hover, #ef4444) !important;
+  border-color: var(--btn-close-border-hover, rgba(239, 68, 68, 0.50)) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.header-btn.close-btn:hover svg {
+  stroke: var(--btn-close-color-hover, #ef4444) !important;
+}
+
+.header-btn.close-btn:active {
+  background-color: var(--btn-close-bg-active, rgba(239, 68, 68, 0.35)) !important;
+  color: var(--btn-close-color-active, #dc2626) !important;
+  border-color: var(--btn-close-border-active, rgba(239, 68, 68, 0.70)) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.40);
+  transform: scale(0.92);
+}
+
+.header-btn.close-btn:active svg {
+  stroke: var(--btn-close-color-active, #dc2626) !important;
 }
 
 .btn-text {
