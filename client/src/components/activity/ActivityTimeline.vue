@@ -86,8 +86,8 @@ function getTypeBadgeVariant(type) {
       >
         <!-- Left Spine: Actor Avatar & Icon Badge -->
         <div class="timeline-spine">
-          <div class="actor-avatar" :title="act.actor.name">
-            {{ act.actor.avatar }}
+          <div class="actor-avatar" :title="act.actor?.name || 'User'">
+            {{ act.actor?.avatar || act.actor?.name?.slice(0, 2)?.toUpperCase() || 'U' }}
           </div>
           <div class="spine-line"></div>
         </div>
@@ -96,7 +96,7 @@ function getTypeBadgeVariant(type) {
         <div class="timeline-content-card">
           <div class="content-header">
             <div class="actor-meta-row">
-              <strong class="actor-name">{{ act.actor.name }}</strong>
+              <strong class="actor-name">{{ act.actor?.name || 'System User' }}</strong>
               <BaseBadge :variant="getTypeBadgeVariant(act.type)" size="xs">
                 {{ act.type }}
               </BaseBadge>

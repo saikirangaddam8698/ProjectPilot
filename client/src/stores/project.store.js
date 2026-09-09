@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useActivityStore } from './activity.store.js';
 import { useAuthStore } from './auth.store.js';
+import { useUiStore } from './ui.store.js';
 import { projectsApi, membersApi } from '../services/api/index.js';
 
 // Master workspace member definitions fallback
@@ -389,6 +390,9 @@ export const useProjectStore = defineStore('project', () => {
       createdAt: new Date().toISOString()
     };
 
+    const uiStore = useUiStore();
+    uiStore.startOperation('project-create', `Creating Workspace ${formattedKey}...`);
+
     try {
       const created = await projectsApi.create({
         name: name.trim(),
@@ -402,6 +406,8 @@ export const useProjectStore = defineStore('project', () => {
     } catch (err) {
       console.warn('API project creation failed, using local state:', err.message);
       projects.value.unshift(newProject);
+    } finally {
+      uiStore.endOperation('project-create');
     }
 
     // Record activity in event store
@@ -454,6 +460,10 @@ export const useProjectStore = defineStore('project', () => {
       capacity: capacity || existing?.capacity || 20
     };
 
+    const uiStore = useUiStore();
+    const opId = `member-add-${newMember.name}`;
+    uiStore.startOperation(opId, `Adding ${newMember.name}...`);
+
     try {
       await projectsApi.addMember(projectKey, {
         memberId: existing?.id,
@@ -467,6 +477,8 @@ export const useProjectStore = defineStore('project', () => {
       });
     } catch (err) {
       console.warn('API add member failed, applying locally:', err.message);
+    } finally {
+      uiStore.endOperation(opId);
     }
 
     // Update local project.members
@@ -505,10 +517,16 @@ export const useProjectStore = defineStore('project', () => {
 
     const removedMember = project.members[memberIndex];
 
+    const uiStore = useUiStore();
+    const opId = `member-remove-${memberId}`;
+    uiStore.startOperation(opId, `Removing ${removedMember.name}...`);
+
     try {
       await projectsApi.removeMember(projectKey, memberId);
     } catch (err) {
       console.warn('API remove member failed, applying locally:', err.message);
+    } finally {
+      uiStore.endOperation(opId);
     }
 
     project.members.splice(memberIndex, 1);
@@ -550,10 +568,16 @@ export const useProjectStore = defineStore('project', () => {
 
     const removedProject = projects.value[index];
 
+    const uiStore = useUiStore();
+    const opId = `project-delete-${targetKey}`;
+    uiStore.startOperation(opId, `Deleting Workspace ${targetKey}...`);
+
     try {
       await projectsApi.delete(targetKey);
     } catch (err) {
       console.warn('API delete project failed, applied locally:', err.message);
+    } finally {
+      uiStore.endOperation(opId);
     }
 
     projects.value.splice(index, 1);

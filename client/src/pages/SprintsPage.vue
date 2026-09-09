@@ -56,8 +56,8 @@ function handleRetry() {
   sprintStore.fetchSprints();
 }
 
-function handleStartSprint(sprint) {
-  const res = sprintStore.startSprint(sprint.id);
+async function handleStartSprint(sprint) {
+  const res = await sprintStore.startSprint(sprint.id);
   if (!res.success) {
     alert(res.error);
   } else {
@@ -81,15 +81,24 @@ function handleDeleteSprint(sprint) {
   isDeleteConfirmOpen.value = true;
 }
 
-function handleConfirmDeleteSprint() {
+const isDeletingSprint = ref(false);
+
+async function handleConfirmDeleteSprint() {
   if (!sprintToDelete.value) return;
-  sprintStore.deleteSprint(sprintToDelete.value.id);
-  toastMessage.value = `Sprint deleted.`;
-  setTimeout(() => {
-    toastMessage.value = '';
-  }, 3000);
-  isDeleteConfirmOpen.value = false;
-  sprintToDelete.value = null;
+  isDeletingSprint.value = true;
+  try {
+    await sprintStore.deleteSprint(sprintToDelete.value.id);
+    toastMessage.value = `Sprint deleted.`;
+    setTimeout(() => {
+      toastMessage.value = '';
+    }, 3000);
+    isDeleteConfirmOpen.value = false;
+    sprintToDelete.value = null;
+  } catch (err) {
+    console.error('Failed to delete sprint:', err);
+  } finally {
+    isDeletingSprint.value = false;
+  }
 }
 </script>
 
@@ -229,7 +238,8 @@ function handleConfirmDeleteSprint() {
       :message="`Are you sure you want to delete &quot;${sprintToDelete?.name}&quot;? All assigned tickets will return to the backlog.`"
       :itemName="sprintToDelete?.name"
       itemType="SPRINT"
-      confirmText="Delete Sprint"
+      :loading="isDeletingSprint"
+      :confirmText="isDeletingSprint ? 'Deleting Sprint...' : 'Delete Sprint'"
       @confirm="handleConfirmDeleteSprint"
       @cancel="isDeleteConfirmOpen = false"
     />

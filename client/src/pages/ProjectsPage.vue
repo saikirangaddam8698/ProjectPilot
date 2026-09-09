@@ -312,7 +312,7 @@ function getProjectProgress(key) {
       :message="`Are you sure you want to delete the project workspace &quot;${projectToDelete?.name}&quot;? All associated tickets, sprints, and documentation will be permanently removed.`"
       :itemName="projectToDelete ? `${projectToDelete.name} (${projectToDelete.key})` : ''"
       itemType="PROJECT"
-      confirmText="Delete Workspace"
+      :confirmText="isDeleting ? 'Deleting Workspace...' : 'Delete Workspace'"
       :loading="isDeleting"
       @confirm="handleConfirmDelete"
       @cancel="isDeleteModalOpen = false"

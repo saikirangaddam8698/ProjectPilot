@@ -115,6 +115,19 @@ onUnmounted(() => {
           <h1 class="page-heading">{{ pageTitle }}</h1>
         </template>
       </nav>
+
+      <!-- Operational Status In-Progress Pill -->
+      <Transition name="op-pill-fade">
+        <div
+          v-if="uiStore.currentOperation"
+          class="header-operational-pill"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="op-spinner" aria-hidden="true"></span>
+          <span class="op-label">{{ uiStore.currentOperation.label }}</span>
+        </div>
+      </Transition>
     </div>
 
     <!-- Right Header Utilities -->
@@ -643,5 +656,60 @@ onUnmounted(() => {
   .breadcrumb-separator:first-of-type {
     display: none;
   }
+}
+
+/* Operational In-Progress Indicator Pill */
+.header-operational-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background-color: var(--color-primary-50, rgba(99, 102, 241, 0.1));
+  border: 1px solid var(--color-primary-300, rgba(99, 102, 241, 0.3));
+  border-radius: var(--radius-full, 9999px);
+  padding: 4px 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-600, #4f46e5);
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.08);
+  white-space: nowrap;
+  animation: pulseLight 2s infinite ease-in-out;
+  margin-left: var(--space-3);
+}
+
+[data-theme='dark'] .header-operational-pill {
+  background-color: rgba(99, 102, 241, 0.18);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #a5b4fc;
+}
+
+.op-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: opSpin 0.8s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes opSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseLight {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
+}
+
+.op-pill-fade-enter-active,
+.op-pill-fade-leave-active {
+  transition: all var(--transition-fast);
+}
+
+.op-pill-fade-enter-from,
+.op-pill-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.95);
 }
 </style>

@@ -1,9 +1,38 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const SIDEBAR_STORAGE_KEY = 'projectpilot_sidebar_collapsed';
 
 export const useUiStore = defineStore('ui', () => {
+  // Application-level operational in-progress indicators
+  // Key: operationId, Value: { id, label, timestamp }
+  const activeOperations = ref(new Map());
+
+  function startOperation(id, label) {
+    if (!id || !label) return;
+    const updated = new Map(activeOperations.value);
+    updated.set(id, { id, label, timestamp: Date.now() });
+    activeOperations.value = updated;
+  }
+
+  function endOperation(id) {
+    if (!id) return;
+    if (activeOperations.value.has(id)) {
+      const updated = new Map(activeOperations.value);
+      updated.delete(id);
+      activeOperations.value = updated;
+    }
+  }
+
+  const currentOperation = computed(() => {
+    const ops = Array.from(activeOperations.value.values());
+    return ops.length > 0 ? ops[ops.length - 1] : null;
+  });
+
+  const isAnyOperationRunning = computed(() => {
+    return activeOperations.value.size > 0;
+  });
+
   // Sidebar state (open by default on every login)
   const isSidebarCollapsed = ref(false);
 
@@ -110,6 +139,11 @@ export const useUiStore = defineStore('ui', () => {
     isPageLoading,
     isQuickChatOpen,
     isQuickChatMinimized,
+    activeOperations,
+    currentOperation,
+    isAnyOperationRunning,
+    startOperation,
+    endOperation,
     toggleSidebar,
     openSidebar,
     setSidebarCollapsed,

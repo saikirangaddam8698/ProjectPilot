@@ -187,7 +187,7 @@ function getAvatarBgColor(key) {
       :message="`Are you sure you want to delete the project workspace &quot;${project?.name}&quot;? All associated tickets, sprints, and documentation will be permanently removed.`"
       :itemName="project ? `${project.name} (${project.key})` : ''"
       itemType="PROJECT"
-      confirmText="Delete Workspace"
+      :confirmText="isDeleting ? 'Deleting Workspace...' : 'Delete Workspace'"
       :loading="isDeleting"
       @confirm="handleConfirmDelete"
       @cancel="isDeleteModalOpen = false"

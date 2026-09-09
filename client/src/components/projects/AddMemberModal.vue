@@ -63,17 +63,26 @@ function validate() {
   return valid;
 }
 
-function handleSubmit() {
+const isSubmitting = ref(false);
+
+async function handleSubmit() {
   if (!validate()) return;
 
-  const added = projectStore.addMemberToProject(props.projectKey, {
-    name: form.value.name,
-    email: form.value.email,
-    role: form.value.role
-  });
+  isSubmitting.value = true;
+  try {
+    const added = await projectStore.addMemberToProject(props.projectKey, {
+      name: form.value.name,
+      email: form.value.email,
+      role: form.value.role
+    });
 
-  emit('added', added);
-  handleClose();
+    emit('added', added);
+    handleClose();
+  } catch (err) {
+    console.error('Failed to add member:', err);
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
 function handleClose() {
@@ -132,8 +141,13 @@ function handleClose() {
       <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
-      <BaseButton variant="primary" size="md" @click="handleSubmit">
-        Add Member
+      <BaseButton
+        variant="primary"
+        size="md"
+        :loading="isSubmitting"
+        @click="handleSubmit"
+      >
+        {{ isSubmitting ? 'Adding Member...' : 'Add Member' }}
       </BaseButton>
     </template>
   </BaseModal>

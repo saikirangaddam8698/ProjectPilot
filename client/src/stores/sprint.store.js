@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useTicketStore } from './ticket.store.js';
 import { useActivityStore } from './activity.store.js';
 import { useAuthStore } from './auth.store.js';
+import { useUiStore } from './ui.store.js';
 import { sprintsApi } from '../services/api/index.js';
 
 const INITIAL_SPRINTS = [
@@ -106,6 +107,21 @@ export const useSprintStore = defineStore('sprint', () => {
   const isLoading = ref(false);
   const error = ref(null);
   const isInitialized = ref(false);
+  const pendingSprintIds = ref(new Set());
+
+  function isSprintPending(id) {
+    if (!id) return false;
+    return pendingSprintIds.value.has(String(id));
+  }
+
+  function setSprintPending(id, isPending) {
+    if (!id) return;
+    const clean = String(id);
+    const updated = new Set(pendingSprintIds.value);
+    if (isPending) updated.add(clean);
+    else updated.delete(clean);
+    pendingSprintIds.value = updated;
+  }
 
   const rawSprints = computed(() => sprints.value);
 
@@ -227,9 +243,14 @@ export const useSprintStore = defineStore('sprint', () => {
       totalTickets,
       openTickets,
       doneTickets,
+      doneCount: doneTickets,
       inProgressTickets,
+      inProgressCount: inProgressTickets,
       inReviewTickets,
+      inReviewCount: inReviewTickets,
+      reviewCount: inReviewTickets,
       todoTickets,
+      todoCount: todoTickets + backlogTickets,
       backlogTickets,
       committedPoints,
       completedPoints,
@@ -280,6 +301,8 @@ export const useSprintStore = defineStore('sprint', () => {
     };
 
     let newSprint = fallbackSprint;
+    const uiStore = useUiStore();
+    uiStore.startOperation('sprint-create', 'Creating Sprint...');
 
     try {
       const created = await sprintsApi.create({
@@ -293,6 +316,8 @@ export const useSprintStore = defineStore('sprint', () => {
       if (created) newSprint = created;
     } catch (err) {
       console.warn('API create sprint failed, using local state:', err.message);
+    } finally {
+      uiStore.endOperation('sprint-create');
     }
 
     sprints.value.push(newSprint);
@@ -321,12 +346,21 @@ export const useSprintStore = defineStore('sprint', () => {
     const sprint = getSprintById(sprintId);
     if (!sprint) return null;
 
+    const uiStore = useUiStore();
+    const opId = `sprint-update-${sprintId}`;
+    const name = sprint.name ? sprint.name.split('—')[0].trim() : 'Sprint';
+    uiStore.startOperation(opId, `Updating ${name}...`);
+    setSprintPending(sprintId, true);
+
     Object.assign(sprint, updates);
 
     try {
       await sprintsApi.update(sprintId, updates);
     } catch (err) {
       console.warn('API update sprint failed, applied locally:', err.message);
+    } finally {
+      setSprintPending(sprintId, false);
+      uiStore.endOperation(opId);
     }
 
     return sprint;
@@ -344,12 +378,21 @@ export const useSprintStore = defineStore('sprint', () => {
       };
     }
 
+    const uiStore = useUiStore();
+    const opId = `sprint-start-${sprintId}`;
+    const name = sprint.name ? sprint.name.split('—')[0].trim() : 'Sprint';
+    uiStore.startOperation(opId, `Starting ${name}...`);
+    setSprintPending(sprintId, true);
+
     sprint.status = 'active';
 
     try {
       await sprintsApi.start(sprintId);
     } catch (err) {
       console.warn('API start sprint failed, applied locally:', err.message);
+    } finally {
+      setSprintPending(sprintId, false);
+      uiStore.endOperation(opId);
     }
 
     try {
@@ -376,6 +419,12 @@ export const useSprintStore = defineStore('sprint', () => {
     const sprint = getSprintById(sprintId);
     if (!sprint) return { success: false, error: 'Sprint not found' };
 
+    const uiStore = useUiStore();
+    const opId = `sprint-complete-${sprintId}`;
+    const name = sprint.name ? sprint.name.split('—')[0].trim() : 'Sprint';
+    uiStore.startOperation(opId, `Completing ${name}...`);
+    setSprintPending(sprintId, true);
+
     const ticketStore = useTicketStore();
     const sprintTickets = ticketStore.allTickets.filter((t) => t.sprintId === sprintId);
     const incompleteTickets = sprintTickets.filter((t) => t.status !== 'Done');
@@ -398,6 +447,9 @@ export const useSprintStore = defineStore('sprint', () => {
       await sprintsApi.complete(sprintId, { moveIncompleteTo });
     } catch (err) {
       console.warn('API complete sprint failed, applied locally:', err.message);
+    } finally {
+      setSprintPending(sprintId, false);
+      uiStore.endOperation(opId);
     }
 
     try {
@@ -423,6 +475,11 @@ export const useSprintStore = defineStore('sprint', () => {
   async function deleteSprint(sprintId) {
     const idx = sprints.value.findIndex((s) => s.id === sprintId);
     if (idx !== -1) {
+      const uiStore = useUiStore();
+      const opId = `sprint-delete-${sprintId}`;
+      uiStore.startOperation(opId, 'Deleting Sprint...');
+      setSprintPending(sprintId, true);
+
       const ticketStore = useTicketStore();
       const sprintTickets = ticketStore.allTickets.filter((t) => t.sprintId === sprintId);
       sprintTickets.forEach((t) => {
@@ -435,6 +492,9 @@ export const useSprintStore = defineStore('sprint', () => {
         await sprintsApi.delete(sprintId);
       } catch (err) {
         console.warn('API delete sprint failed, applied locally:', err.message);
+      } finally {
+        setSprintPending(sprintId, false);
+        uiStore.endOperation(opId);
       }
 
       return true;
@@ -451,6 +511,8 @@ export const useSprintStore = defineStore('sprint', () => {
     isLoading,
     error,
     isInitialized,
+    pendingSprintIds,
+    isSprintPending,
     allSprints,
     fetchSprints,
     getSprintsByProject,

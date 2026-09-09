@@ -51,15 +51,24 @@ const moveTargetOptions = computed(() => [
   }))
 ]);
 
-function handleComplete() {
+const isSubmitting = ref(false);
+
+async function handleComplete() {
   if (!props.sprintId) return;
 
-  const result = sprintStore.completeSprint(props.sprintId, {
-    moveIncompleteTo: moveTarget.value
-  });
+  isSubmitting.value = true;
+  try {
+    const result = await sprintStore.completeSprint(props.sprintId, {
+      moveIncompleteTo: moveTarget.value
+    });
 
-  emit('completed', result);
-  emit('close');
+    emit('completed', result);
+    emit('close');
+  } catch (err) {
+    console.error('Failed to complete sprint:', err);
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 </script>
 
@@ -129,8 +138,13 @@ function handleComplete() {
       <BaseButton variant="close" size="md" @click="$emit('close')">
         Cancel
       </BaseButton>
-      <BaseButton variant="primary" size="md" @click="handleComplete">
-        Confirm & Complete Sprint
+      <BaseButton
+        variant="primary"
+        size="md"
+        :loading="isSubmitting"
+        @click="handleComplete"
+      >
+        {{ isSubmitting ? 'Completing Sprint...' : 'Confirm & Complete Sprint' }}
       </BaseButton>
     </template>
   </BaseModal>

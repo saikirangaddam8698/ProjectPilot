@@ -191,7 +191,7 @@ const sprintOptions = computed(() => {
   return list;
 });
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!validate()) return;
 
   isSubmitting.value = true;
@@ -207,7 +207,7 @@ function handleSubmit() {
       ? sprintStore.getSprintById(form.value.sprintId)
       : null;
 
-    const newTicket = ticketStore.createTicket({
+    const newTicket = await ticketStore.createTicket({
       projectKey: selectedProjectKey.value,
       title: form.value.title,
       description: form.value.description,
@@ -384,7 +384,7 @@ function handleClose() {
         :loading="isSubmitting"
         @click="handleSubmit"
       >
-        Create Ticket
+        {{ isSubmitting ? 'Creating Ticket...' : 'Create Ticket' }}
       </BaseButton>
     </template>
   </BaseModal>

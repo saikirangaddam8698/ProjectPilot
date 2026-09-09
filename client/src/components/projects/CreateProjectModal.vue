@@ -111,7 +111,7 @@ function validateKey() {
   return true;
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const isNameValid = validateName();
   const isKeyValid = validateKey();
 
@@ -119,7 +119,7 @@ function handleSubmit() {
 
   try {
     isSubmitting.value = true;
-    const created = projectStore.createProject({
+    const created = await projectStore.createProject({
       name: form.value.name,
       key: form.value.key,
       description: form.value.description,
@@ -238,7 +238,7 @@ function handleClose() {
         :loading="isSubmitting"
         @click="handleSubmit"
       >
-        Create Workspace
+        {{ isSubmitting ? 'Creating Workspace...' : 'Create Workspace' }}
       </BaseButton>
     </template>
   </BaseModal>

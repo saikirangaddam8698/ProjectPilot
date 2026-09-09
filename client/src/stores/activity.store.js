@@ -246,7 +246,9 @@ export const useActivityStore = defineStore('activity', () => {
   function getActivitiesByProject(projectKey, filters = {}) {
     if (!projectKey) return [];
 
-    let list = activities.value.filter((a) => a.projectKey === projectKey);
+    let list = activities.value.filter(
+      (a) => a.projectKey && a.projectKey.toUpperCase() === projectKey.toUpperCase()
+    );
 
     if (filters.type && filters.type !== 'all') {
       list = list.filter((a) => a.type === filters.type);
@@ -260,10 +262,10 @@ export const useActivityStore = defineStore('activity', () => {
       const q = filters.query.toLowerCase().trim();
       list = list.filter(
         (a) =>
-          a.message.toLowerCase().includes(q) ||
-          a.targetKey.toLowerCase().includes(q) ||
-          a.targetTitle.toLowerCase().includes(q) ||
-          a.actor.name.toLowerCase().includes(q)
+          (a.message && a.message.toLowerCase().includes(q)) ||
+          (a.targetKey && a.targetKey.toLowerCase().includes(q)) ||
+          (a.targetTitle && a.targetTitle.toLowerCase().includes(q)) ||
+          (a.actor?.name && a.actor.name.toLowerCase().includes(q))
       );
     }
 
@@ -283,7 +285,9 @@ export const useActivityStore = defineStore('activity', () => {
     let list = [...activities.value];
 
     if (filters.projectKey && filters.projectKey !== 'all') {
-      list = list.filter((a) => a.projectKey === filters.projectKey);
+      list = list.filter(
+        (a) => a.projectKey && a.projectKey.toUpperCase() === filters.projectKey.toUpperCase()
+      );
     }
 
     if (filters.type && filters.type !== 'all') {
@@ -298,10 +302,10 @@ export const useActivityStore = defineStore('activity', () => {
       const q = filters.query.toLowerCase().trim();
       list = list.filter(
         (a) =>
-          a.message.toLowerCase().includes(q) ||
-          a.targetKey.toLowerCase().includes(q) ||
-          a.targetTitle.toLowerCase().includes(q) ||
-          a.actor.name.toLowerCase().includes(q)
+          (a.message && a.message.toLowerCase().includes(q)) ||
+          (a.targetKey && a.targetKey.toLowerCase().includes(q)) ||
+          (a.targetTitle && a.targetTitle.toLowerCase().includes(q)) ||
+          (a.actor?.name && a.actor.name.toLowerCase().includes(q))
       );
     }
 

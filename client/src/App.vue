@@ -50,10 +50,10 @@ onMounted(async () => {
   <div id="projectpilot-root">
     <!-- Top Route & Data Hydration Progress Loader Bar -->
     <div
-      v-if="uiStore.isNavigating || projectStore.loading || ticketStore.loading"
+      v-if="uiStore.isNavigating || uiStore.isAnyOperationRunning || projectStore.isLoading || ticketStore.isLoading || sprintStore.isLoading"
       class="top-progress-bar"
       role="progressbar"
-      aria-label="Loading page content"
+      aria-label="Loading application operations"
     >
       <div class="progress-indicator"></div>
     </div>

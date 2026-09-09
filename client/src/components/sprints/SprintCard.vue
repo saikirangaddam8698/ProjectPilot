@@ -20,6 +20,8 @@ const emit = defineEmits(['start', 'complete', 'edit', 'delete']);
 
 const sprintStore = useSprintStore();
 
+const isPending = computed(() => sprintStore.isSprintPending(props.sprint.id));
+
 const stats = computed(() => {
   return sprintStore.getSprintStats(props.sprint.id);
 });
@@ -39,7 +41,7 @@ function getCapacityBadgeVariant(state) {
 </script>
 
 <template>
-  <div class="sprint-card" :class="`is-${sprint.status}`">
+  <div class="sprint-card" :class="[`is-${sprint.status}`, { 'is-pending': isPending }]">
     <!-- Header -->
     <div class="sprint-card-header">
       <div class="header-left">
@@ -99,9 +101,11 @@ function getCapacityBadgeVariant(state) {
           <BaseButton
             variant="primary"
             size="xs"
+            :loading="isPending"
+            :disabled="isPending"
             @click="$emit('start', sprint)"
           >
-            Start Sprint
+            {{ isPending ? 'Starting Sprint...' : 'Start Sprint' }}
           </BaseButton>
         </template>
 
@@ -203,6 +207,11 @@ function getCapacityBadgeVariant(state) {
 .sprint-card.is-active {
   border-color: rgba(99, 102, 241, 0.4);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.05);
+}
+
+.sprint-card.is-pending {
+  opacity: 0.65;
+  pointer-events: none;
 }
 
 .sprint-card:hover {

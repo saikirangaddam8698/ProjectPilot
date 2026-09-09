@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useActivityStore } from './activity.store.js';
 import { useAuthStore } from './auth.store.js';
+import { useUiStore } from './ui.store.js';
 import { ticketsApi } from '../services/api/index.js';
 
 const INITIAL_TICKETS = [
@@ -341,6 +342,22 @@ export const useTicketStore = defineStore('ticket', () => {
   const isLoading = ref(false);
   const error = ref(null);
   const isInitialized = ref(false);
+  const pendingTicketKeys = ref(new Set());
+
+  function isTicketPending(key) {
+    if (!key) return false;
+    const clean = String(typeof key === 'object' ? key?.key : key).trim().toUpperCase();
+    return pendingTicketKeys.value.has(clean);
+  }
+
+  function setTicketPending(key, isPending) {
+    if (!key) return;
+    const clean = String(typeof key === 'object' ? key?.key : key).trim().toUpperCase();
+    const updated = new Set(pendingTicketKeys.value);
+    if (isPending) updated.add(clean);
+    else updated.delete(clean);
+    pendingTicketKeys.value = updated;
+  }
 
   // Search & Filter state for views
   const searchQuery = ref('');
@@ -584,6 +601,8 @@ export const useTicketStore = defineStore('ticket', () => {
     };
 
     let createdTicket = fallbackTicket;
+    const uiStore = useUiStore();
+    uiStore.startOperation('ticket-create', 'Creating Ticket...');
 
     try {
       const result = await ticketsApi.create({
@@ -603,6 +622,8 @@ export const useTicketStore = defineStore('ticket', () => {
       if (result) createdTicket = result;
     } catch (err) {
       console.warn('API ticket creation failed, using optimistic state:', err.message);
+    } finally {
+      uiStore.endOperation('ticket-create');
     }
 
     tickets.value.unshift(createdTicket);
@@ -632,12 +653,20 @@ export const useTicketStore = defineStore('ticket', () => {
     const ticket = getTicketByKey(key);
     if (!ticket) return null;
 
+    const uiStore = useUiStore();
+    const opId = `ticket-update-${ticket.key}`;
+    uiStore.startOperation(opId, `Updating Ticket ${ticket.key}...`);
+    setTicketPending(ticket.key, true);
+
     Object.assign(ticket, updates, { updatedAt: new Date().toISOString() });
 
     try {
       await ticketsApi.update(key, updates);
     } catch (err) {
       console.warn('API ticket update failed, applied locally:', err.message);
+    } finally {
+      setTicketPending(ticket.key, false);
+      uiStore.endOperation(opId);
     }
 
     return ticket;
@@ -649,6 +678,11 @@ export const useTicketStore = defineStore('ticket', () => {
     const oldStatus = ticket.status;
 
     if (oldStatus !== newStatus) {
+      const uiStore = useUiStore();
+      const opId = `ticket-status-${ticket.key}`;
+      uiStore.startOperation(opId, `Updating ${ticket.key} to ${newStatus}...`);
+      setTicketPending(ticket.key, true);
+
       ticket.status = newStatus;
       ticket.updatedAt = new Date().toISOString();
 
@@ -656,6 +690,9 @@ export const useTicketStore = defineStore('ticket', () => {
         await ticketsApi.updateStatus(key, newStatus);
       } catch (err) {
         console.warn('API ticket status update failed, applied locally:', err.message);
+      } finally {
+        setTicketPending(ticket.key, false);
+        uiStore.endOperation(opId);
       }
 
       try {
@@ -685,6 +722,11 @@ export const useTicketStore = defineStore('ticket', () => {
     const oldPriority = ticket.priority;
 
     if (oldPriority !== newPriority) {
+      const uiStore = useUiStore();
+      const opId = `ticket-priority-${ticket.key}`;
+      uiStore.startOperation(opId, `Updating ${ticket.key} Priority...`);
+      setTicketPending(ticket.key, true);
+
       ticket.priority = newPriority;
       ticket.updatedAt = new Date().toISOString();
 
@@ -692,6 +734,9 @@ export const useTicketStore = defineStore('ticket', () => {
         await ticketsApi.updatePriority(key, newPriority);
       } catch (err) {
         console.warn('API ticket priority update failed, applied locally:', err.message);
+      } finally {
+        setTicketPending(ticket.key, false);
+        uiStore.endOperation(opId);
       }
 
       try {
@@ -721,6 +766,11 @@ export const useTicketStore = defineStore('ticket', () => {
     const oldAssigneeName = ticket.assignee?.name || 'Unassigned';
     const newAssigneeName = assignee?.name || 'Unassigned';
 
+    const uiStore = useUiStore();
+    const opId = `ticket-assignee-${ticket.key}`;
+    uiStore.startOperation(opId, `Reassigning ${ticket.key}...`);
+    setTicketPending(ticket.key, true);
+
     ticket.assignee = assignee;
     ticket.updatedAt = new Date().toISOString();
 
@@ -728,6 +778,9 @@ export const useTicketStore = defineStore('ticket', () => {
       await ticketsApi.updateAssignee(key, assignee?.id || null);
     } catch (err) {
       console.warn('API ticket assignee update failed, applied locally:', err.message);
+    } finally {
+      setTicketPending(ticket.key, false);
+      uiStore.endOperation(opId);
     }
 
     try {
@@ -754,6 +807,11 @@ export const useTicketStore = defineStore('ticket', () => {
     const ticket = getTicketByKey(ticketKey);
     if (!ticket) return null;
 
+    const uiStore = useUiStore();
+    const opId = `ticket-sprint-${ticket.key}`;
+    uiStore.startOperation(opId, `Moving ${ticket.key} to Sprint...`);
+    setTicketPending(ticket.key, true);
+
     ticket.sprintId = sprintId || null;
     ticket.sprint = sprintName || (sprintId ? 'Assigned Sprint' : 'Backlog');
     ticket.updatedAt = new Date().toISOString();
@@ -762,6 +820,9 @@ export const useTicketStore = defineStore('ticket', () => {
       await ticketsApi.updateSprint(ticketKey, sprintId || null);
     } catch (err) {
       console.warn('API ticket sprint assignment failed, applied locally:', err.message);
+    } finally {
+      setTicketPending(ticket.key, false);
+      uiStore.endOperation(opId);
     }
 
     try {
@@ -788,6 +849,11 @@ export const useTicketStore = defineStore('ticket', () => {
     const ticket = getTicketByKey(ticketKey);
     if (!ticket) return null;
 
+    const uiStore = useUiStore();
+    const opId = `ticket-sprint-${ticket.key}`;
+    uiStore.startOperation(opId, `Moving ${ticket.key} to Backlog...`);
+    setTicketPending(ticket.key, true);
+
     ticket.sprintId = null;
     ticket.sprint = 'Backlog';
     ticket.updatedAt = new Date().toISOString();
@@ -796,6 +862,9 @@ export const useTicketStore = defineStore('ticket', () => {
       await ticketsApi.updateSprint(ticketKey, null);
     } catch (err) {
       console.warn('API ticket remove from sprint failed, applied locally:', err.message);
+    } finally {
+      setTicketPending(ticket.key, false);
+      uiStore.endOperation(opId);
     }
 
     try {
@@ -870,17 +939,26 @@ export const useTicketStore = defineStore('ticket', () => {
   }
 
   async function deleteTicket(key) {
-    const idx = tickets.value.findIndex((t) => t.key.toUpperCase() === key.toUpperCase());
+    const cleanKey = String(key || '').trim().toUpperCase();
+    const idx = tickets.value.findIndex((t) => t.key.toUpperCase() === cleanKey);
     if (idx !== -1) {
+      const uiStore = useUiStore();
+      const opId = `ticket-delete-${cleanKey}`;
+      uiStore.startOperation(opId, `Deleting Ticket ${cleanKey}...`);
+      setTicketPending(cleanKey, true);
+
       tickets.value.splice(idx, 1);
-      if (activeTicketKey.value === key) {
+      if (activeTicketKey.value?.toUpperCase() === cleanKey) {
         activeTicketKey.value = null;
       }
 
       try {
-        await ticketsApi.delete(key);
+        await ticketsApi.delete(cleanKey);
       } catch (err) {
         console.warn('API delete ticket failed, applied locally:', err.message);
+      } finally {
+        setTicketPending(cleanKey, false);
+        uiStore.endOperation(opId);
       }
 
       return true;
@@ -911,6 +989,8 @@ export const useTicketStore = defineStore('ticket', () => {
     isLoading,
     error,
     isInitialized,
+    pendingTicketKeys,
+    isTicketPending,
     allTickets,
     activeTicket,
     fetchTickets,

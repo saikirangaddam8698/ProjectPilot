@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
+import { useTicketStore } from '@/stores/ticket.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 
 const props = defineProps({
@@ -13,10 +14,13 @@ const props = defineProps({
 const emit = defineEmits(['click', 'dragstart', 'dragend']);
 
 const authStore = useAuthStore();
+const ticketStore = useTicketStore();
 const isDragging = ref(false);
 
+const isPending = computed(() => ticketStore.isTicketPending(props.ticket.key));
+
 function onDragStart(event) {
-  if (authStore.isViewer) {
+  if (authStore.isViewer || isPending.value) {
     event.preventDefault();
     return;
   }
@@ -49,12 +53,12 @@ function getPriorityVariant(p) {
 <template>
   <div
     class="kanban-card"
-    :class="{ 'is-dragging': isDragging, 'is-urgent': ticket.priority === 'Urgent', 'is-readonly': authStore.isViewer }"
-    :draggable="!authStore.isViewer"
+    :class="{ 'is-dragging': isDragging, 'is-urgent': ticket.priority === 'Urgent', 'is-readonly': authStore.isViewer, 'is-pending': isPending }"
+    :draggable="!authStore.isViewer && !isPending"
     tabindex="0"
     role="button"
     :aria-label="`Ticket ${ticket.key}: ${ticket.title}`"
-    :title="authStore.isViewer ? `${ticket.key}: Viewers have read-only permissions` : ''"
+    :title="authStore.isViewer ? `${ticket.key}: Viewers have read-only permissions` : (isPending ? 'Updating...' : '')"
     @dragstart="onDragStart"
     @dragend="onDragEnd"
     @click="$emit('click', ticket)"
@@ -68,6 +72,9 @@ function getPriorityVariant(p) {
           {{ ticket.type }}
         </BaseBadge>
         <span class="card-key mono">{{ ticket.key }}</span>
+        <span v-if="isPending" class="card-pending-indicator" title="Updating...">
+          <span class="card-spinner"></span>
+        </span>
       </div>
 
       <div class="header-right">
@@ -160,6 +167,31 @@ function getPriorityVariant(p) {
 
 .kanban-card.is-readonly {
   cursor: pointer;
+}
+
+.kanban-card.is-pending {
+  opacity: 0.65;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.card-pending-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.card-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(99, 102, 241, 0.25);
+  border-top-color: var(--color-primary-400);
+  border-radius: 50%;
+  animation: card-spin 0.6s linear infinite;
+}
+
+@keyframes card-spin {
+  to { transform: rotate(360deg); }
 }
 
 .kanban-card.is-urgent {

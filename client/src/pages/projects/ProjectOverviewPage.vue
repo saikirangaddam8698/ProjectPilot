@@ -68,6 +68,37 @@ const computedProgress = computed(() => {
   return 0;
 });
 
+const memberCount = computed(() => props.project?.members?.length || 0);
+
+const aiConfidenceScore = computed(() => {
+  const total = projectTickets.value.length;
+  if (total === 0) return 85.0;
+  const withPoints = projectTickets.value.filter((t) => (t.storyPoints || 0) > 0).length;
+  const assigned = projectTickets.value.filter((t) => t.assignee && t.assignee.name !== 'Unassigned').length;
+  const pointsRatio = withPoints / total;
+  const assignedRatio = assigned / total;
+  const score = (70 + (pointsRatio * 18) + (assignedRatio * 11.5)).toFixed(1);
+  return Math.min(99.4, Math.max(65.0, Number(score)));
+});
+
+const aiCorrelationText = computed(() => {
+  if (aiConfidenceScore.value >= 90) return 'high correlation';
+  if (aiConfidenceScore.value >= 75) return 'moderate correlation';
+  return 'low correlation';
+});
+
+const aiOverviewText = computed(() => {
+  const total = projectStats.value.total;
+  const members = memberCount.value;
+  const blockers = projectTickets.value.filter((t) => t.priority === 'Urgent' && t.status !== 'Done').length;
+
+  if (activeSprint.value) {
+    const pace = sprintStats.value?.progress || 0;
+    return `Workspace velocity is derived from ${total} tickets and ${members} active contributors. Active sprint "${activeSprint.value.name}" is pacing at ${pace}% completion with ${blockers} active blocker${blockers === 1 ? '' : 's'}.`;
+  }
+  return `Workspace velocity is currently calculated from ${total} tickets and ${members} contributors. Backlog readiness is tracking normally with ${blockers} active blocker${blockers === 1 ? '' : 's'}.`;
+});
+
 function openTicket(ticketKey) {
   ticketStore.openTicketDetail(ticketKey);
 }
@@ -231,19 +262,19 @@ function openCreateModal() {
               </div>
               <div class="sprint-status-grid">
                 <div class="status-box">
-                  <span class="box-num">{{ sprintStats?.todoCount || 0 }}</span>
+                  <span class="box-num">{{ sprintStats?.todoCount ?? (sprintStats?.todoTickets || 0) }}</span>
                   <span class="box-lbl text-muted">To Do</span>
                 </div>
                 <div class="status-box">
-                  <span class="box-num">{{ sprintStats?.inProgressCount || 0 }}</span>
+                  <span class="box-num">{{ sprintStats?.inProgressCount ?? (sprintStats?.inProgressTickets || 0) }}</span>
                   <span class="box-lbl text-muted">In Progress</span>
                 </div>
                 <div class="status-box">
-                  <span class="box-num">{{ sprintStats?.reviewCount || 0 }}</span>
+                  <span class="box-num">{{ sprintStats?.reviewCount ?? (sprintStats?.inReviewTickets || 0) }}</span>
                   <span class="box-lbl text-muted">Review</span>
                 </div>
                 <div class="status-box">
-                  <span class="box-num text-success">{{ sprintStats?.doneCount || 0 }}</span>
+                  <span class="box-num text-success">{{ sprintStats?.doneCount ?? (sprintStats?.doneTickets || 0) }}</span>
                   <span class="box-lbl text-muted">Done</span>
                 </div>
               </div>
@@ -273,11 +304,11 @@ function openCreateModal() {
             </div>
             <div class="ai-body">
               <p class="ai-text">
-                Workspace velocity is currently calculated from <strong>{{ projectStats.total }} tickets</strong> and <strong>{{ project.members.length }} contributors</strong>. All sprint capacity mappings are active.
+                {{ aiOverviewText }}
               </p>
               <div class="ai-footer-note">
                 <span class="ai-note-label">Confidence Score</span>
-                <span class="ai-note-value">98.4% high correlation</span>
+                <span class="ai-note-value">{{ aiConfidenceScore }}% {{ aiCorrelationText }}</span>
               </div>
             </div>
           </div>

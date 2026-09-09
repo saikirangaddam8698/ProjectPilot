@@ -65,6 +65,66 @@ const pilotTickets = computed(() => {
   return ticketStore.getTicketsByProject('PILOT').slice(0, 5);
 });
 
+const deliveryRate = computed(() => {
+  if (totalPointsCommitted.value === 0) return 0;
+  return Math.round((totalPointsCompleted.value / totalPointsCommitted.value) * 100);
+});
+
+const deliveryBadgeVariant = computed(() => {
+  if (deliveryRate.value >= 75) return 'success';
+  if (deliveryRate.value >= 40) return 'info';
+  return 'warning';
+});
+
+const deliveryBadgeText = computed(() => {
+  if (deliveryRate.value >= 75) return 'On Track';
+  if (deliveryRate.value >= 40) return `${deliveryRate.value}% Delivered`;
+  return `${deliveryRate.value}% Behind`;
+});
+
+const aiHealthScore = computed(() => {
+  if (allTickets.value.length === 0) return 100;
+  const doneRatio = (allTickets.value.filter((t) => t.status === 'Done').length / allTickets.value.length) * 100;
+  const blockerPenalty = totalBlockers.value * 8;
+  const unassignedUrgent = allTickets.value.filter(
+    (t) => t.priority === 'Urgent' && (!t.assignee || t.assignee.name === 'Unassigned')
+  ).length * 5;
+  return Math.round(Math.max(10, Math.min(99, 50 + (doneRatio * 0.5) - blockerPenalty - unassignedUrgent)));
+});
+
+const aiInsight = computed(() => {
+  const unassignedHigh = allTickets.value.filter(
+    (t) => (t.priority === 'High' || t.priority === 'Urgent') && (!t.assignee || t.assignee.name === 'Unassigned') && t.status !== 'Done'
+  );
+
+  if (totalBlockers.value > 0) {
+    return {
+      title: 'Active Blocker Alert',
+      text: `${totalBlockers.value} urgent blocker${totalBlockers.value > 1 ? 's require' : ' requires'} immediate resolution across active workspaces. Prioritize triage before sprint close.`
+    };
+  }
+
+  if (unassignedHigh.length > 0) {
+    return {
+      title: 'Unassigned High-Priority Items',
+      text: `${unassignedHigh.length} critical ticket${unassignedHigh.length > 1 ? 's lack' : ' lacks'} an assignee. Capacity reassignment recommended to safeguard delivery timeline.`
+    };
+  }
+
+  if (pilotActiveSprint.value && pilotSprintStats.value) {
+    const pace = pilotSprintStats.value.progress || 0;
+    return {
+      title: `${pilotActiveSprint.value.name} Execution`,
+      text: `${pilotActiveSprint.value.name} is currently pacing at ${pace}% completion with ${pilotSprintStats.value.daysRemaining} days remaining and no critical blockers detected.`
+    };
+  }
+
+  return {
+    title: 'Workspace Health Stable',
+    text: `All ${activeProjects.value.length} active workspaces are running within planned sprint capacity. Velocity and issue backlog are well balanced.`
+  };
+});
+
 function handleRetry() {
   projectStore.fetchProjects();
   ticketStore.fetchTickets();
@@ -132,7 +192,7 @@ function openCreateTicketModal() {
       <div class="stat-card">
         <div class="stat-header">
           <span class="stat-label">Committed Story Points</span>
-          <BaseBadge variant="info" size="sm">On Track</BaseBadge>
+          <BaseBadge :variant="deliveryBadgeVariant" size="sm">{{ deliveryBadgeText }}</BaseBadge>
         </div>
         <div class="stat-value">{{ totalPointsCommitted }} <span class="stat-unit">pts</span></div>
         <div class="stat-meta">
@@ -160,7 +220,7 @@ function openCreateTicketModal() {
           <span class="stat-label">AI Project Health</span>
           <BaseBadge variant="purple" size="sm">Gemini 1.5</BaseBadge>
         </div>
-        <div class="stat-value ai-gradient-text">94%</div>
+        <div class="stat-value ai-gradient-text">{{ aiHealthScore }}%</div>
         <div class="stat-meta">
           <span class="stat-subtext text-muted">Cross-workspace velocity index</span>
         </div>
@@ -235,10 +295,8 @@ function openCreateTicketModal() {
             <AppIcon name="zap" :size="18" />
           </div>
           <div class="ai-insight-content">
-            <h4 class="ai-insight-title">Sprint Velocity Acceleration</h4>
-            <p class="ai-insight-text">
-              PILOT Sprint 1 is on pace for <strong>100% completion</strong>. No unassigned high-priority tickets detected.
-            </p>
+            <h4 class="ai-insight-title">{{ aiInsight.title }}</h4>
+            <p class="ai-insight-text">{{ aiInsight.text }}</p>
           </div>
         </div>
 

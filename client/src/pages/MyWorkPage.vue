@@ -1,17 +1,36 @@
 <script setup>
 import { computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import CreateTicketModal from '@/components/tickets/CreateTicketModal.vue';
 
+const authStore = useAuthStore();
 const ticketStore = useTicketStore();
 
-// Filter tickets assigned to current user (Alex Morgan)
+// Filter tickets assigned to current authenticated user
 const myTickets = computed(() => {
-  return ticketStore.allTickets.filter((t) => t.assignee?.name === 'Alex Morgan' || t.assignee?.id === 'm-1');
+  const currentUserName = authStore.user?.name?.toLowerCase();
+  const currentUserId = authStore.user?.id;
+  const currentMemberId = authStore.user?.memberId;
+  const currentUserEmail = authStore.user?.email?.toLowerCase();
+
+  return ticketStore.allTickets.filter((t) => {
+    if (!t.assignee) return false;
+    const aName = t.assignee.name?.toLowerCase();
+    const aId = t.assignee.id;
+    const aEmail = t.assignee.email?.toLowerCase();
+
+    if (currentUserId && (aId === currentUserId || aId === currentMemberId)) return true;
+    if (currentUserName && aName === currentUserName) return true;
+    if (currentUserEmail && aEmail === currentUserEmail) return true;
+
+    // Fallback if demo default Alex Morgan
+    return aName === 'alex morgan' || aId === 'm-1';
+  });
 });
 
 const inReviewCount = computed(() => {

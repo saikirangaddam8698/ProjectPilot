@@ -104,7 +104,7 @@ function handleTicketClick(ticketKey) {
   ticketStore.openTicketDetail(ticketKey);
 }
 
-function handleTicketDrop(payload) {
+async function handleTicketDrop(payload) {
   // If user is a viewer, block drag-and-drop mutations cleanly
   if (authStore.isViewer) {
     authStore.showAccessDenied({
@@ -137,14 +137,18 @@ function handleTicketDrop(payload) {
   const oldStatus = ticket?.status;
   if (oldStatus && oldStatus.toLowerCase() === newStatus.toLowerCase()) return;
 
-  // Safe status update using ticket key
-  ticketStore.updateTicketStatus(ticket.key, newStatus);
+  try {
+    // Safe status update using ticket key
+    await ticketStore.updateTicketStatus(ticket.key, newStatus);
 
-  // Micro feedback toast
-  toastMessage.value = `${ticket.key} moved to ${newStatus}`;
-  setTimeout(() => {
-    toastMessage.value = '';
-  }, 3000);
+    // Micro feedback toast
+    toastMessage.value = `${ticket.key} moved to ${newStatus}`;
+    setTimeout(() => {
+      toastMessage.value = '';
+    }, 3000);
+  } catch (err) {
+    console.error('Failed to move ticket:', err);
+  }
 }
 
 function handleCreateInColumn(statusId) {

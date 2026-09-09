@@ -26,6 +26,8 @@ const emit = defineEmits(['click', 'dragstart', 'dragend']);
 const sprintStore = useSprintStore();
 const ticketStore = useTicketStore();
 
+const isPending = computed(() => ticketStore.isTicketPending(props.ticket.key));
+
 const availableSprints = computed(() => {
   return sprintStore.getSprintsByProject(props.ticket.projectKey).filter((s) => s.status !== 'completed');
 });
@@ -39,6 +41,10 @@ const sprintOptions = computed(() => [
 ]);
 
 function onDragStart(event) {
+  if (isPending.value) {
+    event.preventDefault();
+    return;
+  }
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', props.ticket.key);
   emit('dragstart', props.ticket);
@@ -48,13 +54,17 @@ function onDragEnd() {
   emit('dragend', props.ticket);
 }
 
-function handleSprintChange(val) {
+async function handleSprintChange(val) {
   const newSprintId = typeof val === 'object' && val?.target ? val.target.value : val;
-  if (newSprintId === 'backlog') {
-    ticketStore.removeTicketFromSprint(props.ticket.key);
-  } else {
-    const s = sprintStore.getSprintById(newSprintId);
-    ticketStore.assignTicketToSprint(props.ticket.key, newSprintId, s?.name);
+  try {
+    if (newSprintId === 'backlog') {
+      await ticketStore.removeTicketFromSprint(props.ticket.key);
+    } else {
+      const s = sprintStore.getSprintById(newSprintId);
+      await ticketStore.assignTicketToSprint(props.ticket.key, newSprintId, s?.name);
+    }
+  } catch (err) {
+    console.error('Failed to change sprint for ticket:', err);
   }
 }
 
@@ -83,7 +93,8 @@ function getStatusBadgeVariant(status) {
 <template>
   <div
     class="backlog-ticket-row"
-    draggable="true"
+    :class="{ 'is-pending': isPending }"
+    :draggable="!isPending"
     tabindex="0"
     role="button"
     :aria-label="`Ticket ${ticket.key}: ${ticket.title}`"
@@ -105,6 +116,7 @@ function getStatusBadgeVariant(status) {
         {{ ticket.type }}
       </BaseBadge>
       <span class="ticket-key mono">{{ ticket.key }}</span>
+      <span v-if="isPending" class="row-pending-spinner" title="Updating..."></span>
     </div>
 
     <!-- Title & Labels -->
@@ -181,6 +193,27 @@ function getStatusBadgeVariant(status) {
 .backlog-ticket-row:focus-visible {
   background-color: var(--bg-surface-hover);
   box-shadow: inset 0 0 0 2px var(--border-focus);
+}
+
+.backlog-ticket-row.is-pending {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.row-pending-spinner {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid rgba(99, 102, 241, 0.3);
+  border-top-color: var(--color-primary-400);
+  border-radius: 50%;
+  animation: row-spin 0.6s linear infinite;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+@keyframes row-spin {
+  to { transform: rotate(360deg); }
 }
 
 .row-drag-handle {

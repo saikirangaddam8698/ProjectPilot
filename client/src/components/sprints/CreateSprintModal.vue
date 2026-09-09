@@ -116,31 +116,40 @@ function validate() {
   return valid;
 }
 
-function handleSubmit() {
+const isSubmitting = ref(false);
+
+async function handleSubmit() {
   if (!validate()) return;
 
-  if (isEditing.value) {
-    const updated = sprintStore.updateSprint(sprintStore.editingSprint.id, {
-      name: form.value.name,
-      goal: form.value.goal,
-      startDate: form.value.startDate,
-      endDate: form.value.endDate,
-      capacity: Number(form.value.capacity) || 30
-    });
-    emit('updated', updated);
-  } else {
-    const newSprint = sprintStore.createSprint({
-      projectKey: selectedProjectKey.value,
-      name: form.value.name,
-      goal: form.value.goal,
-      startDate: form.value.startDate,
-      endDate: form.value.endDate,
-      capacity: Number(form.value.capacity) || 30
-    });
-    emit('created', newSprint);
-  }
+  isSubmitting.value = true;
+  try {
+    if (isEditing.value) {
+      const updated = await sprintStore.updateSprint(sprintStore.editingSprint.id, {
+        name: form.value.name,
+        goal: form.value.goal,
+        startDate: form.value.startDate,
+        endDate: form.value.endDate,
+        capacity: Number(form.value.capacity) || 30
+      });
+      emit('updated', updated);
+    } else {
+      const newSprint = await sprintStore.createSprint({
+        projectKey: selectedProjectKey.value,
+        name: form.value.name,
+        goal: form.value.goal,
+        startDate: form.value.startDate,
+        endDate: form.value.endDate,
+        capacity: Number(form.value.capacity) || 30
+      });
+      emit('created', newSprint);
+    }
 
-  handleClose();
+    handleClose();
+  } catch (err) {
+    console.error('Error submitting sprint:', err);
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
 function handleClose() {
@@ -244,8 +253,13 @@ function handleClose() {
       <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
-      <BaseButton variant="primary" size="md" @click="handleSubmit">
-        {{ isEditing ? 'Save Sprint Changes' : 'Create Sprint' }}
+      <BaseButton
+        variant="primary"
+        size="md"
+        :loading="isSubmitting"
+        @click="handleSubmit"
+      >
+        {{ isSubmitting ? (isEditing ? 'Updating Sprint...' : 'Creating Sprint...') : (isEditing ? 'Save Sprint Changes' : 'Create Sprint') }}
       </BaseButton>
     </template>
   </BaseModal>

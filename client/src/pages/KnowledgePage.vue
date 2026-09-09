@@ -193,6 +193,9 @@ function openEditModal(doc) {
   showEditorModal.value = true;
 }
 
+const isSaving = ref(false);
+const isDeletingDoc = ref(false);
+
 async function handleSaveDocument() {
   formError.value = '';
   if (!docForm.value.title.trim()) {
@@ -204,6 +207,7 @@ async function handleSaveDocument() {
     return;
   }
 
+  isSaving.value = true;
   try {
     let savedDoc;
     if (isEditing.value && editingDocId.value) {
@@ -223,6 +227,8 @@ async function handleSaveDocument() {
     await knowledgeStore.fetchDocuments();
   } catch (err) {
     formError.value = err.message || 'Failed to save document.';
+  } finally {
+    isSaving.value = false;
   }
 }
 
@@ -248,12 +254,14 @@ function promptDeleteDoc(docId, docTitle) {
 
 async function handleConfirmDelete() {
   if (!docIdToDelete.value) return;
+  isDeletingDoc.value = true;
   try {
     await knowledgeStore.deleteDocument(knowledgeStore.selectedProjectKey, docIdToDelete.value);
     showDetailModal.value = false;
   } catch (err) {
     console.error('Failed to delete document:', err);
   } finally {
+    isDeletingDoc.value = false;
     isDeleteConfirmOpen.value = false;
     docIdToDelete.value = null;
   }
@@ -599,10 +607,10 @@ function formatDate(iso) {
         <BaseButton
           variant="primary"
           size="sm"
-          :loading="knowledgeStore.isSaving || knowledgeStore.isIndexing"
+          :loading="isSaving || knowledgeStore.isSaving || knowledgeStore.isIndexing"
           @click="handleSaveDocument"
         >
-          {{ isEditing ? 'Save Changes' : 'Ingest & Index Document' }}
+          {{ (isSaving || knowledgeStore.isSaving) ? (isEditing ? 'Updating Document...' : 'Uploading Document...') : (isEditing ? 'Save Changes' : 'Ingest & Index Document') }}
         </BaseButton>
       </template>
     </BaseModal>
@@ -684,7 +692,8 @@ function formatDate(iso) {
       :message="`Are you sure you want to delete &quot;${docTitleToDelete}&quot;? All associated 768-dim vector embeddings and chunk indexes will be permanently removed.`"
       :itemName="docTitleToDelete"
       itemType="DOCUMENT"
-      confirmText="Delete Document"
+      :loading="isDeletingDoc"
+      :confirmText="isDeletingDoc ? 'Deleting Document...' : 'Delete Document'"
       @confirm="handleConfirmDelete"
       @cancel="isDeleteConfirmOpen = false"
     />

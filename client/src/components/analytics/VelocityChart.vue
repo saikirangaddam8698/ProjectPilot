@@ -22,9 +22,9 @@ const maxPoints = computed(() => {
 });
 
 // SVG dimensions & grid
-const chartHeight = 180;
+const chartHeight = 215;
 const chartPaddingTop = 20;
-const chartPaddingBottom = 30;
+const chartPaddingBottom = 55;
 const usableHeight = chartHeight - chartPaddingTop - chartPaddingBottom;
 
 function getY(val) {
@@ -35,6 +35,14 @@ function getY(val) {
 function getBarHeight(val) {
   const ratio = (val || 0) / maxPoints.value;
   return Math.max(2, ratio * usableHeight);
+}
+
+function formatSprintLabel(name) {
+  if (!name) return '';
+  return name
+    .replace(/Sprint\s+/i, 'S')
+    .replace(/^Infrastructure\b/i, 'INF')
+    .replace(/^Mobile\b/i, 'MOB');
 }
 
 // Average completed velocity calculation
@@ -68,25 +76,24 @@ const avgVelocity = computed(() => {
     <div v-else class="chart-content-wrap">
       <!-- SVG Bar Chart -->
       <div class="svg-container">
-        <svg viewBox="0 0 540 180" class="velocity-svg" preserveAspectRatio="none">
+        <svg viewBox="0 0 580 215" class="velocity-svg" preserveAspectRatio="none">
           <!-- Y-Axis Grid Lines -->
           <g class="grid-lines">
-            <line x1="40" :y1="getY(maxPoints)" x2="520" :y2="getY(maxPoints)" stroke="var(--border-subtle)" stroke-dasharray="3" />
+            <line x1="40" :y1="getY(maxPoints)" x2="560" :y2="getY(maxPoints)" stroke="var(--border-subtle)" stroke-dasharray="3" />
             <text x="32" :y="getY(maxPoints) + 4" class="axis-label" text-anchor="end">{{ maxPoints }}</text>
 
-            <line x1="40" :y1="getY(maxPoints / 2)" x2="520" :y2="getY(maxPoints / 2)" stroke="var(--border-subtle)" stroke-dasharray="3" />
+            <line x1="40" :y1="getY(maxPoints / 2)" x2="560" :y2="getY(maxPoints / 2)" stroke="var(--border-subtle)" stroke-dasharray="3" />
             <text x="32" :y="getY(maxPoints / 2) + 4" class="axis-label" text-anchor="end">{{ Math.round(maxPoints / 2) }}</text>
 
-            <line x1="40" :y1="getY(0)" x2="520" :y2="getY(0)" stroke="var(--border-default)" />
+            <line x1="40" :y1="getY(0)" x2="560" :y2="getY(0)" stroke="var(--border-default)" />
             <text x="32" :y="getY(0) + 4" class="axis-label" text-anchor="end">0</text>
           </g>
 
           <!-- Sprint Bar Groups -->
           <g v-for="(sprint, index) in velocityData" :key="sprint.id" class="bar-group">
             <!-- Calculate X offset dynamically based on array length -->
-            <!-- Group width = ~80px, spacing = (520 - 40) / count -->
             <g
-              :transform="`translate(${60 + index * ((460) / Math.max(1, velocityData.length))}, 0)`"
+              :transform="`translate(${55 + index * ((500) / Math.max(1, velocityData.length))}, 0)`"
               class="sprint-column-group"
               @mouseenter="hoveredSprint = sprint"
               @mouseleave="hoveredSprint = null"
@@ -134,15 +141,16 @@ const avgVelocity = computed(() => {
                 :class="{ 'is-active': sprint.status === 'active' }"
               />
 
-              <!-- X-Axis Label -->
+              <!-- X-Axis Label: Angled to prevent overlap and compact -->
               <text
-                x="20"
-                :y="chartHeight - 10"
+                x="24"
+                :y="chartHeight - 34"
                 class="sprint-x-label"
                 :class="{ 'is-current': sprint.status === 'active' }"
-                text-anchor="middle"
+                text-anchor="end"
+                :transform="`rotate(-28, 24, ${chartHeight - 34})`"
               >
-                {{ sprint.name }}
+                {{ formatSprintLabel(sprint.name) }}
               </text>
             </g>
           </g>
@@ -240,7 +248,7 @@ const avgVelocity = computed(() => {
 
 .svg-container {
   width: 100%;
-  height: 200px;
+  height: 225px;
 }
 
 .velocity-svg {

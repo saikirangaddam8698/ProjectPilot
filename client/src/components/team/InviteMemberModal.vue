@@ -71,28 +71,36 @@ function validate() {
   return valid;
 }
 
-function handleSubmit() {
+const isSubmitting = ref(false);
+
+async function handleSubmit() {
   if (!validate()) return;
 
   const targetProjects = form.value.selectedProjects.length > 0
     ? form.value.selectedProjects
     : ['PILOT'];
 
-  let createdMember = null;
+  isSubmitting.value = true;
+  try {
+    let createdMember = null;
+    for (const pkey of targetProjects) {
+      createdMember = await projectStore.addMemberToProject(pkey, {
+        name: form.value.name,
+        email: form.value.email,
+        role: form.value.role,
+        department: form.value.department,
+        status: form.value.status,
+        capacity: Number(form.value.capacity) || 20
+      });
+    }
 
-  targetProjects.forEach((pkey) => {
-    createdMember = projectStore.addMemberToProject(pkey, {
-      name: form.value.name,
-      email: form.value.email,
-      role: form.value.role,
-      department: form.value.department,
-      status: form.value.status,
-      capacity: Number(form.value.capacity) || 20
-    });
-  });
-
-  emit('invited', createdMember);
-  handleClose();
+    emit('invited', createdMember);
+    handleClose();
+  } catch (err) {
+    console.error('Failed to invite member:', err);
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
 function handleClose() {
@@ -224,8 +232,13 @@ function toggleProject(key) {
       <BaseButton variant="close" size="md" @click="handleClose">
         Cancel
       </BaseButton>
-      <BaseButton variant="primary" size="md" @click="handleSubmit">
-        Send Invitation
+      <BaseButton
+        variant="primary"
+        size="md"
+        :loading="isSubmitting"
+        @click="handleSubmit"
+      >
+        {{ isSubmitting ? 'Inviting Member...' : 'Send Invitation' }}
       </BaseButton>
     </template>
   </BaseModal>

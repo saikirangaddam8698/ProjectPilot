@@ -181,33 +181,35 @@ function copyKey() {
   }, 2000);
 }
 
-function handleSprintChange(val) {
+const isDeletingTicket = ref(false);
+
+async function handleSprintChange(val) {
   if (!ticket.value) return;
   const newSprintId = typeof val === 'object' && val?.target ? val.target.value : val;
   if (newSprintId === 'backlog') {
-    ticketStore.removeTicketFromSprint(ticket.value.key);
+    await ticketStore.removeTicketFromSprint(ticket.value.key);
   } else {
     const s = sprintStore.getSprintById(newSprintId);
-    ticketStore.assignTicketToSprint(ticket.value.key, newSprintId, s?.name);
+    await ticketStore.assignTicketToSprint(ticket.value.key, newSprintId, s?.name);
   }
 }
 
-function handleStatusChange(newStatus) {
+async function handleStatusChange(newStatus) {
   if (!ticket.value) return;
-  ticketStore.updateTicketStatus(ticket.value.key, newStatus);
+  await ticketStore.updateTicketStatus(ticket.value.key, newStatus);
 }
 
-function handlePriorityChange(newPriority) {
+async function handlePriorityChange(newPriority) {
   if (!ticket.value) return;
-  ticketStore.updateTicketPriority(ticket.value.key, newPriority);
+  await ticketStore.updateTicketPriority(ticket.value.key, newPriority);
 }
 
-function handleAssigneeChange(val) {
+async function handleAssigneeChange(val) {
   if (!ticket.value) return;
   const memberId = typeof val === 'object' && val?.target ? val.target.value : val;
   const member = availableMembers.value.find((m) => m.id === memberId);
   if (member) {
-    ticketStore.updateTicketAssignee(ticket.value.key, {
+    await ticketStore.updateTicketAssignee(ticket.value.key, {
       id: member.id,
       name: member.name,
       avatar: member.avatar,
@@ -216,15 +218,15 @@ function handleAssigneeChange(val) {
   }
 }
 
-function saveTitle() {
+async function saveTitle() {
   if (!editedTitle.value.trim() || !ticket.value) return;
-  ticketStore.updateTicket(ticket.value.key, { title: editedTitle.value.trim() });
+  await ticketStore.updateTicket(ticket.value.key, { title: editedTitle.value.trim() });
   isEditingTitle.value = false;
 }
 
-function saveDesc() {
+async function saveDesc() {
   if (!ticket.value) return;
-  ticketStore.updateTicket(ticket.value.key, { description: editedDesc.value.trim() });
+  await ticketStore.updateTicket(ticket.value.key, { description: editedDesc.value.trim() });
   isEditingDesc.value = false;
 }
 
@@ -236,12 +238,19 @@ function deleteCurrentTicket() {
   closeModal();
 }
 
-function handleConfirmDeleteTicket() {
+async function handleConfirmDeleteTicket() {
   if (!ticketToDelete.value) return;
   const targetKey = ticketToDelete.value.key;
-  ticketStore.deleteTicket(targetKey);
-  isDeleteConfirmOpen.value = false;
-  ticketToDelete.value = null;
+  isDeletingTicket.value = true;
+  try {
+    await ticketStore.deleteTicket(targetKey);
+    isDeleteConfirmOpen.value = false;
+    ticketToDelete.value = null;
+  } catch (err) {
+    console.error('Error deleting ticket:', err);
+  } finally {
+    isDeletingTicket.value = false;
+  }
 }
 
 function handleCancelDelete() {
@@ -302,6 +311,10 @@ onUnmounted(() => {
               <BaseBadge :variant="getTypeBadgeVariant(ticket.type)" size="sm">
                 {{ ticket.type }}
               </BaseBadge>
+              <span v-if="ticketStore.isTicketPending(ticket.key)" class="ticket-saving-pill">
+                <span class="ticket-saving-dot"></span>
+                <span>Saving...</span>
+              </span>
             </div>
 
             <div class="header-right-actions">
@@ -523,7 +536,8 @@ onUnmounted(() => {
       :message="ticketToDelete ? `Are you sure you want to delete ${ticketToDelete.key}? All comments, attachments, and sprint assignments will be removed.` : 'Are you sure you want to delete this ticket? All comments, attachments, and sprint assignments will be removed.'"
       :itemName="ticketToDelete ? `${ticketToDelete.key} — ${ticketToDelete.title}` : ''"
       itemType="TICKET"
-      confirmText="Delete Ticket"
+      :loading="isDeletingTicket"
+      :confirmText="isDeletingTicket ? 'Deleting Ticket...' : 'Delete Ticket'"
       @confirm="handleConfirmDeleteTicket"
       @cancel="handleCancelDelete"
       @close="handleCancelDelete"
@@ -598,6 +612,32 @@ onUnmounted(() => {
 .key-pill {
   font-size: var(--text-sm);
   color: var(--text-primary);
+}
+
+.ticket-saving-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--color-primary-400);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.ticket-saving-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-primary-400);
+  animation: pulse-op 1s infinite alternate;
+}
+
+@keyframes pulse-op {
+  0% { opacity: 0.3; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.15); }
 }
 
 .header-right-actions {

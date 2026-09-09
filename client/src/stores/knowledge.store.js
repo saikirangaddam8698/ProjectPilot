@@ -4,6 +4,7 @@
  */
 import { defineStore } from 'pinia';
 import { knowledgeApi } from '../services/api/knowledge.api.js';
+import { useUiStore } from './ui.store.js';
 
 export const useKnowledgeStore = defineStore('knowledge', {
   state: () => ({
@@ -87,6 +88,8 @@ export const useKnowledgeStore = defineStore('knowledge', {
     async createDocument(projectKey = this.selectedProjectKey, data) {
       this.isSaving = true;
       this.error = null;
+      const uiStore = useUiStore();
+      uiStore.startOperation('doc-create', 'Uploading & Indexing Document...');
 
       try {
         const res = await knowledgeApi.createDocument(projectKey, data);
@@ -99,6 +102,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
         throw err;
       } finally {
         this.isSaving = false;
+        uiStore.endOperation('doc-create');
       }
     },
 
@@ -108,6 +112,8 @@ export const useKnowledgeStore = defineStore('knowledge', {
     async updateDocument(projectKey = this.selectedProjectKey, documentId, data) {
       this.isSaving = true;
       this.error = null;
+      const uiStore = useUiStore();
+      uiStore.startOperation('doc-update', 'Updating Document...');
 
       try {
         const res = await knowledgeApi.updateDocument(projectKey, documentId, data);
@@ -127,6 +133,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
         throw err;
       } finally {
         this.isSaving = false;
+        uiStore.endOperation('doc-update');
       }
     },
 
@@ -135,6 +142,8 @@ export const useKnowledgeStore = defineStore('knowledge', {
      */
     async deleteDocument(projectKey = this.selectedProjectKey, documentId) {
       this.error = null;
+      const uiStore = useUiStore();
+      uiStore.startOperation('doc-delete', 'Deleting Document...');
       try {
         await knowledgeApi.deleteDocument(projectKey, documentId);
         this.documents = this.documents.filter((d) => d.id !== documentId);
@@ -144,6 +153,8 @@ export const useKnowledgeStore = defineStore('knowledge', {
       } catch (err) {
         this.error = err.message || 'Failed to delete document.';
         throw err;
+      } finally {
+        uiStore.endOperation('doc-delete');
       }
     },
 
@@ -153,6 +164,8 @@ export const useKnowledgeStore = defineStore('knowledge', {
     async reindexDocument(projectKey = this.selectedProjectKey, documentId) {
       this.isIndexing = true;
       this.error = null;
+      const uiStore = useUiStore();
+      uiStore.startOperation('doc-reindex', 'Re-indexing Document into Vector Store...');
 
       try {
         const res = await knowledgeApi.reindexDocument(projectKey, documentId);
@@ -173,6 +186,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
         throw err;
       } finally {
         this.isIndexing = false;
+        uiStore.endOperation('doc-reindex');
       }
     },
 
