@@ -85,12 +85,26 @@ const deliveryBadgeText = computed(() => {
 
 const aiHealthScore = computed(() => {
   if (allTickets.value.length === 0) return 100;
-  const doneRatio = (allTickets.value.filter((t) => t.status === 'Done').length / allTickets.value.length) * 100;
-  const blockerPenalty = totalBlockers.value * 8;
+  
+  // 1. Completion & Delivery progress (0 - 40 pts)
+  const doneTickets = allTickets.value.filter((t) => t.status === 'Done').length;
+  const inProgressTickets = allTickets.value.filter((t) => t.status === 'In Progress' || t.status === 'In Review').length;
+  const deliveryRatio = ((doneTickets + (inProgressTickets * 0.5)) / allTickets.value.length) * 40;
+
+  // 2. Base health foundation for healthy active projects (50 pts)
+  const baseHealth = 50;
+
+  // 3. Sprint execution factor (0 - 10 pts)
+  const sprintRatio = pilotSprintStats.value?.progress ? (pilotSprintStats.value.progress / 100) * 10 : 5;
+
+  // 4. Penalties for urgent blockers (-6 pts each) and unassigned critical items (-3 pts each)
+  const blockerPenalty = totalBlockers.value * 6;
   const unassignedUrgent = allTickets.value.filter(
-    (t) => t.priority === 'Urgent' && (!t.assignee || t.assignee.name === 'Unassigned')
-  ).length * 5;
-  return Math.round(Math.max(0, Math.min(100, doneRatio - blockerPenalty - unassignedUrgent)));
+    (t) => (t.priority === 'Urgent' || t.priority === 'High') && (!t.assignee || t.assignee.name === 'Unassigned') && t.status !== 'Done'
+  ).length * 3;
+
+  const calculated = Math.round(baseHealth + deliveryRatio + sprintRatio - blockerPenalty - unassignedUrgent);
+  return Math.max(10, Math.min(99, calculated));
 });
 
 const aiInsight = computed(() => {

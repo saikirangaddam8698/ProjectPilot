@@ -15,6 +15,7 @@ export function usePermissions() {
   const isAdmin = computed(() => authStore.isAdmin);
   const isProjectManager = computed(() => authStore.isProjectManager);
   const isDeveloper = computed(() => authStore.isDeveloper);
+  const isQa = computed(() => authStore.isQa);
   const isViewer = computed(() => authStore.isViewer);
 
   /**

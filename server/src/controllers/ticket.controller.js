@@ -2,6 +2,7 @@
  * Ticket Controller — HTTP Request Handlers for Tickets
  */
 import { TicketService } from '../services/ticket.service.js';
+import { NotificationService } from '../services/notification.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { ApiError } from '../utils/apiError.js';
 import { HTTP_STATUS } from '../utils/constants.js';
@@ -72,6 +73,17 @@ export class TicketController {
     }
 
     const ticket = await TicketService.createTicket(req.body);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+
+    // Dispatch assignment notification if assigned to another user upon creation
+    if (ticket?.assignee?.id && ticket.assignee.id !== actorMemberId) {
+      NotificationService.notifyTicketAssigned({
+        ticket,
+        actorMemberId,
+        projectKey: projectKey || ticket.projectKey
+      }).catch((err) => console.error('[Notification Trigger createTicket]', err));
+    }
+
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.CREATED,
       message: 'Ticket created successfully',
@@ -93,6 +105,44 @@ export class TicketController {
     }
 
     const ticket = await TicketService.updateTicket(ticketKey, req.body);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+
+    // 1. Assignment notification
+    if (req.body.assigneeId && req.body.assigneeId !== existing.assignee?.id) {
+      NotificationService.notifyTicketAssigned({
+        ticket,
+        actorMemberId,
+        projectKey: existing.projectKey
+      }).catch((err) => console.error('[Notification Trigger updateTicket assign]', err));
+    }
+
+    // 2. QA Reopen notification
+    if (
+      req.body.status &&
+      (String(req.body.status).toUpperCase() === 'REOPENED') &&
+      String(existing.status).toUpperCase() !== 'REOPENED'
+    ) {
+      NotificationService.notifyTicketReopened({
+        ticket,
+        actorMemberId,
+        note: req.body.reopenReason || req.body.comment || '',
+        projectKey: existing.projectKey
+      }).catch((err) => console.error('[Notification Trigger updateTicket reopen]', err));
+    }
+
+    // 3. Comments & @Mentions notification
+    if (Array.isArray(req.body.comments) && req.body.comments.length > 0) {
+      const latestComment = req.body.comments[req.body.comments.length - 1];
+      if (latestComment && latestComment.text) {
+        NotificationService.notifyCommentAndMentions({
+          ticket,
+          commentText: latestComment.text,
+          actorMemberId,
+          projectKey: existing.projectKey
+        }).catch((err) => console.error('[Notification Trigger updateTicket comment]', err));
+      }
+    }
+
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'Ticket updated successfully',
@@ -115,6 +165,22 @@ export class TicketController {
     }
 
     const ticket = await TicketService.updateTicketStatus(ticketKey, status);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+
+    // QA Reopen notification
+    if (
+      status &&
+      String(status).toUpperCase() === 'REOPENED' &&
+      String(existing.status).toUpperCase() !== 'REOPENED'
+    ) {
+      NotificationService.notifyTicketReopened({
+        ticket,
+        actorMemberId,
+        note: req.body.reopenReason || '',
+        projectKey: existing.projectKey
+      }).catch((err) => console.error('[Notification Trigger updateTicketStatus reopen]', err));
+    }
+
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'Ticket status updated successfully',
@@ -159,6 +225,16 @@ export class TicketController {
     }
 
     const ticket = await TicketService.updateTicketAssignee(ticketKey, assigneeId);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+
+    if (assigneeId && assigneeId !== existing.assignee?.id) {
+      NotificationService.notifyTicketAssigned({
+        ticket,
+        actorMemberId,
+        projectKey: existing.projectKey
+      }).catch((err) => console.error('[Notification Trigger updateTicketAssignee]', err));
+    }
+
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'Ticket assignee updated successfully',

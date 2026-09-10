@@ -98,6 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = computed(() => user.value?.role === 'ADMIN');
   const isProjectManager = computed(() => user.value?.role === 'ADMIN' || user.value?.role === 'PROJECT_MANAGER');
   const isDeveloper = computed(() => user.value?.role === 'ADMIN' || user.value?.role === 'PROJECT_MANAGER' || user.value?.role === 'DEVELOPER');
+  const isQa = computed(() => user.value?.role === 'QA');
   const isViewer = computed(() => user.value?.role === 'VIEWER');
 
   const canCreateProject = computed(() => isAdmin.value || user.value?.role === 'PROJECT_MANAGER');
@@ -209,6 +210,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isProjectManager,
     isDeveloper,
+    isQa,
     isViewer,
     canCreateProject,
     canDeleteProject,

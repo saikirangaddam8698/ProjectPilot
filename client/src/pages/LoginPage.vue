@@ -41,14 +41,6 @@ const DEMO_ACCOUNTS = [
     desc: 'Full workspace & project administration'
   },
   {
-    name: 'Jane Doe',
-    role: 'DEVELOPER',
-    badge: 'Senior Developer',
-    email: 'jane.d@projectpilot.dev',
-    avatar: 'JD',
-    desc: 'Backlog, tickets, board delivery'
-  },
-  {
     name: 'Samir Khan',
     role: 'PROJECT_MANAGER',
     badge: 'Scrum Master & PM',
@@ -57,20 +49,36 @@ const DEMO_ACCOUNTS = [
     desc: 'Sprint planning, capacity & agile delivery lead'
   },
   {
+    name: 'Jane Doe',
+    role: 'DEVELOPER',
+    badge: 'Senior Developer',
+    email: 'jane.d@projectpilot.dev',
+    avatar: 'JD',
+    desc: 'Backlog, tickets, board delivery'
+  },
+  {
+    name: 'Marcus Vance',
+    role: 'DEVELOPER',
+    badge: 'Frontend Developer',
+    email: 'marcus.v@projectpilot.dev',
+    avatar: 'MV',
+    desc: 'Assigned to MOBILE platform'
+  },
+  {
+    name: 'Rachel Chen',
+    role: 'QA',
+    badge: 'QA & Test Engineer',
+    email: 'rachel.c@projectpilot.dev',
+    avatar: 'RC',
+    desc: 'Bug reporting, reopen tickets, add comments & reassign'
+  },
+  {
     name: 'Priya Patel',
     role: 'VIEWER',
-    badge: 'QA & Viewer',
+    badge: 'Product Auditor (Viewer)',
     email: 'priya.p@projectpilot.dev',
     avatar: 'PP',
     desc: 'Read-only tickets & metrics verification'
-  },
-  {
-    name: 'Demo Contributor',
-    role: 'DEVELOPER',
-    badge: 'Single Project',
-    email: 'demo@projectpilot.dev',
-    avatar: 'DC',
-    desc: 'Assigned exclusively to MOBILE platform'
   }
 ];
 
@@ -1154,6 +1162,12 @@ async function handleLogin() {
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
+.user-avatar.qa {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
 .user-avatar.viewer {
   background: rgba(168, 85, 247, 0.18);
   color: #c084fc;
@@ -1211,6 +1225,13 @@ async function handleLogin() {
   background: rgba(245, 158, 11, 0.16);
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.user-role-badge.qa {
+  background: rgba(244, 63, 94, 0.16);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.15);
 }
 
 .user-role-badge.viewer {

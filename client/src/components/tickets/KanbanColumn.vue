@@ -58,6 +58,7 @@ function getStatusDotColor(status) {
   if (status === 'In Progress') return '#38BDF8';
   if (status === 'In Review') return '#F59E0B';
   if (status === 'Done') return '#10B981';
+  if (status === 'Reopened') return '#F43F5E';
   return '#6366F1';
 }
 </script>

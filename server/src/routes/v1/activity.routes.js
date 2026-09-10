@@ -16,7 +16,7 @@ router.get('/', asyncHandler(ActivityController.getAllActivities));
 // POST /api/v1/activities
 router.post(
   '/',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   requireProjectAccess(),
   validate(recordActivitySchema),
   asyncHandler(ActivityController.recordActivity)

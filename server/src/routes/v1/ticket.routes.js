@@ -22,7 +22,7 @@ router.get('/', asyncHandler(TicketController.getAllTickets));
 // POST /api/v1/tickets
 router.post(
   '/',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   requireProjectAccess(),
   validate(createTicketSchema),
   asyncHandler(TicketController.createTicket)
@@ -40,7 +40,7 @@ router.post(
 // POST /api/v1/tickets/reorder-backlog
 router.post(
   '/reorder-backlog',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   requireProjectAccess(),
   asyncHandler(TicketController.reorderBacklog)
 );
@@ -51,7 +51,7 @@ router.get('/:ticketKey', asyncHandler(TicketController.getTicketByKey));
 // PATCH /api/v1/tickets/:ticketKey
 router.patch(
   '/:ticketKey',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   validate(updateTicketSchema),
   asyncHandler(TicketController.updateTicket)
 );
@@ -59,7 +59,7 @@ router.patch(
 // PATCH /api/v1/tickets/:ticketKey/status
 router.patch(
   '/:ticketKey/status',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   validate(updateTicketStatusSchema),
   asyncHandler(TicketController.updateTicketStatus)
 );
@@ -67,7 +67,7 @@ router.patch(
 // PATCH /api/v1/tickets/:ticketKey/priority
 router.patch(
   '/:ticketKey/priority',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   validate(updateTicketPrioritySchema),
   asyncHandler(TicketController.updateTicketPriority)
 );
@@ -75,14 +75,14 @@ router.patch(
 // PATCH /api/v1/tickets/:ticketKey/assignee
 router.patch(
   '/:ticketKey/assignee',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   asyncHandler(TicketController.updateTicketAssignee)
 );
 
 // PATCH /api/v1/tickets/:ticketKey/sprint
 router.patch(
   '/:ticketKey/sprint',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER'),
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
   asyncHandler(TicketController.assignTicketToSprint)
 );
 

@@ -157,7 +157,8 @@ const statusOptions = [
   { value: 'Todo', label: 'Todo' },
   { value: 'In Progress', label: 'In Progress' },
   { value: 'In Review', label: 'In Review' },
-  { value: 'Done', label: 'Done' }
+  { value: 'Done', label: 'Done' },
+  { value: 'Reopened', label: 'Reopened (QA Failed)' }
 ];
 
 const priorityOptions = [

@@ -72,11 +72,35 @@ export const WORKSPACE_MEMBERS = [
     name: 'Priya Patel',
     avatar: 'PP',
     email: 'priya.p@projectpilot.dev',
-    role: 'QA Lead',
-    department: 'Quality Assurance',
+    role: 'Product Auditor & Stakeholder',
+    department: 'Compliance & Auditing',
     status: 'Offline',
-    skills: ['End-to-End Testing', 'Security Triage', 'Performance Benchmarks', 'Playwright'],
+    skills: ['Audit & Verification', 'Compliance', 'Metrics Review'],
     capacity: 14,
+    projectKeys: ['PILOT', 'INFRA', 'MOBILE']
+  },
+  {
+    id: 'm-7',
+    name: 'Marcus Vance',
+    avatar: 'MV',
+    email: 'marcus.v@projectpilot.dev',
+    role: 'Frontend Developer',
+    department: 'Mobile Delivery Platform',
+    status: 'Active',
+    skills: ['Vue 3', 'TypeScript', 'Tailwind', 'REST APIs', 'Vite'],
+    capacity: 20,
+    projectKeys: ['MOBILE']
+  },
+  {
+    id: 'm-8',
+    name: 'Rachel Chen',
+    avatar: 'RC',
+    email: 'rachel.c@projectpilot.dev',
+    role: 'QA & Test Engineer',
+    department: 'Quality Assurance',
+    status: 'Active',
+    skills: ['End-to-End Testing', 'Security Triage', 'Playwright', 'Test Automation'],
+    capacity: 18,
     projectKeys: ['PILOT', 'INFRA', 'MOBILE']
   }
 ];
@@ -100,7 +124,8 @@ const INITIAL_PROJECTS = [
       { id: 'm-3', name: 'Samir Khan', avatar: 'SK', role: 'DevOps Engineer', email: 'samir.k@projectpilot.dev', department: 'DevOps', status: 'Active', skills: ['Kubernetes', 'Docker'], capacity: 16 },
       { id: 'm-4', name: 'Elena Rostova', avatar: 'ER', role: 'Frontend Engineer', email: 'elena.r@projectpilot.dev', department: 'Frontend', status: 'Active', skills: ['Vue 3', 'CSS', 'Vite'], capacity: 20 },
       { id: 'm-5', name: 'David Kim', avatar: 'DK', role: 'AI / ML Engineer', email: 'david.k@projectpilot.dev', department: 'AI', status: 'Away', skills: ['Gemini API', 'pgvector', 'RAG'], capacity: 15 },
-      { id: 'm-6', name: 'Priya Patel', avatar: 'PP', role: 'QA Lead', email: 'priya.p@projectpilot.dev', department: 'QA', status: 'Offline', skills: ['QA', 'Security'], capacity: 14 }
+      { id: 'm-6', name: 'Priya Patel', avatar: 'PP', role: 'Product Auditor & Stakeholder', email: 'priya.p@projectpilot.dev', department: 'Compliance & Auditing', status: 'Offline', skills: ['Audit', 'Metrics'], capacity: 14 },
+      { id: 'm-8', name: 'Rachel Chen', avatar: 'RC', role: 'QA & Test Engineer', email: 'rachel.c@projectpilot.dev', department: 'QA', status: 'Active', skills: ['Playwright', 'End-to-End Testing'], capacity: 18 }
     ],
     ticketCount: 18,
     activeSprint: {
@@ -137,7 +162,8 @@ const INITIAL_PROJECTS = [
       { id: 'm-3', name: 'Samir Khan', avatar: 'SK', role: 'DevOps Lead', email: 'samir.k@projectpilot.dev', department: 'DevOps', status: 'Active', skills: ['Kubernetes', 'Docker', 'Prometheus'], capacity: 16 },
       { id: 'm-1', name: 'Alex Morgan', avatar: 'AM', role: 'Architect', email: 'alex.m@projectpilot.dev', department: 'Architecture', status: 'Active', skills: ['System Design', 'PostgreSQL'], capacity: 20 },
       { id: 'm-2', name: 'Jane Doe', avatar: 'JD', role: 'Backend Engineer', email: 'jane.d@projectpilot.dev', department: 'Backend', status: 'Active', skills: ['Node.js', 'SQL'], capacity: 18 },
-      { id: 'm-6', name: 'Priya Patel', avatar: 'PP', role: 'Security & QA', email: 'priya.p@projectpilot.dev', department: 'QA', status: 'Offline', skills: ['Security Triage', 'Monitoring'], capacity: 14 }
+      { id: 'm-6', name: 'Priya Patel', avatar: 'PP', role: 'Product Auditor & Stakeholder', email: 'priya.p@projectpilot.dev', department: 'Compliance & Auditing', status: 'Offline', skills: ['Audit', 'Metrics'], capacity: 14 },
+      { id: 'm-8', name: 'Rachel Chen', avatar: 'RC', role: 'QA & Test Engineer', email: 'rachel.c@projectpilot.dev', department: 'QA', status: 'Active', skills: ['Playwright', 'Security Triage'], capacity: 18 }
     ],
     ticketCount: 9,
     activeSprint: null,
@@ -165,7 +191,9 @@ const INITIAL_PROJECTS = [
       { id: 'm-4', name: 'Elena Rostova', avatar: 'ER', role: 'Mobile Lead', email: 'elena.r@projectpilot.dev', department: 'Mobile', status: 'Active', skills: ['Vue 3', 'Mobile UX'], capacity: 20 },
       { id: 'm-2', name: 'Jane Doe', avatar: 'JD', role: 'API Engineer', email: 'jane.d@projectpilot.dev', department: 'Backend', status: 'Active', skills: ['REST', 'Express'], capacity: 18 },
       { id: 'm-5', name: 'David Kim', avatar: 'DK', role: 'Offline Sync Engineer', email: 'david.k@projectpilot.dev', department: 'AI/Mobile', status: 'Away', skills: ['Offline DB', 'Sync'], capacity: 15 },
-      { id: 'm-6', name: 'Priya Patel', avatar: 'PP', role: 'Mobile QA', email: 'priya.p@projectpilot.dev', department: 'QA', status: 'Offline', skills: ['Mobile Testing'], capacity: 14 }
+      { id: 'm-6', name: 'Priya Patel', avatar: 'PP', role: 'Product Auditor & Stakeholder', email: 'priya.p@projectpilot.dev', department: 'Compliance & Auditing', status: 'Offline', skills: ['Audit', 'Metrics'], capacity: 14 },
+      { id: 'm-7', name: 'Marcus Vance', avatar: 'MV', role: 'Frontend Developer', email: 'marcus.v@projectpilot.dev', department: 'Mobile Delivery Platform', status: 'Active', skills: ['Vue 3', 'Tailwind', 'Vite'], capacity: 20 },
+      { id: 'm-8', name: 'Rachel Chen', avatar: 'RC', role: 'QA & Test Engineer', email: 'rachel.c@projectpilot.dev', department: 'QA', status: 'Active', skills: ['Mobile Testing', 'Playwright'], capacity: 18 }
     ],
     ticketCount: 12,
     activeSprint: {

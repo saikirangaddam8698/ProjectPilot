@@ -60,10 +60,17 @@ export const SEED_USERS = [
   },
   {
     id: 'u-7',
-    email: 'demo@projectpilot.dev',
+    email: 'marcus.v@projectpilot.dev',
     passwordHash: DEFAULT_PASSWORD_HASH,
     role: 'DEVELOPER',
     memberId: 'm-7'
+  },
+  {
+    id: 'u-8',
+    email: 'rachel.c@projectpilot.dev',
+    passwordHash: DEFAULT_PASSWORD_HASH,
+    role: 'QA',
+    memberId: 'm-8'
   }
 ];
 
@@ -128,22 +135,33 @@ export const SEED_MEMBERS = [
     name: 'Priya Patel',
     avatar: 'PP',
     email: 'priya.p@projectpilot.dev',
-    role: 'QA Lead',
-    department: 'Quality Assurance',
+    role: 'Product Auditor & Stakeholder',
+    department: 'Compliance & Auditing',
     status: MemberStatus.OFFLINE,
-    skills: ['End-to-End Testing', 'Security Triage', 'Performance Benchmarks', 'Playwright'],
+    skills: ['Audit & Verification', 'Compliance', 'Metrics Review'],
     capacity: 14
   },
   {
     id: 'm-7',
-    name: 'Demo Contributor',
-    avatar: 'DC',
-    email: 'demo@projectpilot.dev',
-    role: 'Developer',
+    name: 'Marcus Vance',
+    avatar: 'MV',
+    email: 'marcus.v@projectpilot.dev',
+    role: 'Frontend Developer',
     department: 'Mobile Delivery Platform',
     status: MemberStatus.ACTIVE,
     skills: ['Vue 3', 'TypeScript', 'Tailwind', 'REST APIs', 'Vite'],
     capacity: 20
+  },
+  {
+    id: 'm-8',
+    name: 'Rachel Chen',
+    avatar: 'RC',
+    email: 'rachel.c@projectpilot.dev',
+    role: 'QA & Test Engineer',
+    department: 'Quality Assurance',
+    status: MemberStatus.ACTIVE,
+    skills: ['End-to-End Testing', 'Security Triage', 'Playwright', 'Test Automation', 'Regression Triage'],
+    capacity: 18
   }
 ];
 
@@ -156,7 +174,7 @@ export const SEED_PROJECTS = [
     status: ProjectStatus.ACTIVE,
     leadId: 'm-1',
     createdAt: new Date('2026-08-01T09:00:00.000Z'),
-    memberIds: ['m-1', 'm-2', 'm-3', 'm-4', 'm-5', 'm-6']
+    memberIds: ['m-1', 'm-2', 'm-3', 'm-4', 'm-5', 'm-6', 'm-8']
   },
   {
     id: 'proj-infra',
@@ -166,7 +184,7 @@ export const SEED_PROJECTS = [
     status: ProjectStatus.PLANNING,
     leadId: 'm-3',
     createdAt: new Date('2026-08-10T14:30:00.000Z'),
-    memberIds: ['m-3', 'm-1', 'm-2', 'm-6']
+    memberIds: ['m-3', 'm-1', 'm-2', 'm-6', 'm-8']
   },
   {
     id: 'proj-mobile',
@@ -176,7 +194,7 @@ export const SEED_PROJECTS = [
     status: ProjectStatus.ACTIVE,
     leadId: 'm-4',
     createdAt: new Date('2026-08-15T11:00:00.000Z'),
-    memberIds: ['m-4', 'm-2', 'm-5', 'm-6', 'm-7']
+    memberIds: ['m-4', 'm-2', 'm-5', 'm-6', 'm-7', 'm-8']
   }
 ];
 

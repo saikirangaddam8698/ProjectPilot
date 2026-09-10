@@ -260,6 +260,22 @@ exports.Prisma.ConversationMessageScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  recipientId: 'recipientId',
+  actorId: 'actorId',
+  projectId: 'projectId',
+  type: 'type',
+  title: 'title',
+  message: 'message',
+  link: 'link',
+  read: 'read',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -289,6 +305,7 @@ exports.Role = exports.$Enums.Role = {
   ADMIN: 'ADMIN',
   PROJECT_MANAGER: 'PROJECT_MANAGER',
   DEVELOPER: 'DEVELOPER',
+  QA: 'QA',
   VIEWER: 'VIEWER'
 };
 
@@ -324,7 +341,8 @@ exports.TicketStatus = exports.$Enums.TicketStatus = {
   TODO: 'TODO',
   IN_PROGRESS: 'IN_PROGRESS',
   IN_REVIEW: 'IN_REVIEW',
-  DONE: 'DONE'
+  DONE: 'DONE',
+  REOPENED: 'REOPENED'
 };
 
 exports.TicketPriority = exports.$Enums.TicketPriority = {
@@ -352,6 +370,16 @@ exports.DocumentStatus = exports.$Enums.DocumentStatus = {
   FAILED: 'FAILED'
 };
 
+exports.NotificationType = exports.$Enums.NotificationType = {
+  TICKET_ASSIGNED: 'TICKET_ASSIGNED',
+  TICKET_REOPENED: 'TICKET_REOPENED',
+  USER_MENTIONED: 'USER_MENTIONED',
+  COMMENT_ADDED: 'COMMENT_ADDED',
+  SPRINT_STARTED: 'SPRINT_STARTED',
+  SPRINT_COMPLETED: 'SPRINT_COMPLETED',
+  STATUS_CHANGED: 'STATUS_CHANGED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Member: 'Member',
@@ -363,7 +391,8 @@ exports.Prisma.ModelName = {
   Document: 'Document',
   DocumentChunk: 'DocumentChunk',
   Conversation: 'Conversation',
-  ConversationMessage: 'ConversationMessage'
+  ConversationMessage: 'ConversationMessage',
+  Notification: 'Notification'
 };
 
 /**

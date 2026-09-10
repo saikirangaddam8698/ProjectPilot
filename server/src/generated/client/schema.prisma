@@ -19,6 +19,7 @@ enum Role {
   ADMIN
   PROJECT_MANAGER
   DEVELOPER
+  QA
   VIEWER
 }
 
@@ -42,6 +43,7 @@ enum TicketStatus {
   IN_PROGRESS
   IN_REVIEW
   DONE
+  REOPENED
 }
 
 enum TicketPriority {
@@ -82,6 +84,16 @@ enum DocumentStatus {
   FAILED
 }
 
+enum NotificationType {
+  TICKET_ASSIGNED
+  TICKET_REOPENED
+  USER_MENTIONED
+  COMMENT_ADDED
+  SPRINT_STARTED
+  SPRINT_COMPLETED
+  STATUS_CHANGED
+}
+
 // -----------------------------------------------------------------------------
 // Models
 // -----------------------------------------------------------------------------
@@ -117,13 +129,15 @@ model Member {
   updatedAt  DateTime     @updatedAt
 
   // Relationships
-  user               User?
-  projectMemberships ProjectMember[]
-  ledProjects        Project[]       @relation("ProjectLead")
-  assignedTickets    Ticket[]        @relation("TicketAssignee")
-  reportedTickets    Ticket[]        @relation("TicketReporter")
-  activities         Activity[]      @relation("ActivityActor")
-  authoredDocs       Document[]      @relation("DocumentAuthor")
+  user                  User?
+  projectMemberships    ProjectMember[]
+  ledProjects           Project[]       @relation("ProjectLead")
+  assignedTickets       Ticket[]        @relation("TicketAssignee")
+  reportedTickets       Ticket[]        @relation("TicketReporter")
+  activities            Activity[]      @relation("ActivityActor")
+  authoredDocs          Document[]      @relation("DocumentAuthor")
+  receivedNotifications Notification[]  @relation("NotificationRecipient")
+  sentNotifications     Notification[]  @relation("NotificationActor")
 
   @@index([email])
   @@index([status])
@@ -323,5 +337,28 @@ model ConversationMessage {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String?
+  recipientId String
+  actorId     String?
+  projectId   String?
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  link        String?
+  read        Boolean          @default(false)
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  recipient Member  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     Member? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId])
+  @@index([recipientId, read])
   @@index([createdAt])
 }

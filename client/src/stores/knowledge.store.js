@@ -38,6 +38,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
         return;
       }
       this.selectedProjectKey = projectKey;
+      this.documents = [];
       this.searchResults = [];
       this.searchQuery = '';
       this.activeDocument = null;
@@ -54,7 +55,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
 
       try {
         const res = await knowledgeApi.listDocuments(projectKey);
-        this.documents = res.data || [];
+        this.documents = Array.isArray(res) ? res : (res?.data || []);
       } catch (err) {
         this.error = err.message || 'Failed to fetch knowledge base documents.';
         this.documents = [];
@@ -73,8 +74,9 @@ export const useKnowledgeStore = defineStore('knowledge', {
 
       try {
         const res = await knowledgeApi.getDocument(projectKey, documentId);
-        this.activeDocument = res.data;
-        return res.data;
+        const data = res?.data !== undefined ? res.data : res;
+        this.activeDocument = data;
+        return data;
       } catch (err) {
         this.error = err.message || 'Failed to load document details.';
         return null;
@@ -94,7 +96,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
 
       try {
         const res = await knowledgeApi.createDocument(projectKey, data);
-        const newDoc = res.data;
+        const newDoc = res?.data !== undefined ? res.data : res;
         this.documents.unshift(newDoc);
         this.activeDocument = newDoc;
         return newDoc;
@@ -118,7 +120,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
 
       try {
         const res = await knowledgeApi.updateDocument(projectKey, documentId, data);
-        const updated = res.data;
+        const updated = res?.data !== undefined ? res.data : res;
 
         const idx = this.documents.findIndex((d) => d.id === documentId);
         if (idx !== -1) {
@@ -209,7 +211,8 @@ export const useKnowledgeStore = defineStore('knowledge', {
           query: this.searchQuery,
           limit
         });
-        this.searchResults = res.data?.results || [];
+        const unboxed = res?.data !== undefined ? res.data : res;
+        this.searchResults = Array.isArray(unboxed) ? unboxed : (unboxed?.results || []);
         return this.searchResults;
       } catch (err) {
         this.error = err.message || 'Semantic search failed.';

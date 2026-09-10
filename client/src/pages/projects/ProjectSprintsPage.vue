@@ -9,6 +9,7 @@ import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
+import { showWarning } from '@/utils/swal';
 
 const props = defineProps({
   project: {
@@ -37,10 +38,10 @@ const completedSprints = computed(() => {
   return sprintStore.getCompletedSprints(props.project.key);
 });
 
-function handleStartSprint(sprint) {
-  const res = sprintStore.startSprint(sprint.id);
+async function handleStartSprint(sprint) {
+  const res = await sprintStore.startSprint(sprint.id);
   if (!res.success) {
-    alert(res.error);
+    showWarning('Active Sprint Conflict', res.error);
   } else {
     toastMessage.value = `${sprint.name} is now Active!`;
     setTimeout(() => {

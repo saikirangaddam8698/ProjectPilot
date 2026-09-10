@@ -1,0 +1,294 @@
+/**
+ * ProjectPilot SweetAlert2 Theme Stylesheet
+ * Liquid Glass & Slate-Engine Aesthetics (Dark & Light)
+ */
+
+/* Overlay Container Backdrop */
+.pilot-swal-container.swal2-container {
+  z-index: 99999 !important;
+  backdrop-filter: blur(8px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(140%) !important;
+  padding: 1.5rem !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-container.swal2-container,
+.dark .pilot-swal-container.swal2-container {
+  background: rgba(7, 9, 14, 0.72) !important;
+}
+
+:root[data-theme='light'] .pilot-swal-container.swal2-container {
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Modal Popup Card */
+.pilot-swal-popup.swal2-popup {
+  font-family: var(--font-sans, 'Inter', sans-serif) !important;
+  border-radius: 16px !important;
+  padding: 1.75rem 2rem !important;
+  width: 28rem !important;
+  max-width: calc(100vw - 2rem) !important;
+  transform: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
+}
+
+/* Dark Theme Popup Surface */
+:root[data-theme='dark'] .pilot-swal-popup.swal2-popup,
+.dark .pilot-swal-popup.swal2-popup {
+  background: #141a29 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85),
+              0 0 0 1px rgba(99, 102, 241, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  color: #f3f4f6 !important;
+}
+
+/* Light Theme Popup Surface */
+:root[data-theme='light'] .pilot-swal-popup.swal2-popup {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22),
+              0 4px 16px rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+}
+
+/* Title */
+.pilot-swal-title.swal2-title {
+  font-family: var(--font-sans, 'Inter', sans-serif) !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  padding: 0.5rem 0 0.25rem 0 !important;
+  margin: 0 !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-title.swal2-title,
+.dark .pilot-swal-title.swal2-title {
+  color: #f8fafc !important;
+}
+
+:root[data-theme='light'] .pilot-swal-title.swal2-title {
+  color: #0f172a !important;
+}
+
+/* Body / HTML Container */
+.pilot-swal-html.swal2-html-container {
+  font-family: var(--font-sans, 'Inter', sans-serif) !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.6 !important;
+  margin: 0.75rem 0 1.5rem 0 !important;
+  padding: 0 !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-html.swal2-html-container,
+.dark .pilot-swal-html.swal2-html-container {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme='light'] .pilot-swal-html.swal2-html-container {
+  color: #475569 !important;
+}
+
+/* Actions Bar */
+.pilot-swal-popup .swal2-actions,
+div:where(.swal2-container) div:where(.swal2-actions) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 1.25rem 0 0 0 !important;
+  padding: 0 !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  justify-content: flex-end !important;
+}
+
+/* Close Button (top-right X) */
+.pilot-swal-popup .swal2-close {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  font-size: 1.25rem !important;
+  font-family: inherit !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-popup .swal2-close,
+.dark .pilot-swal-popup .swal2-close {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-popup .swal2-close:hover,
+.dark .pilot-swal-popup .swal2-close:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f8fafc !important;
+}
+
+:root[data-theme='light'] .pilot-swal-popup .swal2-close {
+  color: #64748b !important;
+}
+
+:root[data-theme='light'] .pilot-swal-popup .swal2-close:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+/* Buttons */
+.pilot-swal-btn,
+.pilot-swal-popup button.swal2-confirm,
+.pilot-swal-popup button.swal2-cancel,
+.pilot-swal-popup button.swal2-deny {
+  font-family: var(--font-sans, 'Inter', sans-serif) !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.6rem 1.25rem !important;
+  min-height: 38px !important;
+  min-width: 84px !important;
+  cursor: pointer !important;
+  display: inline-flex;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Strictly hide buttons when SweetAlert marks them hidden */
+.pilot-swal-popup .swal2-actions button[style*="display: none"],
+.pilot-swal-popup .swal2-actions button[style*="display:none"],
+.pilot-swal-popup button.swal2-deny[style*="display: none"],
+.pilot-swal-popup button.swal2-cancel[style*="display: none"],
+.pilot-swal-popup button.swal2-confirm[style*="display: none"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Confirm Button (Indigo Gradient) */
+.pilot-swal-btn-confirm,
+.pilot-swal-popup button.swal2-confirm {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4) !important;
+}
+
+.pilot-swal-btn-confirm:hover,
+.pilot-swal-popup button.swal2-confirm:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%) !important;
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+.pilot-swal-btn-confirm:active,
+.pilot-swal-popup button.swal2-confirm:active {
+  transform: translateY(0) !important;
+}
+
+/* Danger Button */
+.pilot-swal-btn-danger {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
+
+.pilot-swal-btn-danger:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.45) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Cancel Button */
+.pilot-swal-btn-cancel {
+  border-radius: 8px !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-btn-cancel,
+.dark .pilot-swal-btn-cancel {
+  background: #1c2438 !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #334155 !important;
+}
+
+:root[data-theme='dark'] .pilot-swal-btn-cancel:hover,
+.dark .pilot-swal-btn-cancel:hover {
+  background: #252e3d !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme='light'] .pilot-swal-btn-cancel {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+:root[data-theme='light'] .pilot-swal-btn-cancel:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* SweetAlert2 Icon Customizations */
+.pilot-swal-popup .swal2-icon {
+  margin: 0.5rem auto 1rem auto !important;
+  transform: scale(0.85) !important;
+}
+
+/* Warning Icon */
+.pilot-swal-popup .swal2-icon.swal2-warning {
+  border-color: #f59e0b !important;
+  color: #f59e0b !important;
+}
+
+/* Error Icon */
+.pilot-swal-popup .swal2-icon.swal2-error {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.pilot-swal-popup .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+  background-color: #ef4444 !important;
+}
+
+/* Success Icon */
+.pilot-swal-popup .swal2-icon.swal2-success {
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+}
+
+.pilot-swal-popup .swal2-icon.swal2-success [class^='swal2-success-line'] {
+  background-color: #10b981 !important;
+}
+
+.pilot-swal-popup .swal2-icon.swal2-success .swal2-success-ring {
+  border: 0.25em solid rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Info Icon */
+.pilot-swal-popup .swal2-icon.swal2-info {
+  border-color: #6366f1 !important;
+  color: #6366f1 !important;
+}
+
+/* Animation overrides for silky spring feel */
+@keyframes pilotSwalIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pilot-swal-animate-in {
+  animation: pilotSwalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}

@@ -14,6 +14,7 @@ export class TicketRepository {
       case 'IN_PROGRESS': return 'In Progress';
       case 'IN_REVIEW': return 'In Review';
       case 'DONE': return 'Done';
+      case 'REOPENED': return 'Reopened';
       default: return 'Todo';
     }
   }
@@ -21,7 +22,7 @@ export class TicketRepository {
   static mapStatusToEnum(status) {
     if (!status) return 'TODO';
     const s = status.toUpperCase().replace(/\s+/g, '_');
-    if (['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'].includes(s)) {
+    if (['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'REOPENED'].includes(s)) {
       return s;
     }
     return 'TODO';

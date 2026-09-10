@@ -8,6 +8,7 @@ import sprintRoutes from './sprint.routes.js';
 import memberRoutes from './member.routes.js';
 import activityRoutes from './activity.routes.js';
 import aiRoutes from './ai.routes.js';
+import notificationRoutes from './notification.routes.js';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/sprints', sprintRoutes);
 router.use('/members', memberRoutes);
 router.use('/activities', activityRoutes);
 router.use('/ai', aiRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

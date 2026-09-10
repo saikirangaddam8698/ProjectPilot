@@ -51,7 +51,8 @@ const statusFilterOptions = [
   { value: 'Todo', label: 'To Do' },
   { value: 'In Progress', label: 'In Progress' },
   { value: 'In Review', label: 'In Review' },
-  { value: 'Done', label: 'Done' }
+  { value: 'Done', label: 'Done' },
+  { value: 'Reopened', label: 'Reopened (QA)' }
 ];
 
 const typeFilterOptions = [

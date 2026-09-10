@@ -10,3 +10,4 @@ export { membersApi } from './members.api.js';
 export { activitiesApi } from './activities.api.js';
 export { aiApi } from './ai.api.js';
 export { knowledgeApi } from './knowledge.api.js';
+export { notificationsApi } from './notifications.api.js';

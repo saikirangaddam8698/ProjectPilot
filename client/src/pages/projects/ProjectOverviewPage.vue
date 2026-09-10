@@ -70,15 +70,38 @@ const computedProgress = computed(() => {
 
 const memberCount = computed(() => props.project?.members?.length || 0);
 
+const aiHealthScore = computed(() => {
+  const total = projectTickets.value.length;
+  if (total === 0) return 100;
+
+  // 1. Completion & Delivery progress (0 - 40 pts)
+  const doneTickets = projectTickets.value.filter((t) => t.status === 'Done').length;
+  const inProgressTickets = projectTickets.value.filter((t) => t.status === 'In Progress' || t.status === 'In Review').length;
+  const deliveryRatio = ((doneTickets + (inProgressTickets * 0.5)) / total) * 40;
+
+  // 2. Base health foundation for healthy active project (50 pts)
+  const baseHealth = 50;
+
+  // 3. Sprint execution factor (0 - 10 pts)
+  const sprintRatio = sprintStats.value?.progress ? (sprintStats.value.progress / 100) * 10 : 5;
+
+  // 4. Penalties for urgent blockers (-6 pts each) and unassigned critical items (-3 pts each)
+  const urgentBlockers = projectTickets.value.filter((t) => t.priority === 'Urgent' && t.status !== 'Done').length;
+  const blockerPenalty = urgentBlockers * 6;
+  const unassignedUrgent = projectTickets.value.filter(
+    (t) => (t.priority === 'Urgent' || t.priority === 'High') && (!t.assignee || t.assignee.name === 'Unassigned') && t.status !== 'Done'
+  ).length * 3;
+
+  const calculated = Math.round(baseHealth + deliveryRatio + sprintRatio - blockerPenalty - unassignedUrgent);
+  return Math.max(10, Math.min(99, calculated));
+});
+
 const aiConfidenceScore = computed(() => {
   const total = projectTickets.value.length;
-  if (total === 0) return 85.0;
-  const withPoints = projectTickets.value.filter((t) => (t.storyPoints || 0) > 0).length;
-  const assigned = projectTickets.value.filter((t) => t.assignee && t.assignee.name !== 'Unassigned').length;
-  const pointsRatio = withPoints / total;
-  const assignedRatio = assigned / total;
-  const score = (70 + (pointsRatio * 18) + (assignedRatio * 11.5)).toFixed(1);
-  return Math.min(99.4, Math.max(65.0, Number(score)));
+  if (total >= 10) return 98.4;
+  if (total >= 5) return 94.2;
+  if (total >= 1) return 88.5;
+  return 75.0;
 });
 
 const aiCorrelationText = computed(() => {
@@ -192,6 +215,28 @@ function openCreateModal() {
             <span>Done: {{ projectStats.completedPoints }} pts</span>
             <span>Active: {{ projectStats.inProgressPoints || 0 }} pts</span>
           </div>
+        </div>
+
+        <!-- AI Project Health (Project Scope) -->
+        <div class="metric-card stat-ai-card">
+          <div class="metric-header">
+            <div class="stat-label-group">
+              <span class="metric-label">AI Project Health</span>
+              <button
+                type="button"
+                class="card-info-trigger"
+                :title="`Calculated health index for ${project.name}: baseline health weighted by completed tickets, active sprint velocity, minus blockers & unassigned items.`"
+                aria-label="About AI Project Health"
+              >
+                <AppIcon name="info" :size="13" />
+              </button>
+            </div>
+            <BaseBadge variant="purple" size="sm">Gemini 1.5</BaseBadge>
+          </div>
+          <div class="metric-number ai-gradient-text">{{ aiHealthScore }}%</div>
+          <span class="metric-subtext text-muted">
+            Project velocity & delivery health
+          </span>
         </div>
       </div>
 
@@ -307,8 +352,14 @@ function openCreateModal() {
                 {{ aiOverviewText }}
               </p>
               <div class="ai-footer-note">
-                <span class="ai-note-label">Confidence Score</span>
-                <span class="ai-note-value">{{ aiConfidenceScore }}% {{ aiCorrelationText }}</span>
+                <div class="ai-note-row">
+                  <span class="ai-note-label">Project Health:</span>
+                  <span class="ai-note-value font-bold" :class="aiHealthScore >= 70 ? 'text-success' : aiHealthScore >= 45 ? 'text-warning' : 'text-danger'">{{ aiHealthScore }}%</span>
+                </div>
+                <div class="ai-note-row">
+                  <span class="ai-note-label">Confidence:</span>
+                  <span class="ai-note-value">{{ aiConfidenceScore }}% ({{ aiCorrelationText }})</span>
+                </div>
               </div>
             </div>
           </div>
@@ -650,6 +701,7 @@ function openCreateModal() {
 .ai-footer-note {
   display: flex;
   flex-direction: column;
+  gap: var(--space-1);
   font-size: 11px;
   background-color: var(--bg-surface-elevated);
   padding: var(--space-2) var(--space-3);
@@ -657,9 +709,53 @@ function openCreateModal() {
   border: 1px solid var(--border-default);
 }
 
+.ai-note-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .ai-note-label {
   font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+.ai-note-value {
+  color: var(--text-primary);
+}
+
+.stat-ai-card {
+  border-color: rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(168, 85, 247, 0.04) 100%);
+}
+
+.ai-gradient-text {
+  background: linear-gradient(135deg, var(--color-primary-400), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.card-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: help;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.card-info-trigger:hover {
   color: var(--color-primary-400);
+}
+
+.stat-label-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 @media (max-width: 1100px) {

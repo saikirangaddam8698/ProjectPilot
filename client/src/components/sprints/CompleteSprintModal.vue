@@ -11,6 +11,18 @@ const props = defineProps({
   sprintId: {
     type: String,
     default: null
+  },
+  sprint: {
+    type: Object,
+    default: null
+  },
+  isOpen: {
+    type: Boolean,
+    default: false
+  },
+  modelValue: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -21,13 +33,18 @@ const ticketStore = useTicketStore();
 
 const moveTarget = ref('backlog');
 
+const activeSprintId = computed(() => {
+  return props.sprintId || props.sprint?.id || null;
+});
+
 const sprint = computed(() => {
-  return sprintStore.getSprintById(props.sprintId);
+  if (props.sprint) return props.sprint;
+  return sprintStore.getSprintById(activeSprintId.value);
 });
 
 const sprintTickets = computed(() => {
-  if (!props.sprintId) return [];
-  return ticketStore.allTickets.filter((t) => t.sprintId === props.sprintId);
+  if (!activeSprintId.value) return [];
+  return ticketStore.allTickets.filter((t) => t.sprintId === activeSprintId.value);
 });
 
 const completedTickets = computed(() => {
@@ -54,11 +71,11 @@ const moveTargetOptions = computed(() => [
 const isSubmitting = ref(false);
 
 async function handleComplete() {
-  if (!props.sprintId) return;
+  if (!activeSprintId.value) return;
 
   isSubmitting.value = true;
   try {
-    const result = await sprintStore.completeSprint(props.sprintId, {
+    const result = await sprintStore.completeSprint(activeSprintId.value, {
       moveIncompleteTo: moveTarget.value
     });
 
@@ -74,7 +91,7 @@ async function handleComplete() {
 
 <template>
   <BaseModal
-    :modelValue="!!sprintId"
+    :modelValue="props.isOpen || props.modelValue || !!activeSprintId"
     @update:modelValue="$emit('close')"
     @close="$emit('close')"
     size="md"

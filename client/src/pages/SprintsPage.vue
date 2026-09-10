@@ -13,6 +13,7 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
+import { showWarning } from '@/utils/swal';
 
 const sprintStore = useSprintStore();
 const projectStore = useProjectStore();
@@ -60,7 +61,7 @@ function handleRetry() {
 async function handleStartSprint(sprint) {
   const res = await sprintStore.startSprint(sprint.id);
   if (!res.success) {
-    alert(res.error);
+    showWarning('Active Sprint Conflict', res.error);
   } else {
     toastMessage.value = `${sprint.name} is now Active!`;
     setTimeout(() => {
@@ -71,6 +72,14 @@ async function handleStartSprint(sprint) {
 
 function handleCompleteSprint(sprint) {
   completingSprint.value = sprint;
+}
+
+function onSprintCompleted() {
+  completingSprint.value = null;
+  toastMessage.value = 'Sprint completed successfully!';
+  setTimeout(() => {
+    toastMessage.value = '';
+  }, 3000);
 }
 
 function handleEditSprint(sprint) {
@@ -238,8 +247,10 @@ async function handleConfirmDeleteSprint() {
     <!-- Modals & Drawers -->
     <CreateSprintModal />
     <CompleteSprintModal
-      :isOpen="!!completingSprint"
+      v-if="completingSprint"
+      :sprintId="completingSprint.id"
       :sprint="completingSprint"
+      @completed="onSprintCompleted"
       @close="completingSprint = null"
     />
     <TicketDetailDrawer />

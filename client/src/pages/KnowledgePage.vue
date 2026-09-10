@@ -10,6 +10,9 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
+import BaseLoader from '@/components/ui/BaseLoader.vue';
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue';
+import KnowledgeGridSkeleton from '@/components/skeletons/KnowledgeGridSkeleton.vue';
 import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const knowledgeStore = useKnowledgeStore();
@@ -27,6 +30,10 @@ const editingDocId = ref(null);
 const fileInput = ref(null);
 const isDeleteConfirmOpen = ref(false);
 const docIdToDelete = ref(null);
+const isDetailLoading = ref(false);
+const loadingDocId = ref(null);
+const reindexingDocId = ref(null);
+const selectedDocForDetail = ref(null);
 
 const projectOptions = computed(() => {
   return projectStore.allProjects.map((p) => ({
@@ -82,11 +89,15 @@ const filteredDocuments = computed(() => {
 });
 
 async function syncKnowledgeProject() {
+  if (!projectStore.isInitialized) {
+    await projectStore.fetchProjects();
+  }
+
   const routeKey = route.params?.projectKey;
   if (routeKey) {
     if (knowledgeStore.selectedProjectKey !== routeKey) {
       await knowledgeStore.setSelectedProject(routeKey);
-    } else if (knowledgeStore.documents.length === 0) {
+    } else {
       await knowledgeStore.fetchDocuments(routeKey);
     }
     return;
@@ -96,13 +107,13 @@ async function syncKnowledgeProject() {
   const accessibleKeys = projectStore.allProjects.map((p) => p.key);
   let targetKey = knowledgeStore.selectedProjectKey;
   if (!targetKey || !accessibleKeys.includes(targetKey)) {
-    targetKey = projectStore.activeProjectKey || accessibleKeys[0] || null;
+    targetKey = projectStore.activeProjectKey || accessibleKeys[0] || 'PILOT';
   }
 
   if (targetKey) {
     if (knowledgeStore.selectedProjectKey !== targetKey) {
       await knowledgeStore.setSelectedProject(targetKey);
-    } else if (knowledgeStore.documents.length === 0) {
+    } else {
       await knowledgeStore.fetchDocuments(targetKey);
     }
   }
@@ -122,6 +133,7 @@ watch(
 function handleProjectChange(val) {
   const newKey = typeof val === 'object' && val?.target ? val.target.value : val;
   if (newKey) {
+    knowledgeStore.isLoading = true;
     knowledgeStore.setSelectedProject(newKey);
     projectStore.setActiveProjectKey(newKey);
   }
@@ -259,15 +271,31 @@ async function handleSaveDocument() {
 
 // Detail Viewer Modal
 async function openDetailModal(doc) {
-  await knowledgeStore.getDocument(knowledgeStore.selectedProjectKey, doc.id);
+  if (!doc?.id) return;
+  selectedDocForDetail.value = doc;
+  loadingDocId.value = doc.id;
+  // Open modal immediately with loader so user gets instant visual feedback
   showDetailModal.value = true;
+  isDetailLoading.value = true;
+  try {
+    await knowledgeStore.getDocument(knowledgeStore.selectedProjectKey, doc.id);
+  } catch (err) {
+    console.error('Failed to load document detail:', err);
+  } finally {
+    isDetailLoading.value = false;
+    loadingDocId.value = null;
+  }
 }
 
 async function handleReindex(docId) {
+  if (!docId) return;
+  reindexingDocId.value = docId;
   try {
     await knowledgeStore.reindexDocument(knowledgeStore.selectedProjectKey, docId);
-  } catch {
-    // Handled in store
+  } catch (err) {
+    console.error('Re-indexing failed:', err);
+  } finally {
+    reindexingDocId.value = null;
   }
 }
 
@@ -467,14 +495,13 @@ function formatDate(iso) {
 
     <!-- Documents List / Grid -->
     <main class="documents-section">
-      <!-- Loading Skeleton -->
-      <div v-if="knowledgeStore.isLoading" class="docs-grid">
-        <div v-for="n in 3" :key="n" class="doc-card skeleton-card">
-          <div class="skeleton-header"></div>
-          <div class="skeleton-text"></div>
-          <div class="skeleton-text short"></div>
-        </div>
-      </div>
+      <!-- Loading Skeleton with Application Spinning Loader -->
+      <KnowledgeGridSkeleton
+        v-if="knowledgeStore.isLoading"
+        :count="6"
+        :message="`Loading Knowledge Base for ${currentProject?.name || knowledgeStore.selectedProjectKey || 'Project'}...`"
+        subtext="Fetching documents & vector embedding indices from PostgreSQL..."
+      />
 
       <!-- Empty State -->
       <div v-else-if="filteredDocuments.length === 0" class="empty-docs-state">
@@ -501,6 +528,7 @@ function formatDate(iso) {
           v-for="doc in filteredDocuments"
           :key="doc.id"
           class="doc-card"
+          :class="{ 'is-opening-card': loadingDocId === doc.id }"
           @click="openDetailModal(doc)"
         >
           <header class="doc-card-header">
@@ -511,12 +539,19 @@ function formatDate(iso) {
                 {{ doc.documentType }} • {{ doc._count?.chunks || doc.chunks?.length || 0 }} chunks • {{ formatDate(doc.updatedAt) }}
               </span>
             </div>
-            <BaseBadge
-              :variant="doc.status === 'READY' || doc.status === 'INDEXED' ? 'success' : doc.status === 'PROCESSING' ? 'warning' : doc.status === 'FAILED' ? 'danger' : 'neutral'"
-              size="sm"
-            >
-              {{ doc.status === 'READY' || doc.status === 'INDEXED' ? '✓ Ready' : doc.status === 'PROCESSING' ? '⏳ Processing' : doc.status === 'FAILED' ? '✗ Failed' : doc.status }}
-            </BaseBadge>
+            <div class="card-status-badges">
+              <span v-if="loadingDocId === doc.id" class="card-opening-pill">
+                <BaseLoader size="xs" inline />
+                <span>Opening...</span>
+              </span>
+              <BaseBadge
+                v-else
+                :variant="doc.status === 'READY' || doc.status === 'INDEXED' ? 'success' : doc.status === 'PROCESSING' ? 'warning' : doc.status === 'FAILED' ? 'danger' : 'neutral'"
+                size="sm"
+              >
+                {{ doc.status === 'READY' || doc.status === 'INDEXED' ? '✓ Ready' : doc.status === 'PROCESSING' ? '⏳ Processing' : doc.status === 'FAILED' ? '✗ Failed' : doc.status }}
+              </BaseBadge>
+            </div>
           </header>
 
           <p class="doc-excerpt">
@@ -532,18 +567,27 @@ function formatDate(iso) {
                 v-if="doc.status === 'FAILED'"
                 type="button"
                 class="retry-btn"
+                :disabled="reindexingDocId === doc.id"
                 @click.stop="handleReindex(doc.id)"
               >
-                Retry Ingestion
+                <span v-if="reindexingDocId === doc.id" class="inline-btn-loader">
+                  <BaseLoader size="xs" inline />
+                  <span>Retrying...</span>
+                </span>
+                <span v-else>Retry Ingestion</span>
               </button>
               <button
                 type="button"
                 class="reindex-btn"
-                :disabled="knowledgeStore.isIndexing"
+                :disabled="knowledgeStore.isIndexing || reindexingDocId === doc.id"
                 title="Re-index document into pgvector vector chunks"
                 @click.stop="handleReindex(doc.id)"
               >
-                ⚡ Re-index
+                <span v-if="reindexingDocId === doc.id" class="inline-btn-loader">
+                  <BaseLoader size="xs" inline />
+                  <span>Indexing...</span>
+                </span>
+                <span v-else>⚡ Re-index</span>
               </button>
             </div>
           </footer>
@@ -645,12 +689,37 @@ function formatDate(iso) {
     <!-- Document Detail / Viewer Modal -->
     <BaseModal
       v-model="showDetailModal"
-      :title="knowledgeStore.activeDocument?.title || 'Document Detail'"
-      :description="knowledgeStore.activeDocument ? `${knowledgeStore.activeDocument.documentType} • Updated ${formatDate(knowledgeStore.activeDocument.updatedAt)}` : ''"
+      :title="selectedDocForDetail?.title || knowledgeStore.activeDocument?.title || 'Document Detail'"
+      :description="isDetailLoading ? 'Loading document matter & semantic vector chunks...' : (knowledgeStore.activeDocument ? `${knowledgeStore.activeDocument.documentType} • Updated ${formatDate(knowledgeStore.activeDocument.updatedAt)}` : '')"
       size="lg"
       @close="showDetailModal = false"
     >
-      <div v-if="knowledgeStore.activeDocument" class="detail-content">
+      <!-- Detail Loading State with Application Spinning Loader -->
+      <div v-if="isDetailLoading" class="modal-detail-loader">
+        <BaseLoader
+          size="lg"
+          message="Loading Document Matter & Vector Chunks..."
+          subtext="Querying PostgreSQL pgvector for 768-dim embeddings and semantic chunk breakdown..."
+        />
+        <div class="modal-skeleton-body">
+          <BaseSkeleton width="85%" height="20px" rounded="sm" />
+          <BaseSkeleton width="55%" height="14px" rounded="xs" />
+          <div class="modal-skeleton-chunks">
+            <div v-for="i in 3" :key="i" class="modal-skeleton-chunk-card">
+              <div class="skeleton-chunk-header">
+                <BaseSkeleton width="85px" height="14px" rounded="xs" />
+                <BaseSkeleton width="60px" height="14px" rounded="xs" />
+              </div>
+              <BaseSkeleton width="100%" height="12px" rounded="xs" />
+              <BaseSkeleton width="92%" height="12px" rounded="xs" />
+              <BaseSkeleton width="68%" height="12px" rounded="xs" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loaded Document Content -->
+      <div v-else-if="knowledgeStore.activeDocument" class="detail-content">
         <div v-if="knowledgeStore.activeDocument.description" class="detail-description text-secondary">
           {{ knowledgeStore.activeDocument.description }}
         </div>
@@ -693,8 +762,22 @@ function formatDate(iso) {
             <BaseButton
               variant="outline"
               size="sm"
-              :disabled="disabled"
-              @click="openEditModal(knowledgeStore.activeDocument)"
+              :disabled="disabled || isDetailLoading || reindexingDocId === (selectedDocForDetail?.id || knowledgeStore.activeDocument?.id)"
+              :loading="reindexingDocId === (selectedDocForDetail?.id || knowledgeStore.activeDocument?.id)"
+              @click="handleReindex(selectedDocForDetail?.id || knowledgeStore.activeDocument?.id)"
+            >
+              <template #prefix><span v-if="reindexingDocId !== (selectedDocForDetail?.id || knowledgeStore.activeDocument?.id)">⚡</span></template>
+              {{ reindexingDocId === (selectedDocForDetail?.id || knowledgeStore.activeDocument?.id) ? 'Re-indexing...' : 'Re-index' }}
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
+        <RbacActionWrapper action="edit_document">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="outline"
+              size="sm"
+              :disabled="disabled || isDetailLoading"
+              @click="openEditModal(knowledgeStore.activeDocument || selectedDocForDetail)"
             >
               Edit
             </BaseButton>
@@ -705,8 +788,8 @@ function formatDate(iso) {
             <BaseButton
               variant="danger"
               size="sm"
-              :disabled="disabled"
-              @click="promptDeleteDoc(knowledgeStore.activeDocument.id, knowledgeStore.activeDocument.title)"
+              :disabled="disabled || isDetailLoading"
+              @click="promptDeleteDoc(knowledgeStore.activeDocument?.id || selectedDocForDetail?.id, knowledgeStore.activeDocument?.title || selectedDocForDetail?.title)"
             >
               <template #prefix><AppIcon name="trash" :size="13" /></template>
               Delete
@@ -1264,5 +1347,84 @@ function formatDate(iso) {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Card Opening & Loading States */
+.card-status-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-opening-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: var(--color-primary-300, #a5b4fc);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 600;
+  animation: pulsePill 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes pulsePill {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+.doc-card.is-opening-card {
+  border-color: var(--color-primary-400, #818cf8);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+}
+
+.inline-btn-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Detail Modal Loader & Skeleton */
+.modal-detail-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.modal-skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) 0;
+}
+
+.modal-skeleton-chunks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.modal-skeleton-chunk-card {
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-chunk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
 }
 </style>

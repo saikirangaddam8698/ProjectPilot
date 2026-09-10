@@ -4,16 +4,21 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useUiStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useNotificationStore } from '@/stores/notification.store';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import NotificationDropdown from '@/components/notifications/NotificationDropdown.vue';
 
 const route = useRoute();
 const router = useRouter();
 const { isDark, toggleTheme } = useTheme();
 const uiStore = useUiStore();
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 
 const isProfileMenuOpen = ref(false);
 const profileMenuRef = ref(null);
+const isNotificationOpen = ref(false);
+const notificationWrapperRef = ref(null);
 
 const pageTitle = computed(() => {
   return route.meta?.title || 'Dashboard';
@@ -46,14 +51,30 @@ const userRoleTitle = computed(() => member.value?.role || userRole.value);
 
 function toggleProfileMenu() {
   isProfileMenuOpen.value = !isProfileMenuOpen.value;
+  if (isProfileMenuOpen.value) {
+    isNotificationOpen.value = false;
+  }
 }
 
 function closeProfileMenu() {
   isProfileMenuOpen.value = false;
 }
 
+function toggleNotificationMenu() {
+  isNotificationOpen.value = !isNotificationOpen.value;
+  if (isNotificationOpen.value) {
+    isProfileMenuOpen.value = false;
+    notificationStore.fetchNotifications();
+  }
+}
+
+function closeNotificationMenu() {
+  isNotificationOpen.value = false;
+}
+
 async function handleLogout() {
   closeProfileMenu();
+  closeNotificationMenu();
   await authStore.logout();
   router.push('/login');
 }
@@ -62,22 +83,28 @@ function handleDocumentClick(e) {
   if (profileMenuRef.value && !profileMenuRef.value.contains(e.target)) {
     closeProfileMenu();
   }
+  if (notificationWrapperRef.value && !notificationWrapperRef.value.contains(e.target)) {
+    closeNotificationMenu();
+  }
 }
 
 function handleKeyDown(e) {
-  if (e.key === 'Escape' && isProfileMenuOpen.value) {
+  if (e.key === 'Escape') {
     closeProfileMenu();
+    closeNotificationMenu();
   }
 }
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick);
   document.addEventListener('keydown', handleKeyDown);
+  notificationStore.startPolling(30000);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick);
   document.removeEventListener('keydown', handleKeyDown);
+  notificationStore.stopPolling();
 });
 </script>
 
@@ -155,16 +182,35 @@ onUnmounted(() => {
         <AppIcon :name="isDark ? 'sun' : 'moon'" :size="17" />
       </button>
 
-      <!-- Notification Trigger -->
-      <button
-        type="button"
-        class="icon-action-btn notification-btn"
-        title="Notifications"
-        aria-label="Notifications"
-      >
-        <AppIcon name="bell" :size="17" />
-        <span class="notification-dot" aria-hidden="true"></span>
-      </button>
+      <!-- Notification Dropdown Wrapper -->
+      <div ref="notificationWrapperRef" class="notification-wrapper">
+        <button
+          type="button"
+          class="icon-action-btn notification-btn"
+          :class="{ active: isNotificationOpen }"
+          title="Notifications"
+          aria-label="Notifications"
+          :aria-expanded="isNotificationOpen"
+          aria-haspopup="dialog"
+          @click="toggleNotificationMenu"
+        >
+          <AppIcon name="bell" :size="17" />
+          <span
+            v-if="notificationStore.unreadCount > 0"
+            class="notification-badge"
+            aria-label="Unread notifications count"
+          >
+            {{ notificationStore.unreadCount > 9 ? '9+' : notificationStore.unreadCount }}
+          </span>
+        </button>
+
+        <Transition name="dropdown-pop">
+          <NotificationDropdown
+            v-if="isNotificationOpen"
+            @close="closeNotificationMenu"
+          />
+        </Transition>
+      </div>
 
       <div class="header-divider" aria-hidden="true"></div>
 
@@ -376,14 +422,44 @@ onUnmounted(() => {
   transform: scale(0.95);
 }
 
-.notification-dot {
+.notification-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notification-badge {
   position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--color-primary-500);
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: linear-gradient(135deg, #ef4444, #f43f5e);
+  color: #fff;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--bg-surface, #1e293b);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  animation: badgePulse 2s infinite ease-in-out;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.notification-btn.active {
+  background: var(--bg-surface-hover);
+  color: var(--color-primary-400, #818cf8);
 }
 
 .header-divider {
@@ -475,19 +551,24 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 240px;
-  background-color: var(--glass-bg-elevated);
-  backdrop-filter: var(--glass-blur-lg);
-  -webkit-backdrop-filter: var(--glass-blur-lg);
-  border: 1px solid var(--glass-border-glow);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-shadow-modal);
+  width: 250px;
+  background-color: #ffffff;
+  border: 1px solid var(--border-default, #cbd5e1);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(15, 23, 42, 0.08);
   padding: var(--space-3);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   transform-origin: top right;
+}
+
+:root[data-theme='dark'] .profile-dropdown-card,
+.dark .profile-dropdown-card {
+  background-color: #141a29;
+  border-color: #252e3d;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .dropdown-pop-enter-active,

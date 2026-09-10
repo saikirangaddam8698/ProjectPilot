@@ -2,6 +2,7 @@
  * Sprint Controller — HTTP Request Handlers for Sprints
  */
 import { SprintService } from '../services/sprint.service.js';
+import { NotificationService } from '../services/notification.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { ApiError } from '../utils/apiError.js';
 import { HTTP_STATUS } from '../utils/constants.js';
@@ -118,6 +119,14 @@ export class SprintController {
     }
 
     const sprint = await SprintService.startSprint(sprintId);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+    NotificationService.notifySprintChange({
+      sprint,
+      action: 'start',
+      actorMemberId,
+      projectKey: existing.projectKey
+    }).catch((err) => console.error('[Notification Trigger startSprint]', err));
+
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'Sprint started successfully',
@@ -144,6 +153,14 @@ export class SprintController {
     }
 
     const result = await SprintService.completeSprint(sprintId, req.body);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+    NotificationService.notifySprintChange({
+      sprint: existing,
+      action: 'complete',
+      actorMemberId,
+      projectKey: existing.projectKey
+    }).catch((err) => console.error('[Notification Trigger completeSprint]', err));
+
     return ApiResponse.success(res, {
       statusCode: HTTP_STATUS.OK,
       message: 'Sprint completed successfully',

@@ -2,7 +2,7 @@
  * Ticket Request Validators
  */
 const VALID_TICKET_TYPES = ['TASK', 'BUG', 'STORY', 'EPIC'];
-const VALID_TICKET_STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
+const VALID_TICKET_STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'REOPENED'];
 const VALID_TICKET_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 
 export const createTicketSchema = {

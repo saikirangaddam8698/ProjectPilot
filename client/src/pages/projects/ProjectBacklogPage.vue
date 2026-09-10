@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useSprintStore } from '@/stores/sprint.store';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useAuthStore } from '@/stores/auth.store';
@@ -11,6 +12,7 @@ import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import { showWarning } from '@/utils/swal';
 
 const props = defineProps({
   project: {
@@ -19,6 +21,7 @@ const props = defineProps({
   }
 });
 
+const router = useRouter();
 const sprintStore = useSprintStore();
 const ticketStore = useTicketStore();
 const authStore = useAuthStore();
@@ -95,10 +98,10 @@ function handleTicketDrop({ targetSprintId, ticketKey }) {
   }, 2500);
 }
 
-function handleStartSprint(sprint) {
-  const res = sprintStore.startSprint(sprint.id);
+async function handleStartSprint(sprint) {
+  const res = await sprintStore.startSprint(sprint.id);
   if (!res.success) {
-    alert(res.error);
+    showWarning('Active Sprint Conflict', res.error);
   } else {
     toastMessage.value = `${sprint.name} is now Active!`;
     setTimeout(() => {

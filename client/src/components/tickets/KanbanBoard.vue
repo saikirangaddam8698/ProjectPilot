@@ -45,7 +45,8 @@ const COLUMNS = [
   { id: 'Todo', title: 'To Do' },
   { id: 'In Progress', title: 'In Progress' },
   { id: 'In Review', title: 'In Review' },
-  { id: 'Done', title: 'Done' }
+  { id: 'Done', title: 'Done' },
+  { id: 'Reopened', title: 'Reopened (QA)' }
 ];
 
 const activeScope = computed(() => {

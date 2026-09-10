@@ -110,7 +110,8 @@ const statusOptions = [
   { value: 'Todo', label: 'Todo' },
   { value: 'In Progress', label: 'In Progress' },
   { value: 'In Review', label: 'In Review' },
-  { value: 'Done', label: 'Done' }
+  { value: 'Done', label: 'Done' },
+  { value: 'Reopened', label: 'Reopened (QA Failed)' }
 ];
 
 const priorityOptions = [
@@ -133,9 +134,111 @@ const storyPointOptions = [
 const assigneeOptions = computed(() => {
   return availableMembers.value.map((m) => ({
     value: m.id,
-    label: m.name
+    label: `${m.name} (${m.role || 'Member'})`
   }));
 });
+
+// Comments and Mentions State
+const newCommentText = ref('');
+const isSubmittingComment = ref(false);
+const showMentionPopup = ref(false);
+const mentionQuery = ref('');
+const commentTextareaRef = ref(null);
+
+const filteredMentionMembers = computed(() => {
+  const query = mentionQuery.value.toLowerCase().trim();
+  if (!query) return availableMembers.value;
+  return availableMembers.value.filter(
+    (m) =>
+      m.name.toLowerCase().includes(query) ||
+      (m.role && m.role.toLowerCase().includes(query))
+  );
+});
+
+function handleCommentInput(e) {
+  const text = e.target.value;
+  const cursor = e.target.selectionStart;
+  const textBeforeCursor = text.slice(0, cursor);
+  const lastAtIdx = textBeforeCursor.lastIndexOf('@');
+
+  if (lastAtIdx !== -1) {
+    const afterAt = textBeforeCursor.slice(lastAtIdx + 1);
+    // If no space between @ and cursor, treat as active mention search
+    if (!afterAt.includes(' ') && !afterAt.includes('\n')) {
+      showMentionPopup.value = true;
+      mentionQuery.value = afterAt;
+      return;
+    }
+  }
+  showMentionPopup.value = false;
+  mentionQuery.value = '';
+}
+
+function insertMention(member) {
+  const textarea = commentTextareaRef.value;
+  const text = newCommentText.value;
+  const cursor = textarea ? textarea.selectionStart : text.length;
+  const textBeforeCursor = text.slice(0, cursor);
+  const textAfterCursor = text.slice(cursor);
+  const lastAtIdx = textBeforeCursor.lastIndexOf('@');
+
+  if (lastAtIdx !== -1) {
+    const beforeAt = text.slice(0, lastAtIdx);
+    const mentionTag = `@${member.name} `;
+    newCommentText.value = beforeAt + mentionTag + textAfterCursor;
+    showMentionPopup.value = false;
+    mentionQuery.value = '';
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        const nextPos = beforeAt.length + mentionTag.length;
+        textarea.setSelectionRange(nextPos, nextPos);
+      }
+    }, 50);
+  }
+}
+
+async function handleAddComment() {
+  if (!newCommentText.value.trim() || !ticket.value) return;
+  const text = newCommentText.value.trim();
+  const author = authStore.user?.member || {
+    id: authStore.user?.memberId || 'm-curr',
+    name: authStore.user?.email?.split('@')[0] || 'Current User',
+    avatar: authStore.user?.email ? authStore.user.email.slice(0, 2).toUpperCase() : 'ME',
+    role: authStore.user?.role || 'Member'
+  };
+
+  const newComment = {
+    id: `c-${Date.now()}`,
+    text,
+    author: {
+      id: author.id,
+      name: author.name,
+      avatar: author.avatar || 'ME',
+      role: author.role || authStore.user?.role || 'Member'
+    },
+    createdAt: new Date().toISOString()
+  };
+
+  // Optimistically append comment
+  if (!ticket.value.comments) {
+    ticket.value.comments = [];
+  }
+  ticket.value.comments.push(newComment);
+  newCommentText.value = '';
+  showMentionPopup.value = false;
+
+  // Persist to ticket store & backend
+  await ticketStore.updateTicket(ticket.value.key, {
+    comments: [...ticket.value.comments]
+  });
+}
+
+function formatCommentText(raw) {
+  if (!raw) return '';
+  // Convert @Member Name into highlighted badge
+  return raw.replace(/(@[a-zA-Z\s]+?)(?=[.,!?\s]|$)/g, '<span class="mention-tag font-semibold">$1</span>');
+}
 
 const sprintOptions = computed(() => {
   const list = [{ value: 'backlog', label: 'Backlog (Unassigned)' }];
@@ -436,6 +539,89 @@ onUnmounted(() => {
                     <span v-for="l in ticket.labels" :key="l" class="label-pill">
                       #{{ l }}
                     </span>
+                  </div>
+                </div>
+
+                <!-- Comments & Discussion (QA Notes & Reproduction Details) -->
+                <div class="comments-box">
+                  <div class="comments-header">
+                    <span class="section-label">Comments & QA Triage ({{ ticket.comments?.length || 0 }})</span>
+                    <span class="mention-hint text-muted">Type <code class="mention-code">@</code> to mention any project member</span>
+                  </div>
+
+                  <!-- Existing Comments List -->
+                  <div class="comments-list">
+                    <div
+                      v-for="c in (ticket.comments || [])"
+                      :key="c.id"
+                      class="comment-item"
+                    >
+                      <div class="comment-author-avatar">{{ c.author?.avatar || 'AM' }}</div>
+                      <div class="comment-body">
+                        <div class="comment-meta">
+                          <span class="comment-author-name">{{ c.author?.name || 'User' }}</span>
+                          <span class="comment-author-role text-muted">({{ c.author?.role || 'Member' }})</span>
+                          <span class="comment-time text-muted">• {{ new Date(c.createdAt).toLocaleString() }}</span>
+                        </div>
+                        <div class="comment-text" v-html="formatCommentText(c.text)"></div>
+                      </div>
+                    </div>
+                    <div v-if="!ticket.comments || ticket.comments.length === 0" class="no-comments-prompt text-muted">
+                      No comments yet. QA engineers or developers can add notes, failed test reasons, or reproduction steps below.
+                    </div>
+                  </div>
+
+                  <!-- Add Comment Form (Accessible to any logged-in user with project access, including QA and Developers) -->
+                  <div v-if="!authStore.isViewer" class="comment-input-wrap">
+                    <!-- Relative Container for @mention autocomplete dropdown -->
+                    <div class="mention-anchor">
+                      <textarea
+                        ref="commentTextareaRef"
+                        v-model="newCommentText"
+                        rows="3"
+                        class="comment-textarea"
+                        placeholder="Add a comment, reproduction steps, or QA test findings... (type @ to tag someone)"
+                        @input="handleCommentInput"
+                        @keydown.ctrl.enter="handleAddComment"
+                      ></textarea>
+
+                      <!-- Autocomplete Mentions Dropdown -->
+                      <div v-if="showMentionPopup" class="mention-dropdown">
+                        <div class="mention-dropdown-header">Members in this Project</div>
+                        <div class="mention-dropdown-list">
+                          <button
+                            v-for="member in filteredMentionMembers"
+                            :key="member.id"
+                            type="button"
+                            class="mention-item"
+                            @click="insertMention(member)"
+                          >
+                            <span class="mention-avatar">{{ member.avatar || 'PP' }}</span>
+                            <span class="mention-name">{{ member.name }}</span>
+                            <span class="mention-role text-muted">({{ member.role || 'Member' }})</span>
+                          </button>
+                          <div v-if="filteredMentionMembers.length === 0" class="mention-empty text-muted">
+                            No member matches "@{{ mentionQuery }}"
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="comment-submit-row">
+                      <span class="keyboard-hint text-muted">Press <kbd>Ctrl+Enter</kbd> to submit</span>
+                      <BaseButton
+                        variant="primary"
+                        size="xs"
+                        :disabled="!newCommentText.trim()"
+                        @click="handleAddComment"
+                      >
+                        <template #prefix><AppIcon name="chat" :size="13" /></template>
+                        Save Comment
+                      </BaseButton>
+                    </div>
+                  </div>
+                  <div v-else class="comment-readonly-notice text-muted">
+                    <span>Viewers have read-only access and cannot post comments.</span>
                   </div>
                 </div>
 
@@ -1012,5 +1198,251 @@ onUnmounted(() => {
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.98);
+}
+
+/* Comments & QA Notes Section */
+.comments-box {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.comments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mention-hint {
+  font-size: 11px;
+}
+
+.mention-code {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+  color: var(--color-primary-400);
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.comment-item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.comment-author-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.comment-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 11px;
+}
+
+.comment-author-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.comment-author-role {
+  font-size: 10px;
+}
+
+.comment-time {
+  font-size: 10px;
+}
+
+.comment-text {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin-top: 2px;
+}
+
+:deep(.mention-tag) {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--color-primary-400);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  padding: 0 5px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  margin: 0 1px;
+}
+
+.no-comments-prompt {
+  font-size: var(--text-xs);
+  font-style: italic;
+  padding: var(--space-2) 0;
+}
+
+.comment-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.mention-anchor {
+  position: relative;
+  width: 100%;
+}
+
+.comment-textarea {
+  width: 100%;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.comment-textarea:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 1px var(--color-primary-500);
+}
+
+.mention-dropdown {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
+  width: 280px;
+  max-height: 180px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.mention-dropdown-header {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  background: var(--bg-surface-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mention-dropdown-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mention-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.mention-item:hover {
+  background-color: var(--bg-surface-elevated);
+}
+
+.mention-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--border-default);
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mention-name {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.mention-role {
+  font-size: 10px;
+  margin-left: auto;
+}
+
+.mention-empty {
+  padding: 10px;
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+}
+
+.comment-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.keyboard-hint {
+  font-size: 11px;
+}
+
+.keyboard-hint kbd {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  padding: 1px 4px;
+  border-radius: var(--radius-xs);
+}
+
+.comment-readonly-notice {
+  font-size: 11px;
+  font-style: italic;
+  padding: var(--space-1) 0;
 }
 </style>
