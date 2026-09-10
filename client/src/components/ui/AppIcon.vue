@@ -294,6 +294,13 @@ const props = defineProps({
     <template v-else-if="name === 'minus'">
       <line x1="5" y1="12" x2="19" y2="12"></line>
     </template>
+
+    <!-- Info / Details -->
+    <template v-else-if="name === 'info'">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="16" x2="12" y2="12"></line>
+      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+    </template>
   </svg>
 </template>
 

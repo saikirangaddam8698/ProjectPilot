@@ -232,9 +232,9 @@ onUnmounted(() => {
 .app-header {
   height: var(--header-height);
   background-color: var(--glass-bg-nav);
-  backdrop-filter: var(--glass-blur-md);
-  -webkit-backdrop-filter: var(--glass-blur-md);
-  border-bottom: 1px solid var(--glass-border-subtle);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border-bottom: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow-nav);
   display: flex;
   align-items: center;
@@ -312,23 +312,25 @@ onUnmounted(() => {
 .search-trigger {
   display: flex;
   align-items: center;
-  height: 32px;
+  height: 34px;
   padding: 0 var(--space-3);
   background-color: var(--glass-bg-subtle);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   color: var(--text-muted);
   font-size: var(--text-sm);
   gap: var(--space-2);
-  width: 250px;
+  width: 260px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .search-trigger:hover {
   border-color: var(--glass-border-active);
   color: var(--text-secondary);
-  background-color: var(--bg-surface-hover);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.15);
+  background-color: var(--glass-bg-elevated);
+  box-shadow: var(--glass-active-glow);
 }
 
 .search-placeholder {
@@ -354,16 +356,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   color: var(--text-secondary);
   position: relative;
-  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .icon-action-btn:hover {
   background-color: var(--bg-surface-hover);
+  border-color: var(--glass-border);
   color: var(--text-primary);
 }
 

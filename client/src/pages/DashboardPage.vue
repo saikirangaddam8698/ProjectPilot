@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useProjectStore } from '@/stores/project.store';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useSprintStore } from '@/stores/sprint.store';
@@ -62,7 +62,8 @@ const totalBlockers = computed(() => {
 });
 
 const pilotTickets = computed(() => {
-  return ticketStore.getTicketsByProject('PILOT').slice(0, 5);
+  if (!pilotProject.value) return [];
+  return ticketStore.getTicketsByProject(pilotProject.value.key).slice(0, 5);
 });
 
 const deliveryRate = computed(() => {
@@ -89,7 +90,7 @@ const aiHealthScore = computed(() => {
   const unassignedUrgent = allTickets.value.filter(
     (t) => t.priority === 'Urgent' && (!t.assignee || t.assignee.name === 'Unassigned')
   ).length * 5;
-  return Math.round(Math.max(10, Math.min(99, 50 + (doneRatio * 0.5) - blockerPenalty - unassignedUrgent)));
+  return Math.round(Math.max(0, Math.min(100, doneRatio - blockerPenalty - unassignedUrgent)));
 });
 
 const aiInsight = computed(() => {
@@ -137,7 +138,7 @@ function openTicket(ticketKey) {
 
 function openCreateTicketModal() {
   if (authStore.isViewer) return;
-  ticketStore.openCreateModal('PILOT');
+  ticketStore.openCreateModal(pilotProject.value?.key || 'PILOT');
 }
 </script>
 
@@ -150,21 +151,15 @@ function openCreateTicketModal() {
         <p class="page-subtitle">Cross-project sprint velocity, blockers, and AI intelligence insights.</p>
       </div>
       <div class="page-header-actions">
-        <BaseButton variant="outline" size="sm" to="/projects">
+        <BaseButton
+          variant="outline"
+          size="sm"
+          to="/projects"
+          class="btn-liquid-glass"
+        >
           <template #prefix><AppIcon name="projects" :size="14" /></template>
           View Projects ({{ totalProjects }})
         </BaseButton>
-        <div :title="authStore.isViewer ? 'You do not have permission to create tickets (Requires DEVELOPER or higher role)' : ''">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="openCreateTicketModal"
-          >
-            <template #prefix><AppIcon name="plus" :size="14" /></template>
-            New Ticket
-          </BaseButton>
-        </div>
       </div>
     </div>
 
@@ -217,7 +212,17 @@ function openCreateTicketModal() {
 
       <div class="stat-card stat-ai-card">
         <div class="stat-header">
-          <span class="stat-label">AI Project Health</span>
+          <div class="stat-label-group">
+            <span class="stat-label">AI Project Health</span>
+            <button
+              type="button"
+              class="card-info-trigger"
+              title="Calculated delivery health score starting at 0% based on ticket completion rate (0-100%), penalized by active urgent blockers (-8% each) and unassigned urgent items (-5% each)."
+              aria-label="About AI Project Health calculation"
+            >
+              <AppIcon name="info" :size="13" />
+            </button>
+          </div>
           <BaseBadge variant="purple" size="sm">Gemini 1.5</BaseBadge>
         </div>
         <div class="stat-value ai-gradient-text">{{ aiHealthScore }}%</div>
@@ -303,17 +308,14 @@ function openCreateTicketModal() {
         <div class="quick-nav-links">
           <h4 class="quick-nav-title">Quick Workspace Access</h4>
           <div class="quick-nav-grid">
-            <router-link to="/projects/PILOT/board" class="quick-link-card">
+            <router-link
+              v-for="p in projectStore.allProjects"
+              :key="p.id"
+              :to="`/projects/${p.key}/board`"
+              class="quick-link-card"
+            >
               <AppIcon name="board" :size="18" />
-              <span>PILOT Board</span>
-            </router-link>
-            <router-link to="/projects/INFRA/board" class="quick-link-card">
-              <AppIcon name="cpu" :size="18" />
-              <span>INFRA Board</span>
-            </router-link>
-            <router-link to="/projects/MOBILE/board" class="quick-link-card">
-              <AppIcon name="phone" :size="18" />
-              <span>MOBILE Board</span>
+              <span>{{ p.key }} Board</span>
             </router-link>
             <router-link to="/team" class="quick-link-card">
               <AppIcon name="users" :size="18" />
@@ -380,8 +382,8 @@ function openCreateTicketModal() {
   background-color: var(--glass-bg-card);
   backdrop-filter: var(--glass-blur-sm);
   -webkit-backdrop-filter: var(--glass-blur-sm);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -402,6 +404,34 @@ function openCreateTicketModal() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.stat-label-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+
+.card-info-trigger:hover {
+  color: var(--color-primary-400);
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--glass-border-active);
+  transform: scale(1.08);
 }
 
 .stat-label {
@@ -442,9 +472,11 @@ function openCreateTicketModal() {
 }
 
 .content-panel {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
@@ -457,7 +489,7 @@ function openCreateTicketModal() {
   align-items: center;
   justify-content: space-between;
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 
 .panel-title {
@@ -482,8 +514,8 @@ function openCreateTicketModal() {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -491,7 +523,7 @@ function openCreateTicketModal() {
 
 .sample-ticket-row:hover {
   background-color: var(--bg-surface-hover);
-  border-color: var(--border-strong);
+  border-color: var(--glass-border);
   transform: translateX(2px);
 }
 
@@ -585,8 +617,8 @@ function openCreateTicketModal() {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -595,16 +627,11 @@ function openCreateTicketModal() {
 }
 
 .quick-link-card:hover {
-  background-color: var(--glass-bg-subtle);
-  border-color: var(--glass-border-subtle);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.quick-link-card:hover {
+  background: var(--glass-active-bg);
+  border-color: var(--glass-border-active);
   color: var(--color-primary-400);
-  background-color: var(--bg-surface-hover);
-  border-color: var(--border-strong);
+  box-shadow: var(--glass-active-glow);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 1024px) {

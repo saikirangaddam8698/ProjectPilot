@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useKnowledgeStore } from '@/stores/knowledge.store.js';
 import { useProjectStore } from '@/stores/project.store.js';
 import { useAuthStore } from '@/stores/auth.store.js';
@@ -9,10 +10,12 @@ import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const knowledgeStore = useKnowledgeStore();
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
+const route = useRoute();
 
 // Local UI state
 const selectedCategory = ref('ALL');
@@ -78,19 +81,41 @@ const filteredDocuments = computed(() => {
   return knowledgeStore.documents.filter((d) => d.documentType === selectedCategory.value);
 });
 
-onMounted(async () => {
-  if (projectStore.allProjects.length > 0 && !knowledgeStore.selectedProjectKey) {
-    knowledgeStore.selectedProjectKey = projectStore.allProjects[0].key;
+async function syncKnowledgeProject() {
+  const routeKey = route.params?.projectKey;
+  if (routeKey) {
+    if (knowledgeStore.selectedProjectKey !== routeKey) {
+      await knowledgeStore.setSelectedProject(routeKey);
+    } else if (knowledgeStore.documents.length === 0) {
+      await knowledgeStore.fetchDocuments(routeKey);
+    }
+    return;
   }
-  await knowledgeStore.fetchDocuments();
+
+  // Top-level /knowledge page: pick an accessible project for the user
+  const accessibleKeys = projectStore.allProjects.map((p) => p.key);
+  let targetKey = knowledgeStore.selectedProjectKey;
+  if (!targetKey || !accessibleKeys.includes(targetKey)) {
+    targetKey = projectStore.activeProjectKey || accessibleKeys[0] || null;
+  }
+
+  if (targetKey) {
+    if (knowledgeStore.selectedProjectKey !== targetKey) {
+      await knowledgeStore.setSelectedProject(targetKey);
+    } else if (knowledgeStore.documents.length === 0) {
+      await knowledgeStore.fetchDocuments(targetKey);
+    }
+  }
+}
+
+onMounted(async () => {
+  await syncKnowledgeProject();
 });
 
 watch(
-  () => projectStore.activeProjectKey,
-  (newKey) => {
-    if (newKey && newKey !== knowledgeStore.selectedProjectKey) {
-      knowledgeStore.setSelectedProject(newKey);
-    }
+  () => [route.params?.projectKey, projectStore.activeProjectKey, projectStore.allProjects.length],
+  async () => {
+    await syncKnowledgeProject();
   }
 );
 
@@ -322,17 +347,19 @@ function formatDate(iso) {
           </div>
         </div>
 
-        <div :title="authStore.isViewer ? 'Viewers cannot upload documents' : ''">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="openCreateModal"
-          >
-            <template #prefix><AppIcon name="plus" :size="14" /></template>
-            Upload Document
-          </BaseButton>
-        </div>
+        <RbacActionWrapper action="upload_document">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="openCreateModal"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              Upload Document
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </header>
 
@@ -661,27 +688,31 @@ function formatDate(iso) {
         <BaseButton variant="close" size="sm" @click="showDetailModal = false">
           Close
         </BaseButton>
-        <div :title="authStore.isViewer ? 'Viewers cannot edit documents' : ''">
-          <BaseButton
-            variant="outline"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="openEditModal(knowledgeStore.activeDocument)"
-          >
-            Edit
-          </BaseButton>
-        </div>
-        <div :title="authStore.isViewer ? 'Viewers cannot delete documents' : ''">
-          <BaseButton
-            variant="danger"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="promptDeleteDoc(knowledgeStore.activeDocument.id, knowledgeStore.activeDocument.title)"
-          >
-            <template #prefix><AppIcon name="trash" :size="13" /></template>
-            Delete
-          </BaseButton>
-        </div>
+        <RbacActionWrapper action="edit_document">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="outline"
+              size="sm"
+              :disabled="disabled"
+              @click="openEditModal(knowledgeStore.activeDocument)"
+            >
+              Edit
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
+        <RbacActionWrapper action="delete_document">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="danger"
+              size="sm"
+              :disabled="disabled"
+              @click="promptDeleteDoc(knowledgeStore.activeDocument.id, knowledgeStore.activeDocument.title)"
+            >
+              <template #prefix><AppIcon name="trash" :size="13" /></template>
+              Delete
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </template>
     </BaseModal>
 
@@ -822,18 +853,21 @@ function formatDate(iso) {
 
 .semantic-search-input {
   width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background: var(--glass-bg-subtle);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
   color: var(--text-primary);
   padding: 10px 36px 10px 36px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: 13px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .semantic-search-input:focus {
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--color-primary-500);
+  background: var(--glass-bg-elevated);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), 0 0 14px rgba(99, 102, 241, 0.15);
   outline: none;
 }
 
@@ -847,9 +881,12 @@ function formatDate(iso) {
 }
 
 .search-results-panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--brand-primary);
-  border-radius: var(--radius-md);
+  background: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border-glow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow-dropdown);
   padding: 12px;
 }
 
@@ -863,20 +900,23 @@ function formatDate(iso) {
 .search-results-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--brand-primary);
+  color: var(--color-primary-400);
 }
 
 .search-result-item {
-  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.03));
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  background: var(--glass-bg-subtle, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
   margin-bottom: 6px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .search-result-item:hover {
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(99, 102, 241, 0.14);
+  border-color: var(--glass-border-active);
+  transform: translateX(2px);
 }
 
 .result-top-row {
@@ -934,14 +974,15 @@ function formatDate(iso) {
 }
 
 .source-tag {
-  color: var(--brand-primary);
+  color: var(--color-primary-400);
   border-color: rgba(99, 102, 241, 0.25);
 }
 
 .no-search-results-panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   padding: 16px;
   display: flex;
   align-items: flex-start;
@@ -973,20 +1014,29 @@ function formatDate(iso) {
 }
 
 .category-tab {
-  background: transparent;
-  border: 1px solid var(--border-subtle);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border);
   color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  border-radius: var(--radius-lg);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
+.category-tab:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border-color: var(--glass-border-highlight);
+}
+
 .category-tab.active {
-  background: var(--brand-primary);
-  color: #ffffff;
-  border-color: var(--brand-primary);
+  background: var(--glass-active-bg);
+  color: var(--text-primary);
+  border-color: var(--glass-border-active);
+  box-shadow: var(--glass-active-glow);
+  font-weight: 600;
 }
 
 .docs-grid {
@@ -996,21 +1046,24 @@ function formatDate(iso) {
 }
 
 .doc-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .doc-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
 }
 
 .doc-card-header {

@@ -10,7 +10,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
   state: () => ({
     documents: [],
     activeDocument: null,
-    selectedProjectKey: 'PILOT',
+    selectedProjectKey: null,
     searchResults: [],
     searchQuery: '',
     isLoading: false,
@@ -33,6 +33,7 @@ export const useKnowledgeStore = defineStore('knowledge', {
      * Set active project key and fetch documents
      */
     async setSelectedProject(projectKey) {
+      if (!projectKey) return;
       if (this.selectedProjectKey === projectKey && this.documents.length > 0) {
         return;
       }

@@ -80,15 +80,22 @@ const { theme, isDark, setTheme } = useTheme();
         </div>
         <div class="card-body">
           <div class="form-row">
-            <label class="form-label">Primary AI Model</label>
-            <div class="model-select-wrapper">
-              <BaseInput value="Gemini 1.5 Pro / Flash" readonly size="sm" />
+            <div class="form-label-col">
+              <label class="form-label">Primary AI Model</label>
+              <span class="form-sublabel text-muted">Core generative reasoning & tool execution engine</span>
+            </div>
+            <div class="model-status-wrapper">
+              <span class="model-pill mono font-medium">Gemini 1.5 Pro / Flash</span>
+              <BaseBadge variant="success" size="sm" dot>Operational</BaseBadge>
             </div>
           </div>
 
           <div class="form-row">
-            <label class="form-label">Vector Search (pgvector)</label>
-            <div class="model-select-wrapper">
+            <div class="form-label-col">
+              <label class="form-label">Vector Search (pgvector)</label>
+              <span class="form-sublabel text-muted">PostgreSQL semantic indexing & embeddings</span>
+            </div>
+            <div class="model-status-wrapper">
               <BaseBadge variant="success" size="sm" dot>Connected (768 dimensions)</BaseBadge>
             </div>
           </div>
@@ -283,7 +290,30 @@ const { theme, isDark, setTheme } = useTheme();
   color: var(--text-primary);
 }
 
-.model-select-wrapper {
-  max-width: 260px;
+.form-label-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.form-sublabel {
+  font-size: var(--text-xs);
+}
+
+.model-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.model-pill {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  background: var(--glass-bg-subtle, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+  padding: 4px 10px;
+  border-radius: var(--radius-md, 7px);
 }
 </style>

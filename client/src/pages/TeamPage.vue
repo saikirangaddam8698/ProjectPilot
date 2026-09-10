@@ -15,6 +15,7 @@ import MemberDetailDrawer from '@/components/team/MemberDetailDrawer.vue';
 import InviteMemberModal from '@/components/team/InviteMemberModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const projectStore = useProjectStore();
 const ticketStore = useTicketStore();
@@ -205,17 +206,19 @@ function resetFilters() {
       </div>
 
       <div class="page-actions">
-        <div :title="!authStore.canManageWorkspaceMembers ? 'Only Workspace Admins can invite new team members' : ''">
-          <BaseButton
-            variant="primary"
-            size="md"
-            :disabled="!authStore.canManageWorkspaceMembers"
-            @click="handleInviteClick"
-          >
-            <template #prefix><AppIcon name="plus" :size="14" /></template>
-            Invite Member
-          </BaseButton>
-        </div>
+        <RbacActionWrapper action="invite_member">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="md"
+              :disabled="disabled"
+              @click="handleInviteClick"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              Invite Member
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 

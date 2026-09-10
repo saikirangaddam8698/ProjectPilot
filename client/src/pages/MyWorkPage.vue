@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useProjectStore } from '@/stores/project.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
@@ -10,6 +11,11 @@ import CreateTicketModal from '@/components/tickets/CreateTicketModal.vue';
 
 const authStore = useAuthStore();
 const ticketStore = useTicketStore();
+const projectStore = useProjectStore();
+
+const defaultProjectKey = computed(() => {
+  return projectStore.activeProject?.key || projectStore.allProjects[0]?.key || 'PILOT';
+});
 
 // Filter tickets assigned to current authenticated user
 const myTickets = computed(() => {
@@ -73,7 +79,7 @@ function getStatusBadgeVariant(status) {
           <BaseBadge variant="primary" size="md">{{ myTickets.length }} Assigned</BaseBadge>
           <BaseBadge v-if="inReviewCount > 0" variant="warning" size="md">{{ inReviewCount }} In Review</BaseBadge>
         </div>
-        <BaseButton variant="primary" size="sm" @click="ticketStore.openCreateModal('PILOT')">
+        <BaseButton variant="primary" size="sm" @click="ticketStore.openCreateModal(defaultProjectKey)">
           <template #prefix><AppIcon name="plus" :size="14" /></template>
           Create Ticket
         </BaseButton>
@@ -116,7 +122,7 @@ function getStatusBadgeVariant(status) {
     <TicketDetailDrawer />
     <CreateTicketModal
       :modelValue="ticketStore.isCreateModalOpen"
-      :projectKey="'PILOT'"
+      :projectKey="defaultProjectKey"
     />
   </div>
 </template>

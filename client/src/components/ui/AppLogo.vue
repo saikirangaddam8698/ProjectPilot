@@ -139,19 +139,20 @@ const logoDimensions = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 16px;
-  padding: 0 6px;
+  padding: 3px 8px;
+  min-height: 19px;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--font-weight-bold);
-  border-radius: var(--radius-xs);
-  background-color: rgba(245, 158, 11, 0.15);
+  border-radius: var(--radius-full, 9999px);
+  background-color: rgba(245, 158, 11, 0.16);
   color: var(--color-warning-500);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  letter-spacing: 0.05em;
-  line-height: 1;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  letter-spacing: 0.06em;
+  line-height: 1.2;
   text-align: center;
   box-sizing: border-box;
+  margin-left: 6px;
 }
 
 .title-sm {

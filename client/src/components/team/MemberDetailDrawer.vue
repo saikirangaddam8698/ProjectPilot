@@ -5,6 +5,7 @@ import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   modelValue: {
@@ -237,15 +238,23 @@ function handleClose() {
 
     <template #footer>
       <div class="modal-footer-actions">
-        <BaseButton
+        <RbacActionWrapper
           v-if="projectKey"
-          variant="outline"
-          size="sm"
-          class="btn-remove-member"
-          @click="$emit('remove', member)"
+          action="remove_project_member"
+          :context="{ projectKey }"
         >
-          Remove from {{ projectKey }}
-        </BaseButton>
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="outline"
+              size="sm"
+              class="btn-remove-member"
+              :disabled="disabled"
+              @click="$emit('remove', member)"
+            >
+              Remove from {{ projectKey }}
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
         <div v-else></div>
         <BaseButton variant="primary" size="sm" @click="handleClose">
           Done

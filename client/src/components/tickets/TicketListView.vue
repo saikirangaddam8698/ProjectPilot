@@ -12,6 +12,7 @@ import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.v
 import TicketDetailDrawer from './TicketDetailDrawer.vue';
 import CreateTicketModal from './CreateTicketModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   projectKey: {
@@ -172,17 +173,19 @@ function getPriorityBadgeVariant(p) {
       </div>
 
       <div class="toolbar-right">
-        <div :title="authStore.isViewer ? 'Viewers cannot create tickets' : ''">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="ticketStore.openCreateModal(projectKey || 'PILOT')"
-          >
-            <template #prefix><AppIcon name="plus" :size="14" /></template>
-            Create Ticket
-          </BaseButton>
-        </div>
+        <RbacActionWrapper action="create_ticket">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="ticketStore.openCreateModal(projectKey || 'PILOT')"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              New Ticket
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 
@@ -372,9 +375,17 @@ function getPriorityBadgeVariant(p) {
 }
 
 .tickets-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: 12px var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.td-type,
+.td-status,
+.td-priority {
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .ticket-table-row {

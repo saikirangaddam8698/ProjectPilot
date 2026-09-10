@@ -24,14 +24,9 @@ const searchInput = ref('');
 
 function handleGlobalKeydown(e) {
   // Command + K or Ctrl + K for search palette
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    if (uiStore.isSearchModalOpen) {
-      uiStore.closeSearchModal();
-    } else {
-      searchInput.value = '';
-      uiStore.openSearchModal();
-    }
+    uiStore.toggleSearchModal();
   }
 
   // Ctrl + [ to toggle sidebar collapse
@@ -56,10 +51,12 @@ function handleOpenTicket(ticketKey) {
 // Filtered items in Command Palette
 const filteredNavItems = computed(() => {
   const q = searchInput.value.toLowerCase().trim();
-  if (!q) return NAVIGATION_GROUPS;
 
   return NAVIGATION_GROUPS.map((group) => {
     const items = group.items.filter((item) => {
+      if (item.path === '/settings' && !authStore.isAdmin) return false;
+      if (item.path === '/knowledge' && !authStore.isAdmin && !authStore.isProjectManager) return false;
+      if (!q) return true;
       return item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
     });
     return { ...group, items };
@@ -82,17 +79,85 @@ const filteredTickets = computed(() => {
   }).slice(0, 5);
 });
 
+// =========================================================================
+// Global Universal Liquid Glass Tooltip System
+// Intercepts [title] and [data-tooltip] to replace ugly OS black boxes
+// =========================================================================
+const tooltipVisible = ref(false);
+const tooltipText = ref('');
+const tooltipPos = ref({ top: 0, left: 0, placement: 'bottom' });
+let currentTooltipTarget = null;
+let tooltipTimer = null;
+
+function handleGlobalMouseOver(e) {
+  const target = e.target?.closest ? e.target.closest('[data-tooltip], [title], [data-title]') : null;
+  if (!target) return;
+
+  const rawText = target.getAttribute('data-tooltip') || target.getAttribute('title') || target.getAttribute('data-title');
+  if (!rawText || !rawText.trim()) return;
+
+  // Stash title to data-title and remove title attribute to prevent native browser black rectangle
+  if (target.hasAttribute('title')) {
+    target.setAttribute('data-title', target.getAttribute('title'));
+    target.removeAttribute('title');
+  }
+
+  currentTooltipTarget = target;
+  clearTimeout(tooltipTimer);
+  tooltipTimer = setTimeout(() => {
+    if (currentTooltipTarget !== target) return;
+    const rect = target.getBoundingClientRect();
+    const text = target.getAttribute('data-tooltip') || target.getAttribute('data-title');
+    if (!text) return;
+    tooltipText.value = text;
+
+    let top = rect.bottom + 6;
+    let placement = 'bottom';
+    if (top + 60 > window.innerHeight) {
+      top = Math.max(8, rect.top - 50);
+      placement = 'top';
+    }
+    let left = rect.left + rect.width / 2;
+    const maxHalfWidth = 155;
+    left = Math.max(maxHalfWidth + 12, Math.min(window.innerWidth - maxHalfWidth - 12, left));
+
+    tooltipPos.value = { top, left, placement };
+    tooltipVisible.value = true;
+  }, 160);
+}
+
+function handleGlobalMouseOut(e) {
+  const target = e.target?.closest ? e.target.closest('[data-tooltip], [data-title]') : null;
+  if (target && target === currentTooltipTarget) {
+    clearTimeout(tooltipTimer);
+    tooltipVisible.value = false;
+    currentTooltipTarget = null;
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown);
+  document.addEventListener('mouseover', handleGlobalMouseOver, true);
+  document.addEventListener('mouseout', handleGlobalMouseOut, true);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleGlobalKeydown);
+  document.removeEventListener('mouseover', handleGlobalMouseOver, true);
+  document.removeEventListener('mouseout', handleGlobalMouseOut, true);
+  clearTimeout(tooltipTimer);
 });
 </script>
 
 <template>
   <div class="app-layout-container">
+    <!-- Atmospheric Ambient Background Lighting (Liquid Glass Depth) -->
+    <div class="app-ambient-bg" aria-hidden="true">
+      <div class="ambient-glow glow-cyan"></div>
+      <div class="ambient-glow glow-indigo"></div>
+      <div class="ambient-glow glow-purple"></div>
+    </div>
+
     <!-- Desktop Sidebar (Hidden on mobile) -->
     <div class="desktop-sidebar-wrapper">
       <AppSidebar />
@@ -243,11 +308,26 @@ onUnmounted(() => {
     <!-- Global Floating AI Quick Chat Widget -->
     <FloatingAIButton />
     <AIQuickChat />
+
+    <!-- Universal ProjectPilot Liquid Glass Tooltip Bubble -->
+    <Transition name="glass-tooltip-fade">
+      <div
+        v-if="tooltipVisible && tooltipText"
+        class="liquid-glass-tooltip"
+        :class="`placement-${tooltipPos.placement}`"
+        :style="{ top: `${tooltipPos.top}px`, left: `${tooltipPos.left}px` }"
+        role="tooltip"
+        aria-hidden="true"
+      >
+        <span class="tooltip-bubble-text">{{ tooltipText }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
 .app-layout-container {
+  position: relative;
   display: flex;
   height: 100vh;
   width: 100%;
@@ -257,6 +337,58 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
+/* Atmospheric Ambient Background Glow (Liquid Glass Depth) */
+.app-ambient-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.ambient-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+}
+
+.glow-cyan {
+  top: 5%;
+  right: 15%;
+  width: 500px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.07) 0%, transparent 70%);
+}
+
+.glow-indigo {
+  top: 35%;
+  right: 25%;
+  width: 600px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.09) 0%, transparent 70%);
+}
+
+.glow-purple {
+  bottom: 5%;
+  left: 10%;
+  width: 550px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+}
+
+:root[data-theme='light'] .glow-cyan {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.04) 0%, transparent 70%);
+}
+
+:root[data-theme='light'] .glow-indigo {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+}
+
+:root[data-theme='light'] .glow-purple {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.03) 0%, transparent 70%);
+}
+
 .desktop-sidebar-wrapper {
   display: flex;
   flex-direction: column;
@@ -264,12 +396,12 @@ onUnmounted(() => {
   height: 100vh;
   max-height: 100vh;
   z-index: var(--z-sidebar, 40);
-  background-color: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
+  background-color: transparent;
   overflow: hidden;
 }
 
 .app-main-column {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -277,12 +409,13 @@ onUnmounted(() => {
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
+  z-index: 1;
 }
 
 .page-content-wrapper {
   flex: 1;
   padding: var(--space-6);
-  background-color: var(--bg-app);
+  background-color: transparent;
   max-width: 1600px;
   width: 100%;
   margin: 0 auto;
@@ -328,7 +461,7 @@ onUnmounted(() => {
 .command-section-label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   font-weight: var(--font-weight-semibold);
   color: var(--text-muted);
   padding: var(--space-1) var(--space-2);
@@ -338,16 +471,18 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  border-radius: var(--radius-lg, 10px);
   cursor: pointer;
   border: 1px solid transparent;
+  background-color: transparent;
   transition: all var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .command-item:hover {
-  background-color: var(--glass-bg-subtle);
-  border-color: var(--glass-border-subtle);
+  background-color: var(--glass-active-bg, rgba(99, 102, 241, 0.12));
+  border-color: var(--glass-border-glow);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
   transform: translateX(2px);
 }
 
@@ -362,12 +497,13 @@ onUnmounted(() => {
 .project-badge-icon {
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-xs);
-  background-color: var(--color-primary-600);
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500));
   color: #FFFFFF;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: var(--font-weight-bold);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
 }
 
 .command-item-text {
@@ -391,8 +527,8 @@ onUnmounted(() => {
 
 .proj-key-pill {
   font-size: 10px;
-  padding: 1px 4px;
-  background-color: var(--bg-surface);
+  padding: 1px 5px;
+  background-color: var(--glass-bg-subtle);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xs);
   color: var(--text-muted);
@@ -415,8 +551,8 @@ onUnmounted(() => {
 .command-kbd {
   font-family: var(--font-mono);
   font-size: 10px;
-  padding: 1px 5px;
-  background-color: var(--bg-surface);
+  padding: 2px 6px;
+  background-color: var(--glass-bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xs);
   color: var(--text-muted);
@@ -426,6 +562,46 @@ onUnmounted(() => {
   text-align: center;
   padding: var(--space-6);
   font-size: var(--text-sm);
+}
+
+/* ==========================================================================
+   Universal Liquid Glass Tooltip Bubble
+   ========================================================================== */
+.liquid-glass-tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip, 100);
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: var(--glass-bg-elevated, rgba(18, 24, 38, 0.92));
+  backdrop-filter: var(--glass-blur-md, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur-md, blur(16px));
+  border: 1px solid var(--glass-border-glow, rgba(147, 197, 253, 0.22));
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 0 12px rgba(99, 102, 241, 0.2);
+  color: var(--text-primary, #f3f4f6);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  padding: 6px 12px;
+  border-radius: var(--radius-md, 8px);
+  max-width: 290px;
+  white-space: normal;
+  word-break: break-word;
+  user-select: none;
+  text-align: left;
+}
+
+.glass-tooltip-fade-enter-active,
+.glass-tooltip-fade-leave-active {
+  transition: opacity 140ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-tooltip-fade-enter-from,
+.glass-tooltip-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(3px) scale(0.96);
 }
 
 /* Responsive */

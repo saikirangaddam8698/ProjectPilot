@@ -240,9 +240,11 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  background: var(--select-bg, var(--bg-surface));
+  background: var(--glass-bg-subtle, var(--bg-surface));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
-  border: 1px solid var(--select-border, var(--border-default));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   font-family: var(--font-sans);
   font-weight: 500;
@@ -275,14 +277,15 @@ onBeforeUnmount(() => {
 }
 
 .base-select-trigger:hover:not(:disabled) {
-  border-color: var(--brand-primary, #6366f1);
-  background-color: var(--bg-surface-elevated, var(--bg-surface));
+  border-color: var(--glass-border-active);
+  background-color: var(--glass-bg-elevated);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.15);
 }
 
 .base-select-wrapper.is-open .base-select-trigger,
 .base-select-trigger:focus-visible {
-  border-color: var(--brand-primary, #6366f1);
-  box-shadow: 0 0 0 2px var(--select-focus-ring, rgba(99, 102, 241, 0.25));
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), 0 0 14px rgba(99, 102, 241, 0.2);
 }
 
 .base-select-label {
@@ -312,7 +315,7 @@ onBeforeUnmount(() => {
 
 .base-select-chevron.is-open {
   transform: rotate(180deg);
-  color: var(--brand-primary);
+  color: var(--color-primary-400);
 }
 
 /* Liquid Glass Menu Popup */
@@ -320,17 +323,17 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   width: 100%;
-  min-width: 170px;
-  max-height: 250px;
+  min-width: 180px;
+  max-height: 260px;
   overflow-y: auto;
   z-index: 1000;
-  background: var(--glass-bg-elevated, rgba(15, 23, 42, 0.96));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border-glow, rgba(99, 102, 241, 0.25));
-  border-radius: var(--radius-lg, 8px);
-  box-shadow: var(--glass-shadow-modal, 0 12px 28px -6px rgba(0, 0, 0, 0.35));
-  padding: 4px;
+  background: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border-glow);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow-dropdown);
+  padding: 5px;
 }
 
 .base-select-menu.placement-bottom {
@@ -355,23 +358,25 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 7px 10px;
-  border-radius: var(--radius-md, 6px);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 12.5px;
   color: var(--text-primary);
-  transition: background 0.12s ease, color 0.12s ease;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   user-select: none;
 }
 
 .base-select-option:hover:not(.is-disabled),
 .base-select-option.is-focused:not(.is-disabled) {
-  background: rgba(99, 102, 241, 0.14);
-  color: var(--brand-primary);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--text-primary);
 }
 
 .base-select-option.is-selected {
-  background: rgba(99, 102, 241, 0.2);
-  color: var(--brand-primary);
+  background: var(--glass-active-bg);
+  color: var(--color-primary-400);
+  border-color: var(--glass-border-active);
   font-weight: 600;
 }
 
@@ -389,7 +394,7 @@ onBeforeUnmount(() => {
 .option-check {
   display: flex;
   align-items: center;
-  color: var(--brand-primary);
+  color: var(--color-primary-400);
   margin-left: 8px;
   flex-shrink: 0;
 }

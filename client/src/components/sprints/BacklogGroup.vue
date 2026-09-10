@@ -7,6 +7,7 @@ import BacklogTicketRow from './BacklogTicketRow.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   title: {
@@ -171,46 +172,54 @@ function getCapacityBadgeVariant(state) {
 
         <div class="group-actions">
           <!-- Active Sprint Action -->
-          <div
+          <RbacActionWrapper
             v-if="sprint?.status === 'active'"
-            :title="!authStore.canManageProject(projectKey) ? 'Only Project Managers and Admins can complete sprints' : ''"
+            action="complete_sprint"
+            :context="{ projectKey }"
           >
-            <BaseButton
-              variant="outline"
-              size="xs"
-              :disabled="!authStore.canManageProject(projectKey)"
-              @click="$emit('complete-sprint', sprint)"
-            >
-              Complete Sprint
-            </BaseButton>
-          </div>
+            <template #default="{ disabled }">
+              <BaseButton
+                variant="outline"
+                size="xs"
+                :disabled="disabled"
+                @click="$emit('complete-sprint', sprint)"
+              >
+                Complete Sprint
+              </BaseButton>
+            </template>
+          </RbacActionWrapper>
 
           <!-- Planned Sprint Action -->
-          <div
+          <RbacActionWrapper
             v-else-if="sprint?.status === 'planned'"
-            :title="!authStore.canManageProject(projectKey) ? 'Only Project Managers and Admins can start sprints' : ''"
+            action="start_sprint"
+            :context="{ projectKey }"
           >
-            <BaseButton
-              variant="primary"
-              size="xs"
-              :disabled="!authStore.canManageProject(projectKey)"
-              @click="$emit('start-sprint', sprint)"
-            >
-              Start Sprint
-            </BaseButton>
-          </div>
+            <template #default="{ disabled }">
+              <BaseButton
+                variant="primary"
+                size="xs"
+                :disabled="disabled"
+                @click="$emit('start-sprint', sprint)"
+              >
+                Start Sprint
+              </BaseButton>
+            </template>
+          </RbacActionWrapper>
 
-          <div :title="authStore.isViewer ? 'Viewers cannot create issues' : ''">
-            <BaseButton
-              variant="ghost"
-              size="xs"
-              :disabled="authStore.isViewer"
-              @click="$emit('create-ticket', sprint ? sprint.id : null)"
-            >
-              <template #prefix><AppIcon name="plus" :size="12" /></template>
-              Add Issue
-            </BaseButton>
-          </div>
+          <RbacActionWrapper action="create_ticket">
+            <template #default="{ disabled }">
+              <BaseButton
+                variant="ghost"
+                size="xs"
+                :disabled="disabled"
+                @click="$emit('create-ticket', sprint ? sprint.id : null)"
+              >
+                <template #prefix><AppIcon name="plus" :size="12" /></template>
+                Add Issue
+              </BaseButton>
+            </template>
+          </RbacActionWrapper>
         </div>
       </div>
     </div>

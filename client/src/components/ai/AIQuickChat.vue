@@ -780,16 +780,21 @@ onUnmounted(() => {
 }
 
 .user-bubble {
-  background-color: var(--color-primary-600, #4f46e5);
-  color: #ffffff;
-  border-bottom-right-radius: 2px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.24), rgba(99, 102, 241, 0.32));
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.12);
+  border-bottom-right-radius: 4px;
 }
 
 .ai-bubble {
-  background-color: var(--bg-surface-elevated, rgba(23, 27, 33, 0.88));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  color: var(--text-primary, #f3f4f6);
-  border-bottom-left-radius: 2px;
+  background-color: var(--glass-bg-subtle, rgba(255, 255, 255, 0.04));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* Formatted message elements */
@@ -979,8 +984,10 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
-  background-color: var(--glass-bg-input, rgba(17, 20, 24, 0.65));
-  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.12));
+  background-color: var(--glass-bg-subtle, rgba(17, 20, 24, 0.65));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg, 12px);
   padding: 6px 8px 6px 12px;
   transition: border-color 160ms ease, box-shadow 160ms ease;
@@ -988,7 +995,7 @@ onUnmounted(() => {
 
 .input-container:focus-within {
   border-color: var(--color-primary-500, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), 0 0 12px rgba(99, 102, 241, 0.15);
 }
 
 .chat-textarea {

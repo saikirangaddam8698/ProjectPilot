@@ -13,6 +13,7 @@ import BaseInput from '@/components/ui/BaseInput.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   projectKey: {
@@ -240,17 +241,19 @@ function handleRetry() {
       </div>
 
       <div class="toolbar-right">
-        <div :title="authStore.isViewer ? 'Viewers cannot create tickets' : ''">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="openCreateModal"
-          >
-            <template #prefix><AppIcon name="plus" :size="14" /></template>
-            Create Ticket
-          </BaseButton>
-        </div>
+        <RbacActionWrapper action="create_ticket">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="openCreateModal"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              Create Ticket
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 

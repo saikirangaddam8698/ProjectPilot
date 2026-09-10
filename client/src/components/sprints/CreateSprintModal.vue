@@ -48,42 +48,57 @@ const errors = ref({
 
 const isEditing = computed(() => !!sprintStore.editingSprint);
 
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (isOpen) {
-      if (sprintStore.editingSprint) {
-        const s = sprintStore.editingSprint;
-        selectedProjectKey.value = s.projectKey;
-        form.value = {
-          name: s.name,
-          goal: s.goal,
-          startDate: s.startDate,
-          endDate: s.endDate,
-          capacity: s.capacity || 30
-        };
-      } else {
-        const defaultKey = projectStore.activeProject?.key || projectStore.allProjects[0]?.key || 'PILOT';
-        const candidateKey = props.projectKey || sprintStore.createModalProjectKey || defaultKey;
-        const isCandidateAccessible = projectStore.allProjects.some((p) => p.key.toUpperCase() === candidateKey.toUpperCase());
-        const targetKey = isCandidateAccessible ? candidateKey : defaultKey;
-        selectedProjectKey.value = targetKey;
-        const defaultStart = new Date().toISOString().slice(0, 10);
-        const defaultEnd = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
-        const existingCount = sprintStore.getSprintsByProject(targetKey).length;
+const isModalOpen = computed(() => props.modelValue || sprintStore.isCreateModalOpen);
 
-        form.value = {
-          name: `Sprint ${existingCount + 24}`,
-          goal: '',
-          startDate: defaultStart,
-          endDate: defaultEnd,
-          capacity: 35
-        };
-      }
-      errors.value = { name: '', goal: '', dates: '', project: '' };
+function populateForm() {
+  if (sprintStore.editingSprint) {
+    const s = sprintStore.editingSprint;
+    selectedProjectKey.value = s.projectKey;
+    form.value = {
+      name: s.name || '',
+      goal: s.goal || '',
+      startDate: s.startDate || '',
+      endDate: s.endDate || '',
+      capacity: s.capacity ?? 30
+    };
+  } else {
+    const defaultKey = projectStore.activeProject?.key || projectStore.allProjects[0]?.key || 'PILOT';
+    const candidateKey = props.projectKey || sprintStore.createModalProjectKey || defaultKey;
+    const isCandidateAccessible = projectStore.allProjects.some((p) => p.key.toUpperCase() === candidateKey.toUpperCase());
+    const targetKey = isCandidateAccessible ? candidateKey : defaultKey;
+    selectedProjectKey.value = targetKey;
+    const defaultStart = new Date().toISOString().slice(0, 10);
+    const defaultEnd = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+    const existingCount = sprintStore.getSprintsByProject(targetKey).length;
+
+    form.value = {
+      name: `Sprint ${existingCount + 24}`,
+      goal: '',
+      startDate: defaultStart,
+      endDate: defaultEnd,
+      capacity: 35
+    };
+  }
+  errors.value = { name: '', goal: '', dates: '', project: '' };
+}
+
+watch(
+  isModalOpen,
+  (open) => {
+    if (open) {
+      populateForm();
     }
   },
   { immediate: true }
+);
+
+watch(
+  () => sprintStore.editingSprint,
+  () => {
+    if (isModalOpen.value) {
+      populateForm();
+    }
+  }
 );
 
 function validate() {

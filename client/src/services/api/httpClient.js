@@ -65,8 +65,8 @@ async function request(endpoint, { method = 'GET', body = null, params = null, h
         }
       }
 
-      // Notify application if access is denied / restricted (403 Forbidden)
-      if (response.status === 403) {
+      // Notify application if access is denied / restricted on non-GET mutation operations (403 Forbidden)
+      if (response.status === 403 && method !== 'GET') {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('projectpilot:access-denied', {
             detail: {

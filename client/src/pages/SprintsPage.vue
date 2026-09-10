@@ -12,6 +12,7 @@ import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const sprintStore = useSprintStore();
 const projectStore = useProjectStore();
@@ -121,10 +122,22 @@ async function handleConfirmDeleteSprint() {
           />
         </div>
 
-        <BaseButton variant="primary" size="sm" @click="sprintStore.openCreateModal(selectedProject !== 'all' ? selectedProject : 'PILOT')">
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Plan New Sprint
-        </BaseButton>
+        <RbacActionWrapper
+          action="plan_sprint"
+          :context="{ projectKey: selectedProject !== 'all' ? selectedProject : '' }"
+        >
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="sprintStore.openCreateModal(selectedProject !== 'all' ? selectedProject : 'PILOT')"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              Plan New Sprint
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 

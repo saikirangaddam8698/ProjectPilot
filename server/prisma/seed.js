@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 
 import bcrypt from 'bcryptjs';
 import { seedKnowledgeBase } from '../scripts/seed-knowledge.js';
+import { SEED_TICKETS } from './seed-tickets.js';
+export { SEED_TICKETS };
 
 // Deterministic default development password for all seed accounts
 export const DEFAULT_DEV_PASSWORD = 'PilotPass123!';
@@ -55,6 +57,13 @@ export const SEED_USERS = [
     passwordHash: DEFAULT_PASSWORD_HASH,
     role: 'VIEWER',
     memberId: 'm-6'
+  },
+  {
+    id: 'u-7',
+    email: 'demo@projectpilot.dev',
+    passwordHash: DEFAULT_PASSWORD_HASH,
+    role: 'DEVELOPER',
+    memberId: 'm-7'
   }
 ];
 
@@ -124,6 +133,17 @@ export const SEED_MEMBERS = [
     status: MemberStatus.OFFLINE,
     skills: ['End-to-End Testing', 'Security Triage', 'Performance Benchmarks', 'Playwright'],
     capacity: 14
+  },
+  {
+    id: 'm-7',
+    name: 'Demo Contributor',
+    avatar: 'DC',
+    email: 'demo@projectpilot.dev',
+    role: 'Developer',
+    department: 'Mobile Delivery Platform',
+    status: MemberStatus.ACTIVE,
+    skills: ['Vue 3', 'TypeScript', 'Tailwind', 'REST APIs', 'Vite'],
+    capacity: 20
   }
 ];
 
@@ -156,7 +176,7 @@ export const SEED_PROJECTS = [
     status: ProjectStatus.ACTIVE,
     leadId: 'm-4',
     createdAt: new Date('2026-08-15T11:00:00.000Z'),
-    memberIds: ['m-4', 'm-2', 'm-5', 'm-6']
+    memberIds: ['m-4', 'm-2', 'm-5', 'm-6', 'm-7']
   }
 ];
 
@@ -252,317 +272,7 @@ export const SEED_SPRINTS = [
   }
 ];
 
-export const SEED_TICKETS = [
-  // PILOT Tickets
-  {
-    id: 't-pilot-89',
-    key: 'PILOT-89',
-    projectId: 'proj-pilot',
-    title: 'Fix race condition in drag-and-drop Kanban column reordering',
-    description: 'When dragging multiple cards rapidly between columns, state mutations can collide before store commit.',
-    type: TicketType.BUG,
-    status: TicketStatus.TODO,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-1',
-    reporterId: 'm-2',
-    sprintId: 'sprint-pilot-24',
-    storyPoints: 3,
-    rank: 100,
-    labels: ['frontend', 'kanban', 'ui'],
-    dueDate: new Date('2026-09-02T00:00:00.000Z'),
-    createdAt: new Date('2026-08-20T10:00:00.000Z'),
-    updatedAt: new Date('2026-08-28T16:00:00.000Z')
-  },
-  {
-    id: 't-pilot-92',
-    key: 'PILOT-92',
-    projectId: 'proj-pilot',
-    title: 'Implement pgvector document chunking and indexing script',
-    description: 'Create markdown parsing pipeline that splits technical docs into 500-token chunks with 50-token overlap for vector embeddings.',
-    type: TicketType.TASK,
-    status: TicketStatus.DONE,
-    priority: TicketPriority.MEDIUM,
-    assigneeId: 'm-3',
-    reporterId: 'm-1',
-    sprintId: 'sprint-pilot-24',
-    storyPoints: 5,
-    rank: 200,
-    labels: ['ai', 'rag', 'database'],
-    dueDate: new Date('2026-08-26T00:00:00.000Z'),
-    createdAt: new Date('2026-08-18T08:30:00.000Z'),
-    updatedAt: new Date('2026-08-27T11:20:00.000Z')
-  },
-  {
-    id: 't-pilot-98',
-    key: 'PILOT-98',
-    projectId: 'proj-pilot',
-    title: 'Streaming SSE handler for Gemini Assistant chat responses',
-    description: 'Implement Server-Sent Events stream pipeline so the Vue frontend can render tokens in real-time as Gemini generates them.',
-    type: TicketType.STORY,
-    status: TicketStatus.IN_REVIEW,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-1',
-    reporterId: 'm-5',
-    sprintId: 'sprint-pilot-24',
-    storyPoints: 8,
-    rank: 300,
-    labels: ['ai', 'streaming', 'frontend'],
-    dueDate: new Date('2026-09-03T00:00:00.000Z'),
-    createdAt: new Date('2026-08-22T14:15:00.000Z'),
-    updatedAt: new Date('2026-08-30T09:40:00.000Z')
-  },
-  {
-    id: 't-pilot-104',
-    key: 'PILOT-104',
-    projectId: 'proj-pilot',
-    title: 'PostgreSQL connection pool exhaustion under load',
-    description: 'Under heavy concurrent test traffic, the connection pool exceeds max_connections limit, resulting in 500 error responses on the auth route.',
-    type: TicketType.BUG,
-    status: TicketStatus.IN_PROGRESS,
-    priority: TicketPriority.URGENT,
-    assigneeId: 'm-2',
-    reporterId: 'm-6',
-    sprintId: 'sprint-pilot-24',
-    storyPoints: 5,
-    rank: 400,
-    labels: ['database', 'performance', 'critical'],
-    dueDate: new Date('2026-08-31T00:00:00.000Z'),
-    createdAt: new Date('2026-08-25T11:00:00.000Z'),
-    updatedAt: new Date('2026-08-30T10:00:00.000Z')
-  },
-  {
-    id: 't-pilot-112',
-    key: 'PILOT-112',
-    projectId: 'proj-pilot',
-    title: 'Design responsive navigation shell and design token system',
-    description: 'Establish CSS custom properties, light/dark theme variables, and responsive collapsible sidebar.',
-    type: TicketType.TASK,
-    status: TicketStatus.IN_PROGRESS,
-    priority: TicketPriority.MEDIUM,
-    assigneeId: 'm-4',
-    reporterId: 'm-1',
-    sprintId: 'sprint-pilot-24',
-    storyPoints: 3,
-    rank: 500,
-    labels: ['ui', 'design-system', 'css'],
-    dueDate: new Date('2026-09-01T00:00:00.000Z'),
-    createdAt: new Date('2026-08-26T09:00:00.000Z'),
-    updatedAt: new Date('2026-08-29T18:00:00.000Z')
-  },
-  {
-    id: 't-pilot-118',
-    key: 'PILOT-118',
-    projectId: 'proj-pilot',
-    title: 'Multi-tenant role permission policies for project settings',
-    description: 'Define RBAC middleware enforcing Project Admin, Developer, and Viewer access boundaries on API endpoints.',
-    type: TicketType.STORY,
-    status: TicketStatus.BACKLOG,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-1',
-    reporterId: 'm-1',
-    sprintId: null,
-    storyPoints: 5,
-    rank: 600,
-    labels: ['security', 'rbac', 'backend'],
-    dueDate: new Date('2026-09-10T00:00:00.000Z'),
-    createdAt: new Date('2026-08-28T13:00:00.000Z'),
-    updatedAt: new Date('2026-08-28T13:00:00.000Z')
-  },
-  {
-    id: 't-pilot-120',
-    key: 'PILOT-120',
-    projectId: 'proj-pilot',
-    title: 'Add automated database seed scripts for local development',
-    description: 'Write npm run db:seed script creating deterministic demo users, workspaces, and ticket histories.',
-    type: TicketType.TASK,
-    status: TicketStatus.BACKLOG,
-    priority: TicketPriority.MEDIUM,
-    assigneeId: 'm-3',
-    reporterId: 'm-2',
-    sprintId: null,
-    storyPoints: 2,
-    rank: 700,
-    labels: ['dx', 'database'],
-    dueDate: new Date('2026-09-12T00:00:00.000Z'),
-    createdAt: new Date('2026-08-29T10:00:00.000Z'),
-    updatedAt: new Date('2026-08-29T10:00:00.000Z')
-  },
-  {
-    id: 't-pilot-122',
-    key: 'PILOT-122',
-    projectId: 'proj-pilot',
-    title: 'Markdown live preview sync with document chunking index',
-    description: 'Ensure saving document edits triggers re-chunking and vector re-indexing automatically in the background.',
-    type: TicketType.STORY,
-    status: TicketStatus.TODO,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-5',
-    reporterId: 'm-1',
-    sprintId: 'sprint-pilot-25',
-    storyPoints: 8,
-    rank: 800,
-    labels: ['ai', 'docs', 'rag'],
-    dueDate: new Date('2026-09-05T00:00:00.000Z'),
-    createdAt: new Date('2026-08-29T15:30:00.000Z'),
-    updatedAt: new Date('2026-08-29T15:30:00.000Z')
-  },
-
-  // INFRA Tickets
-  {
-    id: 't-infra-14',
-    key: 'INFRA-14',
-    projectId: 'proj-infra',
-    title: 'Provision staging Kubernetes cluster with GPU node pool',
-    description: 'Set up cluster nodes with NVIDIA driver operator for local embedding model inference experiments.',
-    type: TicketType.TASK,
-    status: TicketStatus.IN_PROGRESS,
-    priority: TicketPriority.URGENT,
-    assigneeId: 'm-3',
-    reporterId: 'm-1',
-    sprintId: 'sprint-infra-12',
-    storyPoints: 5,
-    rank: 100,
-    labels: ['kubernetes', 'cloud', 'gpu'],
-    dueDate: new Date('2026-09-02T00:00:00.000Z'),
-    createdAt: new Date('2026-08-22T09:00:00.000Z'),
-    updatedAt: new Date('2026-08-29T17:00:00.000Z')
-  },
-  {
-    id: 't-infra-16',
-    key: 'INFRA-16',
-    projectId: 'proj-infra',
-    title: 'Configure TLS certificate rotation on ingress gateway',
-    description: 'Automate Let’s Encrypt cert-manager renewals and configure HTTP to HTTPS redirection.',
-    type: TicketType.TASK,
-    status: TicketStatus.TODO,
-    priority: TicketPriority.MEDIUM,
-    assigneeId: 'm-3',
-    reporterId: 'm-3',
-    sprintId: 'sprint-infra-12',
-    storyPoints: 3,
-    rank: 200,
-    labels: ['security', 'ssl', 'networking'],
-    dueDate: new Date('2026-09-06T00:00:00.000Z'),
-    createdAt: new Date('2026-08-24T11:00:00.000Z'),
-    updatedAt: new Date('2026-08-24T11:00:00.000Z')
-  },
-  {
-    id: 't-infra-18',
-    key: 'INFRA-18',
-    projectId: 'proj-infra',
-    title: 'Automated database backup snapshots to S3-compatible storage',
-    description: 'Schedule daily WAL-G backup scripts with retention policy of 30 days and point-in-time recovery test.',
-    type: TicketType.STORY,
-    status: TicketStatus.BACKLOG,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-2',
-    reporterId: 'm-3',
-    sprintId: null,
-    storyPoints: 8,
-    rank: 300,
-    labels: ['database', 'storage', 'backup'],
-    dueDate: new Date('2026-09-15T00:00:00.000Z'),
-    createdAt: new Date('2026-08-26T14:00:00.000Z'),
-    updatedAt: new Date('2026-08-26T14:00:00.000Z')
-  },
-  {
-    id: 't-infra-20',
-    key: 'INFRA-20',
-    projectId: 'proj-infra',
-    title: 'Set up Prometheus and Grafana alerts for high memory usage',
-    description: 'Create alertmanager rules notifying on pod restarts or memory consumption > 85% for 5 minutes.',
-    type: TicketType.TASK,
-    status: TicketStatus.DONE,
-    priority: TicketPriority.LOW,
-    assigneeId: 'm-6',
-    reporterId: 'm-3',
-    sprintId: 'sprint-infra-11',
-    storyPoints: 2,
-    rank: 400,
-    labels: ['observability', 'monitoring'],
-    dueDate: new Date('2026-08-25T00:00:00.000Z'),
-    createdAt: new Date('2026-08-19T10:00:00.000Z'),
-    updatedAt: new Date('2026-08-25T16:45:00.000Z')
-  },
-
-  // MOBILE Tickets
-  {
-    id: 't-mob-22',
-    key: 'MOBILE-22',
-    projectId: 'proj-mobile',
-    title: 'SQLite local cache synchronization layer for offline access',
-    description: 'Implement bi-directional sync queue syncing local changes when device reconnects to Wi-Fi/cellular.',
-    type: TicketType.TASK,
-    status: TicketStatus.IN_PROGRESS,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-5',
-    reporterId: 'm-4',
-    sprintId: 'sprint-mob-6',
-    storyPoints: 5,
-    rank: 100,
-    labels: ['mobile', 'offline', 'sqlite'],
-    dueDate: new Date('2026-09-04T00:00:00.000Z'),
-    createdAt: new Date('2026-08-23T11:30:00.000Z'),
-    updatedAt: new Date('2026-08-30T08:15:00.000Z')
-  },
-  {
-    id: 't-mob-25',
-    key: 'MOBILE-25',
-    projectId: 'proj-mobile',
-    title: 'Push notification service worker for ticket mentions',
-    description: 'Handle APNs and FCM payload decoding to open the relevant ticket detail sheet directly when tapped.',
-    type: TicketType.STORY,
-    status: TicketStatus.TODO,
-    priority: TicketPriority.HIGH,
-    assigneeId: 'm-4',
-    reporterId: 'm-4',
-    sprintId: 'sprint-mob-6',
-    storyPoints: 5,
-    rank: 200,
-    labels: ['mobile', 'notifications'],
-    dueDate: new Date('2026-09-07T00:00:00.000Z'),
-    createdAt: new Date('2026-08-25T16:00:00.000Z'),
-    updatedAt: new Date('2026-08-25T16:00:00.000Z')
-  },
-  {
-    id: 't-mob-28',
-    key: 'MOBILE-28',
-    projectId: 'proj-mobile',
-    title: 'iOS Widget for active sprint burndown tracking',
-    description: 'Build WidgetKit medium widget showing remaining points and countdown for active project sprint.',
-    type: TicketType.STORY,
-    status: TicketStatus.BACKLOG,
-    priority: TicketPriority.MEDIUM,
-    assigneeId: 'm-4',
-    reporterId: 'm-4',
-    sprintId: null,
-    storyPoints: 3,
-    rank: 300,
-    labels: ['ios', 'widgets'],
-    dueDate: new Date('2026-09-18T00:00:00.000Z'),
-    createdAt: new Date('2026-08-27T10:00:00.000Z'),
-    updatedAt: new Date('2026-08-27T10:00:00.000Z')
-  },
-  {
-    id: 't-mob-30',
-    key: 'MOBILE-30',
-    projectId: 'proj-mobile',
-    title: 'Fix splash screen layout jitter on Android 14 devices',
-    description: 'Resolve status bar height computation bug causing brief white flash before dark theme hydration.',
-    type: TicketType.BUG,
-    status: TicketStatus.DONE,
-    priority: TicketPriority.LOW,
-    assigneeId: 'm-6',
-    reporterId: 'm-4',
-    sprintId: 'sprint-mob-5',
-    storyPoints: 2,
-    rank: 400,
-    labels: ['android', 'ui-bug'],
-    dueDate: new Date('2026-08-24T00:00:00.000Z'),
-    createdAt: new Date('2026-08-19T13:00:00.000Z'),
-    updatedAt: new Date('2026-08-24T15:00:00.000Z')
-  }
-];
+// SEED_TICKETS imported from ./seed-tickets.js (46 realistic tickets)
 
 export const SEED_ACTIVITIES = [
   {

@@ -8,6 +8,7 @@ import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   project: {
@@ -166,13 +167,18 @@ function onSprintCompleted(result) {
           >
             Go to Backlog
           </BaseButton>
-          <BaseButton
-            variant="primary"
-            size="sm"
-            @click="sprintStore.openCreateModal(project.key)"
-          >
-            Plan Sprint
-          </BaseButton>
+          <RbacActionWrapper action="plan_sprint" :context="{ projectKey: project.key }">
+            <template #default="{ disabled }">
+              <BaseButton
+                variant="primary"
+                size="sm"
+                :disabled="disabled"
+                @click="sprintStore.openCreateModal(project.key)"
+              >
+                Plan Sprint
+              </BaseButton>
+            </template>
+          </RbacActionWrapper>
         </div>
       </div>
     </div>
@@ -195,13 +201,18 @@ function onSprintCompleted(result) {
         <p class="empty-desc text-secondary">
           Create a future sprint to allocate backlog items and establish capacity goals.
         </p>
-        <BaseButton
-          variant="primary"
-          size="sm"
-          @click="sprintStore.openCreateModal(project.key)"
-        >
-          Plan Sprint
-        </BaseButton>
+        <RbacActionWrapper action="plan_sprint" :context="{ projectKey: project.key }">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="sprintStore.openCreateModal(project.key)"
+            >
+              Plan Sprint
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 

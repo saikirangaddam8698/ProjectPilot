@@ -4,18 +4,21 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTicketStore } from '@/stores/ticket.store';
 import { useProjectStore } from '@/stores/project.store';
 import { useSprintStore } from '@/stores/sprint.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const route = useRoute();
 const router = useRouter();
 const ticketStore = useTicketStore();
 const projectStore = useProjectStore();
 const sprintStore = useSprintStore();
+const authStore = useAuthStore();
 
 const modalRef = ref(null);
 const isMaximized = ref(false);
@@ -366,9 +369,14 @@ onUnmounted(() => {
           <div class="modal-scroll-area">
             <!-- Title Header -->
             <div class="title-section">
-              <div v-if="!isEditingTitle" class="title-display" @click="isEditingTitle = true">
+              <div
+                v-if="!isEditingTitle"
+                class="title-display"
+                :class="{ 'cursor-default': authStore.isViewer }"
+                @click="!authStore.isViewer && (isEditingTitle = true)"
+              >
                 <h2 class="ticket-title-text">{{ ticket.title }}</h2>
-                <span class="edit-hint text-muted">Click title to edit</span>
+                <span v-if="!authStore.isViewer" class="edit-hint text-muted">Click title to edit</span>
               </div>
               <div v-else class="title-edit-form">
                 <BaseInput
@@ -394,7 +402,7 @@ onUnmounted(() => {
                   <div class="desc-header">
                     <span class="section-label">Description</span>
                     <button
-                      v-if="!isEditingDesc"
+                      v-if="!isEditingDesc && !authStore.isViewer"
                       type="button"
                       class="desc-edit-link text-muted"
                       @click="isEditingDesc = true"
@@ -449,6 +457,7 @@ onUnmounted(() => {
                     :model-value="ticket.status"
                     :options="statusOptions"
                     size="sm"
+                    :disabled="authStore.isViewer"
                     aria-label="Ticket status"
                     @update:model-value="handleStatusChange"
                   />
@@ -460,6 +469,7 @@ onUnmounted(() => {
                     :model-value="ticket.priority"
                     :options="priorityOptions"
                     size="sm"
+                    :disabled="authStore.isViewer"
                     aria-label="Ticket priority"
                     @update:model-value="handlePriorityChange"
                   />
@@ -471,6 +481,7 @@ onUnmounted(() => {
                     :model-value="ticket.assignee?.id"
                     :options="assigneeOptions"
                     size="sm"
+                    :disabled="authStore.isViewer"
                     aria-label="Ticket assignee"
                     @update:model-value="handleAssigneeChange"
                   />
@@ -490,6 +501,7 @@ onUnmounted(() => {
                     :model-value="ticket.storyPoints"
                     :options="storyPointOptions"
                     size="sm"
+                    :disabled="authStore.isViewer"
                     aria-label="Ticket story points"
                     @update:model-value="ticketStore.updateTicket(ticket.key, { storyPoints: Number($event) })"
                   />
@@ -501,6 +513,7 @@ onUnmounted(() => {
                     :model-value="ticket.sprintId || 'backlog'"
                     :options="sprintOptions"
                     size="sm"
+                    :disabled="authStore.isViewer"
                     aria-label="Ticket sprint"
                     menu-placement="top"
                     @update:model-value="handleSprintChange"
@@ -517,10 +530,19 @@ onUnmounted(() => {
 
           <!-- Fixed Modal Footer -->
           <footer class="modal-footer">
-            <BaseButton variant="danger" size="sm" @click="deleteCurrentTicket">
-              <template #prefix><AppIcon name="trash" :size="13" /></template>
-              Delete Ticket
-            </BaseButton>
+            <RbacActionWrapper action="delete_ticket">
+              <template #default="{ disabled }">
+                <BaseButton
+                  variant="danger"
+                  size="sm"
+                  :disabled="disabled"
+                  @click="deleteCurrentTicket"
+                >
+                  <template #prefix><AppIcon name="trash" :size="13" /></template>
+                  Delete Ticket
+                </BaseButton>
+              </template>
+            </RbacActionWrapper>
             <BaseButton variant="close" size="sm" @click="closeModal">
               Close
             </BaseButton>

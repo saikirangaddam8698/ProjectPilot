@@ -12,6 +12,7 @@ import ServiceUnavailableBanner from '@/components/ui/ServiceUnavailableBanner.v
 import ProjectGridSkeleton from '@/components/skeletons/ProjectGridSkeleton.vue';
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -117,17 +118,19 @@ function getProjectProgress(key) {
         <h2 class="page-title">Projects</h2>
         <p class="page-subtitle">Manage workspaces, project keys, sprint configurations, and team access.</p>
       </div>
-      <div :title="!authStore.canCreateProject ? 'Only Workspace Admins and Project Managers can create projects' : ''">
-        <BaseButton
-          variant="primary"
-          size="sm"
-          :disabled="!authStore.canCreateProject"
-          @click="handleCreateProjectClick"
-        >
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Create Project
-        </BaseButton>
-      </div>
+      <RbacActionWrapper action="create_project">
+        <template #default="{ disabled }">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="disabled"
+            @click="handleCreateProjectClick"
+          >
+            <template #prefix><AppIcon name="plus" :size="14" /></template>
+            Create Project
+          </BaseButton>
+        </template>
+      </RbacActionWrapper>
     </div>
 
     <!-- Service / Database Error Banner -->
@@ -228,16 +231,20 @@ function getProjectProgress(key) {
             <BaseBadge :variant="project.status === 'active' ? 'success' : 'neutral'" size="sm">
               {{ project.status === 'active' ? 'Active' : 'Planning' }}
             </BaseBadge>
-            <button
-              v-if="authStore.canDeleteProject"
-              type="button"
-              class="card-action-btn delete-proj-btn btn-close-destructive"
-              title="Delete Project Workspace"
-              aria-label="Delete project"
-              @click.stop="promptDeleteProject(project)"
-            >
-              <AppIcon name="trash" :size="13" />
-            </button>
+            <RbacActionWrapper action="delete_project">
+              <template #default="{ disabled }">
+                <button
+                  type="button"
+                  class="card-action-btn delete-proj-btn btn-close-destructive"
+                  :disabled="disabled"
+                  :class="{ 'btn-disabled': disabled }"
+                  aria-label="Delete project"
+                  @click.stop="promptDeleteProject(project)"
+                >
+                  <AppIcon name="trash" :size="13" />
+                </button>
+              </template>
+            </RbacActionWrapper>
           </div>
         </div>
 

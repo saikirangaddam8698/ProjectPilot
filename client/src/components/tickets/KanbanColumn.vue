@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import KanbanCard from './KanbanCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   status: {
@@ -82,14 +83,20 @@ function getStatusDotColor(status) {
         <span v-if="totalPoints > 0" class="points-pill mono" title="Total Story Points">
           {{ totalPoints }} pts
         </span>
-        <button
-          type="button"
-          class="col-add-btn"
-          title="Create ticket in this column"
-          @click="$emit('create-ticket', status)"
-        >
-          <AppIcon name="plus" :size="13" />
-        </button>
+        <RbacActionWrapper action="create_ticket">
+          <template #default="{ disabled }">
+            <button
+              type="button"
+              class="col-add-btn"
+              :disabled="disabled"
+              :class="{ 'btn-disabled': disabled }"
+              aria-label="Create ticket in this column"
+              @click="$emit('create-ticket', status)"
+            >
+              <AppIcon name="plus" :size="13" />
+            </button>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 
@@ -164,7 +171,12 @@ function getStatusDotColor(status) {
 
 .count-pill {
   font-size: 11px;
-  padding: 1px 6px;
+  padding: 2px 7px;
+  min-width: 18px;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-full);

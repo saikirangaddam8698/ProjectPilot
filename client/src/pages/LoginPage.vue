@@ -51,10 +51,10 @@ const DEMO_ACCOUNTS = [
   {
     name: 'Samir Khan',
     role: 'PROJECT_MANAGER',
-    badge: 'DevOps & PM',
+    badge: 'Scrum Master & PM',
     email: 'samir.k@projectpilot.dev',
     avatar: 'SK',
-    desc: 'Sprint planning & infrastructure lead'
+    desc: 'Sprint planning, capacity & agile delivery lead'
   },
   {
     name: 'Priya Patel',
@@ -63,6 +63,14 @@ const DEMO_ACCOUNTS = [
     email: 'priya.p@projectpilot.dev',
     avatar: 'PP',
     desc: 'Read-only tickets & metrics verification'
+  },
+  {
+    name: 'Demo Contributor',
+    role: 'DEVELOPER',
+    badge: 'Single Project',
+    email: 'demo@projectpilot.dev',
+    avatar: 'DC',
+    desc: 'Assigned exclusively to MOBILE platform'
   }
 ];
 

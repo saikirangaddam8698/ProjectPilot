@@ -4,6 +4,7 @@ import { useSprintStore } from '@/stores/sprint.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   sprint: {
@@ -80,13 +81,18 @@ function getCapacityBadgeVariant(state) {
           >
             Kanban Board →
           </BaseButton>
-          <BaseButton
-            variant="primary"
-            size="xs"
-            @click="$emit('complete', sprint)"
-          >
-            Complete Sprint
-          </BaseButton>
+          <RbacActionWrapper action="complete_sprint" :context="{ projectKey: sprint.projectKey }">
+            <template #default="{ disabled }">
+              <BaseButton
+                variant="primary"
+                size="xs"
+                :disabled="disabled"
+                @click="$emit('complete', sprint)"
+              >
+                Complete Sprint
+              </BaseButton>
+            </template>
+          </RbacActionWrapper>
         </template>
 
         <!-- If Planned -->
@@ -98,37 +104,59 @@ function getCapacityBadgeVariant(state) {
           >
             Plan in Backlog →
           </BaseButton>
-          <BaseButton
-            variant="primary"
-            size="xs"
-            :loading="isPending"
-            :disabled="isPending"
-            @click="$emit('start', sprint)"
-          >
-            {{ isPending ? 'Starting Sprint...' : 'Start Sprint' }}
-          </BaseButton>
+          <RbacActionWrapper action="start_sprint" :context="{ projectKey: sprint.projectKey }">
+            <template #default="{ disabled }">
+              <BaseButton
+                variant="primary"
+                size="xs"
+                :loading="isPending"
+                :disabled="disabled || isPending"
+                @click="$emit('start', sprint)"
+              >
+                {{ isPending ? 'Starting Sprint...' : 'Start Sprint' }}
+              </BaseButton>
+            </template>
+          </RbacActionWrapper>
         </template>
 
         <!-- Common Edit / Delete Dropdown or buttons -->
-        <button
+        <RbacActionWrapper
           v-if="sprint.status !== 'completed'"
-          type="button"
-          class="card-action-btn"
-          title="Edit sprint settings"
-          @click="$emit('edit', sprint)"
+          action="edit_sprint"
+          :context="{ projectKey: sprint.projectKey }"
         >
-          <AppIcon name="settings" :size="14" />
-        </button>
+          <template #default="{ disabled }">
+            <button
+              type="button"
+              class="card-action-btn"
+              :disabled="disabled"
+              :class="{ 'btn-disabled': disabled }"
+              aria-label="Edit sprint settings"
+              @click="$emit('edit', sprint)"
+            >
+              <AppIcon name="settings" :size="14" />
+            </button>
+          </template>
+        </RbacActionWrapper>
 
-        <button
+        <RbacActionWrapper
           v-if="sprint.status === 'planned'"
-          type="button"
-          class="card-action-btn text-danger"
-          title="Delete sprint"
-          @click="$emit('delete', sprint)"
+          action="delete_sprint"
+          :context="{ projectKey: sprint.projectKey }"
         >
-          <AppIcon name="trash" :size="14" />
-        </button>
+          <template #default="{ disabled }">
+            <button
+              type="button"
+              class="card-action-btn text-danger"
+              :disabled="disabled"
+              :class="{ 'btn-disabled': disabled }"
+              aria-label="Delete sprint"
+              @click="$emit('delete', sprint)"
+            >
+              <AppIcon name="trash" :size="14" />
+            </button>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 

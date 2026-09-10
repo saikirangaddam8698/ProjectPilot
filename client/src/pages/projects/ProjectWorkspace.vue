@@ -9,6 +9,7 @@ import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 import ProjectNotFound from './ProjectNotFound.vue';
 
 const route = useRoute();
@@ -63,6 +64,20 @@ const PROJECT_TABS = [
   { id: 'activity', name: 'Activity', icon: 'my-work', pathSuffix: 'activity' },
   { id: 'settings', name: 'Settings', icon: 'settings', pathSuffix: 'settings' }
 ];
+
+const visibleTabs = computed(() => {
+  return PROJECT_TABS.filter((tab) => {
+    // Only admins or project managers can access project settings
+    if (tab.id === 'settings') {
+      return authStore.isAdmin || authStore.isProjectManager;
+    }
+    // Only admins or project managers can access project knowledge base
+    if (tab.id === 'knowledge') {
+      return authStore.isAdmin || authStore.isProjectManager;
+    }
+    return true;
+  });
+});
 
 function isTabActive(tabSuffix) {
   const currentPath = route.path;
@@ -137,23 +152,27 @@ function getAvatarBgColor(key) {
             </div>
 
             <!-- Delete Workspace Option for Admin -->
-            <button
-              v-if="authStore.canDeleteProject"
-              type="button"
-              class="workspace-delete-btn btn-close-destructive"
-              title="Delete Project Workspace"
-              aria-label="Delete project workspace"
-              @click="isDeleteModalOpen = true"
-            >
-              <AppIcon name="trash" :size="14" />
-            </button>
+            <RbacActionWrapper action="delete_project">
+              <template #default="{ disabled }">
+                <button
+                  type="button"
+                  class="workspace-delete-btn btn-close-destructive"
+                  :disabled="disabled"
+                  :class="{ 'btn-disabled': disabled }"
+                  aria-label="Delete project workspace"
+                  @click="isDeleteModalOpen = true"
+                >
+                  <AppIcon name="trash" :size="14" />
+                </button>
+              </template>
+            </RbacActionWrapper>
           </div>
         </div>
 
         <!-- Tab Navigation Bar -->
         <nav class="project-tabs-nav" aria-label="Project Sections">
           <router-link
-            v-for="tab in PROJECT_TABS"
+            v-for="tab in visibleTabs"
             :key="tab.id"
             :to="`/projects/${project.key}/${tab.pathSuffix}`"
             class="tab-link"
@@ -205,9 +224,11 @@ function getAvatarBgColor(key) {
 }
 
 .workspace-header-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -380,14 +401,16 @@ function getAvatarBgColor(key) {
   margin-left: var(--space-2);
 }
 
-/* Tabs Navigation */
+/* Tabs Navigation - Liquid Glass Capsule Slider */
 .project-tabs-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-4);
-  border-top: 1px solid var(--border-subtle);
-  background-color: var(--bg-surface);
+  gap: 6px;
+  padding: 8px var(--space-5);
+  border-top: 1px solid var(--glass-border-subtle);
+  background-color: var(--glass-bg-subtle);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   overflow-x: auto;
 }
 
@@ -395,32 +418,50 @@ function getAvatarBgColor(key) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-3);
+  padding: 7px 15px;
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
-  border-bottom: 2px solid transparent;
+  border-radius: 8px;
+  border: 1px solid transparent;
   white-space: nowrap;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition: all var(--motion-fast, 140ms cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .tab-link:hover {
   color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
+  border-color: var(--glass-border-subtle);
 }
 
 .tab-link.is-active {
-  color: var(--color-primary-400);
-  border-bottom-color: var(--color-primary-500);
+  background: var(--glass-active-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-color: var(--glass-border-active);
+  box-shadow: var(--glass-active-glow), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .tab-count-badge {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 10.5px;
   background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-default);
-  padding: 1px 5px;
+  padding: 2px 7.5px;
+  min-width: 20px;
+  line-height: 1.2;
   border-radius: var(--radius-full);
   color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.tab-link.is-active .tab-count-badge {
+  background-color: rgba(99, 102, 241, 0.22);
+  border-color: rgba(99, 102, 241, 0.45);
+  color: var(--color-primary-400);
 }
 
 .workspace-body {

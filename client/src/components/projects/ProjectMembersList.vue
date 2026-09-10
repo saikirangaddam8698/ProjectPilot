@@ -9,6 +9,7 @@ import AddMemberModal from './AddMemberModal.vue';
 import MemberDetailDrawer from '@/components/team/MemberDetailDrawer.vue';
 import RemoveMemberModal from '@/components/team/RemoveMemberModal.vue';
 import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 
 const props = defineProps({
   project: {
@@ -107,20 +108,23 @@ function getRoleBadgeVariant(role) {
         <span class="text-muted members-subtext">Assigned developers, reviewers, and project leads</span>
       </div>
 
-      <div
+      <RbacActionWrapper
         v-if="showAddButton && effectiveProjectKey"
-        :title="!authStore.canManageProject(effectiveProjectKey) ? 'Only Project Managers and Admins can add team members' : ''"
+        action="add_project_member"
+        :context="{ projectKey: effectiveProjectKey }"
       >
-        <BaseButton
-          variant="outline"
-          size="xs"
-          :disabled="!authStore.canManageProject(effectiveProjectKey)"
-          @click="isAddModalOpen = true"
-        >
-          <template #prefix><AppIcon name="plus" :size="12" /></template>
-          Add Member
-        </BaseButton>
-      </div>
+        <template #default="{ disabled }">
+          <BaseButton
+            variant="outline"
+            size="xs"
+            :disabled="disabled"
+            @click="isAddModalOpen = true"
+          >
+            <template #prefix><AppIcon name="plus" :size="12" /></template>
+            Add Member
+          </BaseButton>
+        </template>
+      </RbacActionWrapper>
     </div>
 
     <!-- Fixed Overlay Toast -->
@@ -173,15 +177,23 @@ function getRoleBadgeVariant(role) {
           </div>
         </div>
 
-        <button
-          v-if="authStore.canManageProject(effectiveProjectKey)"
-          type="button"
-          class="btn-remove-icon"
-          title="Remove from project"
-          @click.stop="openRemoveModal(member)"
+        <RbacActionWrapper
+          action="remove_project_member"
+          :context="{ projectKey: effectiveProjectKey }"
         >
-          ✕
-        </button>
+          <template #default="{ disabled }">
+            <button
+              type="button"
+              class="btn-remove-icon"
+              :disabled="disabled"
+              :class="{ 'btn-disabled': disabled }"
+              aria-label="Remove from project"
+              @click.stop="openRemoveModal(member)"
+            >
+              ✕
+            </button>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 

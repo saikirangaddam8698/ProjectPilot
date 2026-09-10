@@ -101,7 +101,7 @@ const routes = [
             path: 'knowledge',
             name: 'ProjectKnowledge',
             component: KnowledgePage,
-            meta: { title: 'Project Knowledge Base', section: 'Knowledge' }
+            meta: { title: 'Project Knowledge Base', section: 'Knowledge', roles: ['ADMIN', 'PROJECT_MANAGER'] }
           },
           {
             path: 'activity',
@@ -157,7 +157,7 @@ const routes = [
         path: 'knowledge',
         name: 'Knowledge',
         component: KnowledgePage,
-        meta: { title: 'Knowledge Base' }
+        meta: { title: 'Knowledge Base', roles: ['ADMIN', 'PROJECT_MANAGER'] }
       },
       {
         path: 'settings',
@@ -220,13 +220,6 @@ router.beforeEach(async (to, from, next) => {
     const userRole = authStore.globalRole || 'VIEWER';
     if (!to.meta.roles.includes(userRole)) {
       uiStore.setNavigating(false);
-      authStore.showAccessDenied({
-        title: 'Page Access Restricted',
-        message: `You are not authorized to access ${to.meta.title || 'this page'}. Your current role (${userRole}) does not have sufficient permissions.`,
-        requiredRole: to.meta.roles.join(' or '),
-        action: `Navigate to ${to.path}`
-      });
-
       if (from.name && from.path !== to.path) {
         return next(false);
       }
@@ -240,13 +233,6 @@ router.beforeEach(async (to, from, next) => {
     const hasAccess = authStore.hasProjectAccess(targetProjectKey);
     if (!hasAccess) {
       uiStore.setNavigating(false);
-      authStore.showAccessDenied({
-        title: 'Project Access Restricted',
-        message: `You are not assigned to project workspace "${targetProjectKey}". Only project team members or Administrators can access this board and workspace.`,
-        requiredRole: 'Project Member',
-        action: `Access project ${targetProjectKey}`
-      });
-
       if (from.name && from.path !== to.path) {
         return next(false);
       }
