@@ -98,13 +98,13 @@ function handleKeyDown(e) {
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick);
   document.addEventListener('keydown', handleKeyDown);
-  notificationStore.startPolling(30000);
+  // Fetch unread count once on initial page load
+  notificationStore.fetchUnreadCount();
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick);
   document.removeEventListener('keydown', handleKeyDown);
-  notificationStore.stopPolling();
 });
 </script>
 

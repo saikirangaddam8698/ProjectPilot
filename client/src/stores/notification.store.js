@@ -113,14 +113,11 @@ export const useNotificationStore = defineStore('notification', {
     },
 
     /**
-     * Start background polling for unread notifications
+     * Fetch unread count on demand (recurring background polling disabled)
      */
-    startPolling(intervalMs = 30000) {
+    startPolling() {
       this.stopPolling();
       this.fetchUnreadCount();
-      this._pollTimer = setInterval(() => {
-        this.fetchUnreadCount();
-      }, intervalMs);
     },
 
     /**
