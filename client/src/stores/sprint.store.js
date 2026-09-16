@@ -265,6 +265,10 @@ export const useSprintStore = defineStore('sprint', () => {
 
   // Actions
   function openCreateModal(prefillProjectKey = 'PILOT', sprintToEdit = null) {
+    const authStore = useAuthStore();
+    if (!authStore.canManageProject(prefillProjectKey)) {
+      return;
+    }
     createModalProjectKey.value = prefillProjectKey || 'PILOT';
     editingSprint.value = sprintToEdit ? { ...sprintToEdit } : null;
     isCreateModalOpen.value = true;
@@ -283,6 +287,10 @@ export const useSprintStore = defineStore('sprint', () => {
     endDate,
     capacity = 30
   }) {
+    const authStore = useAuthStore();
+    if (!authStore.canManageProject(projectKey)) {
+      throw new Error('Access denied — Project Admin or Manager required to plan sprints');
+    }
     const formattedKey = projectKey.toUpperCase();
     const existingForProject = getSprintsByProject(formattedKey);
     const id = `sprint-${formattedKey.toLowerCase()}-${existingForProject.length + 10}`;

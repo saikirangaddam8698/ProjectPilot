@@ -229,6 +229,7 @@ function getAvatarBgColor(key) {
   -webkit-backdrop-filter: var(--glass-blur-lg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow-nav);
   display: flex;
   flex-direction: column;
   overflow: hidden;

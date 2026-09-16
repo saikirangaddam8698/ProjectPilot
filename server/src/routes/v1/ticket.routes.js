@@ -56,6 +56,13 @@ router.patch(
   asyncHandler(TicketController.updateTicket)
 );
 
+// POST /api/v1/tickets/:ticketKey/comments
+router.post(
+  '/:ticketKey/comments',
+  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
+  asyncHandler(TicketController.addComment)
+);
+
 // PATCH /api/v1/tickets/:ticketKey/status
 router.patch(
   '/:ticketKey/status',
@@ -82,7 +89,7 @@ router.patch(
 // PATCH /api/v1/tickets/:ticketKey/sprint
 router.patch(
   '/:ticketKey/sprint',
-  requireRole('ADMIN', 'PROJECT_MANAGER', 'DEVELOPER', 'QA'),
+  requireRole('ADMIN', 'PROJECT_MANAGER'),
   asyncHandler(TicketController.assignTicketToSprint)
 );
 

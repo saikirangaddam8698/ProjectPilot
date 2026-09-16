@@ -83,6 +83,14 @@ const INITIAL_TICKETS = [
     storyPoints: 5,
     rank: 400,
     labels: ['database', 'performance', 'critical'],
+    comments: [
+      {
+        id: 'c-pilot-104-1',
+        text: '@Priya Patel when it gona go live',
+        author: { id: 'm-1', name: 'Alex Morgan', avatar: 'AM', role: 'Project Admin' },
+        createdAt: '2026-09-15T10:32:03.090Z'
+      }
+    ],
     dueDate: '2026-08-31',
     createdAt: '2026-08-25T11:00:00.000Z',
     updatedAt: '2026-08-30T10:00:00.000Z'
@@ -393,7 +401,10 @@ export const useTicketStore = defineStore('ticket', () => {
     try {
       const fetched = await ticketsApi.getAll(params);
       if (Array.isArray(fetched) && fetched.length > 0) {
-        tickets.value = fetched;
+        tickets.value = fetched.map((t) => ({
+          ...t,
+          comments: Array.isArray(t.comments) ? t.comments : []
+        }));
       }
       isInitialized.value = true;
     } catch (err) {
@@ -661,11 +672,55 @@ export const useTicketStore = defineStore('ticket', () => {
     Object.assign(ticket, updates, { updatedAt: new Date().toISOString() });
 
     try {
-      await ticketsApi.update(key, updates);
+      const updated = await ticketsApi.update(key, updates);
+      if (updated) {
+        Object.assign(ticket, updated);
+      }
     } catch (err) {
       console.warn('API ticket update failed, applied locally:', err.message);
     } finally {
       setTicketPending(ticket.key, false);
+      uiStore.endOperation(opId);
+    }
+
+    return ticket;
+  }
+
+  async function addComment(key, commentData) {
+    const ticket = getTicketByKey(key);
+    if (!ticket) return null;
+
+    if (!Array.isArray(ticket.comments)) {
+      ticket.comments = [];
+    }
+
+    const optimisticComment = {
+      id: commentData.id || `c-${Date.now()}`,
+      text: commentData.text,
+      author: commentData.author || { name: 'User', avatar: 'AM', role: 'Member' },
+      createdAt: commentData.createdAt || new Date().toISOString()
+    };
+
+    ticket.comments.push(optimisticComment);
+    ticket.updatedAt = new Date().toISOString();
+
+    const uiStore = useUiStore();
+    const opId = `ticket-comment-${ticket.key}`;
+    uiStore.startOperation(opId, `Posting comment on ${ticket.key}...`);
+
+    try {
+      const result = await ticketsApi.addComment(key, commentData);
+      if (result?.ticket?.comments) {
+        ticket.comments = result.ticket.comments;
+      }
+    } catch (err) {
+      console.warn('API comment failed, falling back to ticket update:', err.message);
+      try {
+        await ticketsApi.update(key, { comments: [...ticket.comments] });
+      } catch (fallbackErr) {
+        console.warn('Fallback comment update failed:', fallbackErr.message);
+      }
+    } finally {
       uiStore.endOperation(opId);
     }
 
@@ -1012,6 +1067,7 @@ export const useTicketStore = defineStore('ticket', () => {
     generateNextKey,
     createTicket,
     updateTicket,
+    addComment,
     updateTicketStatus,
     updateTicketPriority,
     updateTicketAssignee,

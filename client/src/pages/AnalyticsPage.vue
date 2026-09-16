@@ -205,8 +205,11 @@ function resetFilters() {
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 

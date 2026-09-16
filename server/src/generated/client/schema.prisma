@@ -219,6 +219,7 @@ model Ticket {
   storyPoints Int            @default(0)
   rank        Int            @default(100)
   labels      String[]       @default([])
+  comments    Json?          @default("[]")
   dueDate     DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt

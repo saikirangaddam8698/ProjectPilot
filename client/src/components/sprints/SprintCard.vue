@@ -222,19 +222,22 @@ function getCapacityBadgeVariant(state) {
 
 <style scoped>
 .sprint-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  transition: border-color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
 }
 
 .sprint-card.is-active {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.05);
+  border-color: var(--glass-border-active);
+  box-shadow: var(--glass-active-sprint-glow);
 }
 
 .sprint-card.is-pending {
@@ -243,7 +246,8 @@ function getCapacityBadgeVariant(state) {
 }
 
 .sprint-card:hover {
-  border-color: var(--border-default);
+  border-color: var(--glass-border-glow);
+  box-shadow: var(--shadow-md);
 }
 
 .sprint-card-header {

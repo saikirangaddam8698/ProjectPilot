@@ -239,9 +239,18 @@ async function handleConfirmDeleteSprint() {
       <p class="empty-desc">
         Create sprint milestones from the backlog to track delivery velocity and sprint goals.
       </p>
-      <BaseButton variant="primary" size="sm" @click="sprintStore.openCreateModal('PILOT')">
-        Plan First Sprint
-      </BaseButton>
+      <RbacActionWrapper action="plan_sprint" :context="{ projectKey: selectedProject !== 'all' ? selectedProject : 'PILOT' }">
+        <template #default="{ disabled }">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="disabled"
+            @click="sprintStore.openCreateModal(selectedProject !== 'all' ? selectedProject : 'PILOT')"
+          >
+            Plan First Sprint
+          </BaseButton>
+        </template>
+      </RbacActionWrapper>
     </div>
 
     <!-- Modals & Drawers -->

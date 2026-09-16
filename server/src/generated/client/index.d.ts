@@ -8466,6 +8466,7 @@ export namespace Prisma {
     storyPoints: number
     rank: number
     labels: number
+    comments: number
     dueDate: number
     createdAt: number
     updatedAt: number
@@ -8536,6 +8537,7 @@ export namespace Prisma {
     storyPoints?: true
     rank?: true
     labels?: true
+    comments?: true
     dueDate?: true
     createdAt?: true
     updatedAt?: true
@@ -8643,6 +8645,7 @@ export namespace Prisma {
     storyPoints: number
     rank: number
     labels: string[]
+    comments: JsonValue | null
     dueDate: Date | null
     createdAt: Date
     updatedAt: Date
@@ -8682,6 +8685,7 @@ export namespace Prisma {
     storyPoints?: boolean
     rank?: boolean
     labels?: boolean
+    comments?: boolean
     dueDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8706,6 +8710,7 @@ export namespace Prisma {
     storyPoints?: boolean
     rank?: boolean
     labels?: boolean
+    comments?: boolean
     dueDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8730,6 +8735,7 @@ export namespace Prisma {
     storyPoints?: boolean
     rank?: boolean
     labels?: boolean
+    comments?: boolean
     dueDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8754,12 +8760,13 @@ export namespace Prisma {
     storyPoints?: boolean
     rank?: boolean
     labels?: boolean
+    comments?: boolean
     dueDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type TicketOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "key" | "projectId" | "title" | "description" | "type" | "status" | "priority" | "assigneeId" | "reporterId" | "sprintId" | "storyPoints" | "rank" | "labels" | "dueDate" | "createdAt" | "updatedAt", ExtArgs["result"]["ticket"]>
+  export type TicketOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "key" | "projectId" | "title" | "description" | "type" | "status" | "priority" | "assigneeId" | "reporterId" | "sprintId" | "storyPoints" | "rank" | "labels" | "comments" | "dueDate" | "createdAt" | "updatedAt", ExtArgs["result"]["ticket"]>
   export type TicketInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     assignee?: boolean | Ticket$assigneeArgs<ExtArgs>
@@ -8802,6 +8809,7 @@ export namespace Prisma {
       storyPoints: number
       rank: number
       labels: string[]
+      comments: Prisma.JsonValue | null
       dueDate: Date | null
       createdAt: Date
       updatedAt: Date
@@ -9246,6 +9254,7 @@ export namespace Prisma {
     readonly storyPoints: FieldRef<"Ticket", 'Int'>
     readonly rank: FieldRef<"Ticket", 'Int'>
     readonly labels: FieldRef<"Ticket", 'String[]'>
+    readonly comments: FieldRef<"Ticket", 'Json'>
     readonly dueDate: FieldRef<"Ticket", 'DateTime'>
     readonly createdAt: FieldRef<"Ticket", 'DateTime'>
     readonly updatedAt: FieldRef<"Ticket", 'DateTime'>
@@ -16783,6 +16792,7 @@ export namespace Prisma {
     storyPoints: 'storyPoints',
     rank: 'rank',
     labels: 'labels',
+    comments: 'comments',
     dueDate: 'dueDate',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -17587,6 +17597,7 @@ export namespace Prisma {
     storyPoints?: IntFilter<"Ticket"> | number
     rank?: IntFilter<"Ticket"> | number
     labels?: StringNullableListFilter<"Ticket">
+    comments?: JsonNullableFilter<"Ticket">
     dueDate?: DateTimeNullableFilter<"Ticket"> | Date | string | null
     createdAt?: DateTimeFilter<"Ticket"> | Date | string
     updatedAt?: DateTimeFilter<"Ticket"> | Date | string
@@ -17611,6 +17622,7 @@ export namespace Prisma {
     storyPoints?: SortOrder
     rank?: SortOrder
     labels?: SortOrder
+    comments?: SortOrderInput | SortOrder
     dueDate?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -17638,6 +17650,7 @@ export namespace Prisma {
     storyPoints?: IntFilter<"Ticket"> | number
     rank?: IntFilter<"Ticket"> | number
     labels?: StringNullableListFilter<"Ticket">
+    comments?: JsonNullableFilter<"Ticket">
     dueDate?: DateTimeNullableFilter<"Ticket"> | Date | string | null
     createdAt?: DateTimeFilter<"Ticket"> | Date | string
     updatedAt?: DateTimeFilter<"Ticket"> | Date | string
@@ -17662,6 +17675,7 @@ export namespace Prisma {
     storyPoints?: SortOrder
     rank?: SortOrder
     labels?: SortOrder
+    comments?: SortOrderInput | SortOrder
     dueDate?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -17690,6 +17704,7 @@ export namespace Prisma {
     storyPoints?: IntWithAggregatesFilter<"Ticket"> | number
     rank?: IntWithAggregatesFilter<"Ticket"> | number
     labels?: StringNullableListFilter<"Ticket">
+    comments?: JsonNullableWithAggregatesFilter<"Ticket">
     dueDate?: DateTimeNullableWithAggregatesFilter<"Ticket"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Ticket"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Ticket"> | Date | string
@@ -18670,6 +18685,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -18694,6 +18710,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -18710,6 +18727,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18734,6 +18752,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18754,6 +18773,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -18770,6 +18790,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18790,6 +18811,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19873,6 +19895,29 @@ export namespace Prisma {
     notIn?: $Enums.TicketPriority[] | ListEnumTicketPriorityFieldRefInput<$PrismaModel>
     not?: NestedEnumTicketPriorityFilter<$PrismaModel> | $Enums.TicketPriority
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type SprintNullableScalarRelationFilter = {
     is?: SprintWhereInput | null
@@ -19894,6 +19939,7 @@ export namespace Prisma {
     storyPoints?: SortOrder
     rank?: SortOrder
     labels?: SortOrder
+    comments?: SortOrder
     dueDate?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -19976,14 +20022,14 @@ export namespace Prisma {
     _min?: NestedEnumTicketPriorityFilter<$PrismaModel>
     _max?: NestedEnumTicketPriorityFilter<$PrismaModel>
   }
-  export type JsonNullableFilter<$PrismaModel = never> =
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
       >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
     equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     path?: string[]
     mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
@@ -19998,6 +20044,9 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type ActivityCountOrderByAggregateInput = {
@@ -20041,32 +20090,6 @@ export namespace Prisma {
     targetTitle?: SortOrder
     message?: SortOrder
     createdAt?: SortOrder
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -22213,6 +22236,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22235,6 +22259,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22261,6 +22286,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22283,6 +22309,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22584,6 +22611,7 @@ export namespace Prisma {
     storyPoints?: IntFilter<"Ticket"> | number
     rank?: IntFilter<"Ticket"> | number
     labels?: StringNullableListFilter<"Ticket">
+    comments?: JsonNullableFilter<"Ticket">
     dueDate?: DateTimeNullableFilter<"Ticket"> | Date | string | null
     createdAt?: DateTimeFilter<"Ticket"> | Date | string
     updatedAt?: DateTimeFilter<"Ticket"> | Date | string
@@ -22811,6 +22839,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22833,6 +22862,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23398,6 +23428,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23420,6 +23451,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -24885,6 +24917,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -24904,6 +24937,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -25044,6 +25078,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25066,6 +25101,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25085,6 +25121,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25101,6 +25138,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25123,6 +25161,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25142,6 +25181,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25353,6 +25393,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -25442,6 +25483,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25464,6 +25506,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25483,6 +25526,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25664,6 +25708,7 @@ export namespace Prisma {
     storyPoints?: number
     rank?: number
     labels?: TicketCreatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -25680,6 +25725,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25702,6 +25748,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25721,6 +25768,7 @@ export namespace Prisma {
     storyPoints?: IntFieldUpdateOperationsInput | number
     rank?: IntFieldUpdateOperationsInput | number
     labels?: TicketUpdatelabelsInput | string[]
+    comments?: NullableJsonNullValueInput | InputJsonValue
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

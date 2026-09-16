@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue';
 import { useProjectStore } from '@/stores/project.store';
 import { useSprintStore } from '@/stores/sprint.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseModal from '@/components/ui/BaseModal.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
@@ -22,6 +23,7 @@ const emit = defineEmits(['update:modelValue', 'created', 'updated', 'close']);
 
 const projectStore = useProjectStore();
 const sprintStore = useSprintStore();
+const authStore = useAuthStore();
 
 const projectOptions = computed(() => {
   return projectStore.allProjects.map((p) => ({
@@ -135,6 +137,7 @@ const isSubmitting = ref(false);
 
 async function handleSubmit() {
   if (!validate()) return;
+  if (!authStore.canManageProject(selectedProjectKey.value)) return;
 
   isSubmitting.value = true;
   try {

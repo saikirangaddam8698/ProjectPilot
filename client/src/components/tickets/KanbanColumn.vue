@@ -122,14 +122,17 @@ function getStatusDotColor(status) {
 
 <style scoped>
 .kanban-column {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   min-width: 270px;
   width: 100%;
   min-height: 540px;
+  box-shadow: var(--shadow-sm);
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 

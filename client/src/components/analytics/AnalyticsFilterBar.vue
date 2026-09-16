@@ -114,10 +114,13 @@ function handleSprintChange(val) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 

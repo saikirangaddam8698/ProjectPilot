@@ -150,6 +150,38 @@ export class TicketController {
     });
   }
 
+  static async addComment(req, res) {
+    const { ticketKey } = req.params;
+    const existing = await TicketService.getTicketByKey(ticketKey);
+    if (req.user && req.user.role !== 'ADMIN') {
+      const userKeys = (req.user.projectKeys || []).map((k) => k.toUpperCase());
+      if (existing.projectKey && !userKeys.includes(existing.projectKey.toUpperCase())) {
+        throw ApiError.forbidden(`Forbidden: You are not a member of project workspace "${existing.projectKey}"`);
+      }
+      if (req.user.role === 'VIEWER') {
+        throw ApiError.forbidden('Forbidden: Viewer role is read-only and cannot post comments');
+      }
+    }
+
+    const result = await TicketService.addComment(ticketKey, req.body, req.user);
+    const actorMemberId = req.user?.memberId || req.user?.member?.id;
+
+    if (result.comment && result.comment.text) {
+      NotificationService.notifyCommentAndMentions({
+        ticket: result.ticket,
+        commentText: result.comment.text,
+        actorMemberId,
+        projectKey: existing.projectKey
+      }).catch((err) => console.error('[Notification Trigger addComment]', err));
+    }
+
+    return ApiResponse.success(res, {
+      statusCode: HTTP_STATUS.CREATED,
+      message: 'Comment added successfully',
+      data: result
+    });
+  }
+
   static async updateTicketStatus(req, res) {
     const { ticketKey } = req.params;
     const { status } = req.body;

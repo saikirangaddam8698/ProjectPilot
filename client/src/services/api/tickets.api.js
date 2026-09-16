@@ -8,6 +8,7 @@ export const ticketsApi = {
   getByKey: (ticketKey) => httpClient.get(`/tickets/${ticketKey}`),
   create: (data) => httpClient.post('/tickets', data),
   update: (ticketKey, data) => httpClient.patch(`/tickets/${ticketKey}`, data),
+  addComment: (ticketKey, commentData) => httpClient.post(`/tickets/${ticketKey}/comments`, commentData),
   updateStatus: (ticketKey, status) => httpClient.patch(`/tickets/${ticketKey}/status`, { status }),
   updatePriority: (ticketKey, priority) => httpClient.patch(`/tickets/${ticketKey}/priority`, { priority }),
   updateAssignee: (ticketKey, assigneeId) => httpClient.patch(`/tickets/${ticketKey}/assignee`, { assigneeId }),

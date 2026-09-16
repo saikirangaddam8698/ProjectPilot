@@ -248,23 +248,27 @@ function getCapacityBadgeVariant(state) {
 
 <style scoped>
 .backlog-group-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
 }
 
 .backlog-group-card.is-active-sprint {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: var(--glass-border-active);
+  box-shadow: var(--glass-active-sprint-glow);
 }
 
 .backlog-group-card.is-drag-over {
   border-color: var(--color-primary-500);
   background-color: var(--bg-surface-hover);
-  box-shadow: 0 0 0 2px var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--color-primary-500), var(--glass-glow-primary);
 }
 
 .group-header {
@@ -272,11 +276,16 @@ function getCapacityBadgeVariant(state) {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background-color: var(--bg-surface-elevated);
-  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  border-bottom: 1px solid var(--glass-border-subtle);
   cursor: pointer;
   gap: var(--space-4);
   flex-wrap: wrap;
+  transition: background-color var(--transition-fast);
+}
+
+.group-header:hover {
+  background-color: var(--bg-surface-hover);
 }
 
 .header-left {
@@ -370,8 +379,8 @@ function getCapacityBadgeVariant(state) {
   align-items: center;
   justify-content: center;
   padding: var(--space-6);
-  border-top: 1px dashed var(--border-subtle);
-  background-color: var(--bg-surface);
+  border-top: 1px dashed var(--glass-border-subtle);
+  background-color: var(--glass-bg-subtle);
 }
 
 .empty-drop-text {

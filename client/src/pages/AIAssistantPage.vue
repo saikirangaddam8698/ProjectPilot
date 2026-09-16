@@ -627,13 +627,14 @@ function applyQuickPrompt(prompt) {
   color: var(--border-default);
 }
 
-/* AI Chat Card Shell */
 .ai-chat-card {
   display: flex;
   flex-direction: column;
   flex: 1;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -1354,12 +1355,15 @@ function applyQuickPrompt(prompt) {
 .conv-sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--bg-surface);
-  border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg, 8px);
   display: flex;
   flex-direction: column;
   padding: 12px;
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease-in-out;
 }
 

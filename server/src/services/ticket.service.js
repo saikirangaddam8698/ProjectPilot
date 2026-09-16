@@ -42,6 +42,9 @@ export class TicketService {
       storyPoints: t.storyPoints || 0,
       rank: t.rank || 100,
       labels: t.labels || [],
+      comments: Array.isArray(t.comments)
+        ? t.comments
+        : (t.comments ? (typeof t.comments === 'string' ? JSON.parse(t.comments) : t.comments) : []),
       dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt
@@ -73,6 +76,7 @@ export class TicketService {
     sprintId = null,
     storyPoints = 3,
     labels = [],
+    comments = [],
     dueDate = null
   }) {
     const project = await ProjectRepository.findByKey(projectKey);
@@ -114,6 +118,7 @@ export class TicketService {
       storyPoints: Number(storyPoints) || 0,
       rank: maxRank + 100,
       labels: Array.isArray(labels) ? labels : typeof labels === 'string' ? labels.split(',').map((l) => l.trim()).filter(Boolean) : [],
+      comments: Array.isArray(comments) ? comments : [],
       dueDate: dueDate ? new Date(dueDate) : null
     });
 
@@ -144,12 +149,70 @@ export class TicketService {
           ? updates.labels.split(',').map((l) => l.trim()).filter(Boolean)
           : [];
     }
+    if (updates.comments !== undefined) {
+      data.comments = Array.isArray(updates.comments) ? updates.comments : [];
+    }
     if (updates.dueDate !== undefined) {
       data.dueDate = updates.dueDate ? new Date(updates.dueDate) : null;
     }
 
     const updated = await TicketRepository.update(existing.id, data);
     return this.formatTicket(updated);
+  }
+
+  static async addComment(key, commentData, actorUser = null) {
+    const existing = await TicketRepository.findByKey(key);
+    if (!existing) {
+      throw ApiError.notFound(`Ticket with key "${key}" not found`);
+    }
+
+    if (!commentData || !commentData.text || !commentData.text.trim()) {
+      throw ApiError.badRequest('Comment text is required');
+    }
+
+    let existingComments = [];
+    if (Array.isArray(existing.comments)) {
+      existingComments = existing.comments;
+    } else if (existing.comments) {
+      try {
+        existingComments = typeof existing.comments === 'string' ? JSON.parse(existing.comments) : existing.comments;
+      } catch {
+        existingComments = [];
+      }
+    }
+
+    let author = commentData.author;
+    if (!author || !author.name) {
+      const actorMember = actorUser?.memberId ? await MemberRepository.findById(actorUser.memberId) : null;
+      author = {
+        id: actorMember?.id || actorUser?.memberId || 'm-1',
+        name: actorMember?.name || actorUser?.name || 'Alex Morgan',
+        avatar: actorMember?.avatar || 'AM',
+        role: actorMember?.role || actorUser?.role || 'Member'
+      };
+    }
+
+    const newComment = {
+      id: commentData.id || `c-${Date.now()}`,
+      text: commentData.text.trim(),
+      author: {
+        id: author.id || 'm-1',
+        name: author.name || 'User',
+        avatar: author.avatar || 'AM',
+        role: author.role || 'Member'
+      },
+      createdAt: commentData.createdAt || new Date().toISOString()
+    };
+
+    const updatedComments = [...existingComments, newComment];
+    const updated = await TicketRepository.update(existing.id, {
+      comments: updatedComments
+    });
+
+    return {
+      comment: newComment,
+      ticket: this.formatTicket(updated)
+    };
   }
 
   static async updateTicketStatus(key, status) {

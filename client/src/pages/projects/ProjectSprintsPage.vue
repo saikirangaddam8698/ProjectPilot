@@ -122,16 +122,21 @@ function onSprintCompleted(result) {
           :to="`/projects/${project.key}/backlog`"
         >
           <template #prefix><AppIcon name="my-work" :size="14" /></template>
-          Backlog Planning
+          View Backlog
         </BaseButton>
-        <BaseButton
-          variant="primary"
-          size="sm"
-          @click="sprintStore.openCreateModal(project.key)"
-        >
-          <template #prefix><AppIcon name="plus" :size="14" /></template>
-          Plan Sprint
-        </BaseButton>
+        <RbacActionWrapper action="plan_sprint" :context="{ projectKey: project.key }">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="sprintStore.openCreateModal(project.key)"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              Plan Sprint
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 
@@ -277,43 +282,52 @@ function onSprintCompleted(result) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 
 .sprint-tabs {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-default);
+  gap: 3px;
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-md);
-  padding: 2px;
+  padding: 3px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .sprint-tab-btn {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 4px var(--space-3);
+  padding: 5px var(--space-3);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  border: 1px solid transparent;
+  transition: all var(--motion-fast);
 }
 
 .sprint-tab-btn:hover {
   color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
 }
 
 .sprint-tab-btn.is-active {
-  background-color: var(--bg-surface);
+  background-color: var(--glass-active-bg);
+  border-color: var(--glass-border-active);
   color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--glass-active-glow);
 }
 
 .tab-indicator-dot {

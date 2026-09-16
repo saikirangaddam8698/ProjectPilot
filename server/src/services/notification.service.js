@@ -171,6 +171,13 @@ export class NotificationService {
 
   /**
    * Agile Trigger: Comment added and @Mentions
+   *
+   * Jira-style notification model:
+   *  - All ticket participants (current assignee, reporter, past commenters) receive
+   *    a COMMENT_ADDED notification for every new comment, regardless of @mentions.
+   *  - Users who are @mentioned receive a higher-priority USER_MENTIONED notification
+   *    instead of (not in addition to) the generic COMMENT_ADDED one.
+   *  - The commenter (actorMemberId) is always excluded.
    */
   static async notifyCommentAndMentions({ ticket, commentText, actorMemberId, projectKey }) {
     if (!commentText || !ticket) return;
@@ -182,10 +189,36 @@ export class NotificationService {
     }
 
     const pKey = projectKey || ticket.projectKey || (ticket.key ? ticket.key.split('-')[0] : 'PILOT');
+    const commentPreview = `"${commentText.slice(0, 80)}${commentText.length > 80 ? '...' : ''}"`;
+
+    // ── Build participant set (Jira-style) ──────────────────────────────────
+    // Participants = current assignee + reporter + all past commenters
+    // NOTE: ticket may be in raw Prisma form (assigneeId/reporterId) or formatted
+    // form (assignee.id/reporter.id), so handle both gracefully.
+    const participantIds = new Set();
+
+    const assigneeId = ticket.assigneeId || ticket.assignee?.id;
+    if (assigneeId && assigneeId !== actorMemberId) {
+      participantIds.add(assigneeId);
+    }
+    const reporterId = ticket.reporterId || ticket.reporter?.id;
+    if (reporterId && reporterId !== actorMemberId) {
+      participantIds.add(reporterId);
+    }
+
+    // Past commenters stored in the comments JSON array — each entry has { author: { id, ... } }
+    const existingComments = Array.isArray(ticket.comments) ? ticket.comments : [];
+    for (const c of existingComments) {
+      const commenterId = c?.authorId || c?.author?.id;
+      if (commenterId && commenterId !== actorMemberId) {
+        participantIds.add(commenterId);
+      }
+    }
+
+    // ── Resolve @mentions ───────────────────────────────────────────────────
     const allMembers = await MemberRepository.findAll();
     const mentionedMemberIds = new Set();
 
-    // Check for @mentions in comment text
     for (const member of allMembers) {
       if (!member?.name) continue;
       const mentionPattern = new RegExp(`@${member.name}\\b`, 'i');
@@ -194,7 +227,7 @@ export class NotificationService {
       }
     }
 
-    // Dispatch USER_MENTIONED notifications
+    // ── Dispatch USER_MENTIONED to @mentioned users ─────────────────────────
     for (const recipientId of mentionedMemberIds) {
       await this.dispatch({
         recipientId,
@@ -202,25 +235,31 @@ export class NotificationService {
         projectId: ticket.projectId || null,
         type: 'USER_MENTIONED',
         title: `💬 Mentioned in ${ticket.key}`,
-        message: `${actorName} mentioned you on ${ticket.key}: "${commentText.slice(0, 80)}${commentText.length > 80 ? '...' : ''}"`,
+        message: `${actorName} mentioned you on ${ticket.key}: ${commentPreview}`,
         link: `/projects/${pKey}/tickets?ticket=${ticket.key}`,
         metadata: { ticketKey: ticket.key }
       });
     }
 
-    // Dispatch COMMENT_ADDED to ticket assignee if not already mentioned & not commenter
-    if (ticket.assigneeId && ticket.assigneeId !== actorMemberId && !mentionedMemberIds.has(ticket.assigneeId)) {
+    // ── Dispatch COMMENT_ADDED to all other participants ────────────────────
+    // @mentioned users already got USER_MENTIONED (skip them here)
+    for (const recipientId of participantIds) {
+      if (mentionedMemberIds.has(recipientId)) continue; // already notified with USER_MENTIONED
       await this.dispatch({
-        recipientId: ticket.assigneeId,
+        recipientId,
         actorId: actorMemberId,
         projectId: ticket.projectId || null,
         type: 'COMMENT_ADDED',
         title: `💬 New comment on ${ticket.key}`,
-        message: `${actorName} commented on ${ticket.key}: "${commentText.slice(0, 80)}${commentText.length > 80 ? '...' : ''}"`,
+        message: `${actorName} commented on ${ticket.key}: ${commentPreview}`,
         link: `/projects/${pKey}/tickets?ticket=${ticket.key}`,
         metadata: { ticketKey: ticket.key }
       });
     }
+
+    // ── Also notify any @mentioned users who aren't already participants ─────
+    // (e.g. someone tagged who was never assigned or reporter — they still get the mention)
+    // Already dispatched in the USER_MENTIONED loop above, so nothing extra needed.
   }
 
   /**

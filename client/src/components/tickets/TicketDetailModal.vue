@@ -220,18 +220,29 @@ async function handleAddComment() {
     createdAt: new Date().toISOString()
   };
 
-  // Optimistically append comment
-  if (!ticket.value.comments) {
-    ticket.value.comments = [];
-  }
-  ticket.value.comments.push(newComment);
   newCommentText.value = '';
   showMentionPopup.value = false;
 
   // Persist to ticket store & backend
-  await ticketStore.updateTicket(ticket.value.key, {
-    comments: [...ticket.value.comments]
+  await ticketStore.addComment(ticket.value.key, newComment);
+}
+
+function formatCommentDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+
+  const datePart = d.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
   });
+  const timePart = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+  return `${datePart} at ${timePart}`;
 }
 
 function formatCommentText(raw) {
@@ -561,7 +572,10 @@ onUnmounted(() => {
                         <div class="comment-meta">
                           <span class="comment-author-name">{{ c.author?.name || 'User' }}</span>
                           <span class="comment-author-role text-muted">({{ c.author?.role || 'Member' }})</span>
-                          <span class="comment-time text-muted">• {{ new Date(c.createdAt).toLocaleString() }}</span>
+                          <span class="comment-time text-muted" :title="new Date(c.createdAt).toISOString()">
+                            <AppIcon name="clock" :size="11" />
+                            {{ formatCommentDate(c.createdAt) }}
+                          </span>
                         </div>
                         <div class="comment-text" v-html="formatCommentText(c.text)"></div>
                       </div>
@@ -1285,7 +1299,10 @@ onUnmounted(() => {
 }
 
 .comment-time {
-  font-size: 10px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .comment-text {

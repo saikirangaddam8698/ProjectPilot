@@ -392,8 +392,10 @@ function openCreateModal() {
 }
 
 .metric-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-sm);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   display: flex;
@@ -401,6 +403,13 @@ function openCreateModal() {
   gap: var(--space-2);
   box-shadow: var(--shadow-sm);
   min-width: 0;
+  transition: all var(--transition-fast);
+}
+
+.metric-card:hover {
+  border-color: var(--glass-border-glow);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .metric-header {
@@ -509,8 +518,10 @@ function openCreateModal() {
 }
 
 .overview-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   display: flex;

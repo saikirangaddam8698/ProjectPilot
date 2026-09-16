@@ -434,22 +434,27 @@ function getProjectProgress(key) {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-full);
   cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all var(--transition-fast);
 }
 
 .filter-chip:hover {
   background-color: var(--bg-surface-hover);
   color: var(--text-primary);
+  border-color: var(--glass-border);
 }
 
 .filter-chip.is-active {
-  background-color: var(--color-primary-500);
-  border-color: var(--color-primary-500);
-  color: #ffffff;
+  background-color: var(--glass-active-bg);
+  border-color: var(--glass-border-active);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--glass-active-glow);
 }
 
 /* Projects Grid */
@@ -460,8 +465,10 @@ function getProjectProgress(key) {
 }
 
 .project-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   display: flex;
@@ -473,9 +480,9 @@ function getProjectProgress(key) {
 }
 
 .project-card:hover {
-  border-color: var(--border-strong);
+  border-color: var(--glass-border-glow);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), var(--glass-glow-blue);
 }
 
 .project-card:focus-visible {

@@ -89,10 +89,13 @@ const description = computed(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 
@@ -116,8 +119,10 @@ const description = computed(() => {
 }
 
 .placeholder-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-10) var(--space-6);
   display: flex;
@@ -125,6 +130,7 @@ const description = computed(() => {
   align-items: center;
   text-align: center;
   gap: var(--space-4);
+  box-shadow: var(--shadow-sm);
 }
 
 .placeholder-icon-wrap {

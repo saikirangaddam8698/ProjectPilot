@@ -104,33 +104,39 @@ const selectedProject = ref('all');
 .view-mode-tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  gap: 3px;
+  background-color: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-md);
-  padding: 2px;
+  padding: 3px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .tab-mode-btn {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 4px var(--space-3);
+  padding: 5px var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  border: 1px solid transparent;
+  transition: all var(--motion-fast);
 }
 
 .tab-mode-btn:hover {
   color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
 }
 
 .tab-mode-btn.is-active {
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--glass-active-bg);
+  border-color: var(--glass-border-active);
   color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--glass-active-glow);
 }
 
 .main-ticket-view {

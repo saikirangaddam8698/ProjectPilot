@@ -111,15 +111,18 @@ function handleGlobalMouseOver(e) {
     if (!text) return;
     tooltipText.value = text;
 
-    let top = rect.bottom + 6;
+    // Tooltip width is at most 290px (half = 145); clamp to viewport with 12px margin
+    const TOOLTIP_HALF_W = 145;
+    const TOOLTIP_APPROX_H = 56;
     let placement = 'bottom';
-    if (top + 60 > window.innerHeight) {
-      top = Math.max(8, rect.top - 50);
+    let top = rect.bottom + 8;
+    if (top + TOOLTIP_APPROX_H > window.innerHeight - 8) {
+      top = rect.top - TOOLTIP_APPROX_H - 8;
       placement = 'top';
     }
+    top = Math.max(8, top);
     let left = rect.left + rect.width / 2;
-    const maxHalfWidth = 155;
-    left = Math.max(maxHalfWidth + 12, Math.min(window.innerWidth - maxHalfWidth - 12, left));
+    left = Math.max(TOOLTIP_HALF_W + 12, Math.min(window.innerWidth - TOOLTIP_HALF_W - 12, left));
 
     tooltipPos.value = { top, left, placement };
     tooltipVisible.value = true;
@@ -153,6 +156,7 @@ onUnmounted(() => {
   <div class="app-layout-container">
     <!-- Atmospheric Ambient Background Lighting (Liquid Glass Depth) -->
     <div class="app-ambient-bg" aria-hidden="true">
+      <div class="ambient-mesh" aria-hidden="true"></div>
       <div class="ambient-glow glow-cyan"></div>
       <div class="ambient-glow glow-indigo"></div>
       <div class="ambient-glow glow-purple"></div>
@@ -309,19 +313,21 @@ onUnmounted(() => {
     <FloatingAIButton />
     <AIQuickChat />
 
-    <!-- Universal ProjectPilot Liquid Glass Tooltip Bubble -->
-    <Transition name="glass-tooltip-fade">
-      <div
-        v-if="tooltipVisible && tooltipText"
-        class="liquid-glass-tooltip"
-        :class="`placement-${tooltipPos.placement}`"
-        :style="{ top: `${tooltipPos.top}px`, left: `${tooltipPos.left}px` }"
-        role="tooltip"
-        aria-hidden="true"
-      >
-        <span class="tooltip-bubble-text">{{ tooltipText }}</span>
-      </div>
-    </Transition>
+    <!-- Universal ProjectPilot Liquid Glass Tooltip Bubble — Teleported to body to escape overflow:hidden -->
+    <Teleport to="body">
+      <Transition name="glass-tooltip-fade">
+        <div
+          v-if="tooltipVisible && tooltipText"
+          class="liquid-glass-tooltip"
+          :class="`placement-${tooltipPos.placement}`"
+          :style="{ top: `${tooltipPos.top}px`, left: `${tooltipPos.left}px` }"
+          role="tooltip"
+          aria-hidden="true"
+        >
+          <span class="tooltip-bubble-text">{{ tooltipText }}</span>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -337,56 +343,64 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-/* Atmospheric Ambient Background Glow (Liquid Glass Depth) */
+/* Atmospheric Ambient Background Layer (Liquid Glass Depth) */
 .app-ambient-bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
+  background-color: var(--bg-app);
+}
+
+/* Subtle AI Developer Geometric Micro-Grid Mesh */
+.ambient-mesh {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, var(--app-grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--app-grid-color) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at 60% 30%, black 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(circle at 60% 30%, black 40%, transparent 85%);
+  pointer-events: none;
 }
 
 .ambient-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(120px);
   pointer-events: none;
+  filter: blur(110px);
 }
 
 .glow-cyan {
-  top: 5%;
-  right: 15%;
-  width: 500px;
-  height: 450px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.07) 0%, transparent 70%);
+  top: 0%;
+  right: 12%;
+  width: 560px;
+  height: 500px;
+  background: radial-gradient(circle, var(--app-ambient-cyan) 0%, transparent 70%);
 }
 
 .glow-indigo {
-  top: 35%;
+  top: 28%;
   right: 25%;
-  width: 600px;
-  height: 550px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.09) 0%, transparent 70%);
+  width: 700px;
+  height: 620px;
+  background: radial-gradient(circle, var(--app-ambient-indigo) 0%, transparent 70%);
 }
 
 .glow-purple {
-  bottom: 5%;
-  left: 10%;
-  width: 550px;
-  height: 480px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+  bottom: 4%;
+  left: 6%;
+  width: 580px;
+  height: 500px;
+  background: radial-gradient(circle, var(--app-ambient-purple) 0%, transparent 70%);
 }
 
-:root[data-theme='light'] .glow-cyan {
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.04) 0%, transparent 70%);
-}
-
-:root[data-theme='light'] .glow-indigo {
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
-}
-
-:root[data-theme='light'] .glow-purple {
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.03) 0%, transparent 70%);
+@media (prefers-reduced-motion: reduce) {
+  .ambient-glow {
+    filter: blur(60px);
+  }
 }
 
 .desktop-sidebar-wrapper {
@@ -564,12 +578,28 @@ onUnmounted(() => {
   font-size: var(--text-sm);
 }
 
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .desktop-sidebar-wrapper {
+    display: none;
+  }
+
+  .page-content-wrapper {
+    padding: var(--space-4);
+  }
+}
+</style>
+
+<!-- Tooltip styles MUST be global (non-scoped) because the tooltip is teleported to <body> -->
+<style>
 /* ==========================================================================
-   Universal Liquid Glass Tooltip Bubble
+   Universal Liquid Glass Tooltip Bubble — Global (not scoped)
    ========================================================================== */
 .liquid-glass-tooltip {
   position: fixed;
-  z-index: var(--z-tooltip, 100);
+  z-index: 9999;
   transform: translateX(-50%);
   pointer-events: none;
   background: var(--glass-bg-elevated, rgba(18, 24, 38, 0.92));
@@ -578,16 +608,17 @@ onUnmounted(() => {
   border: 1px solid var(--glass-border-glow, rgba(147, 197, 253, 0.22));
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 0 12px rgba(99, 102, 241, 0.2);
   color: var(--text-primary, #f3f4f6);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans, 'Inter', sans-serif);
   font-size: 11.5px;
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.5;
   letter-spacing: -0.01em;
   padding: 6px 12px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 8px;
   max-width: 290px;
   white-space: normal;
   word-break: break-word;
+  overflow-wrap: anywhere;
   user-select: none;
   text-align: left;
 }
@@ -602,16 +633,5 @@ onUnmounted(() => {
 .glass-tooltip-fade-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(3px) scale(0.96);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .desktop-sidebar-wrapper {
-    display: none;
-  }
-
-  .page-content-wrapper {
-    padding: var(--space-4);
-  }
 }
 </style>

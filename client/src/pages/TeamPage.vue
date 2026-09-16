@@ -551,10 +551,13 @@ function resetFilters() {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 
@@ -625,10 +628,13 @@ function resetFilters() {
 
 /* Table Card */
 .team-table-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .members-table-wrapper {
@@ -649,8 +655,8 @@ function resetFilters() {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background-color: var(--bg-surface-elevated);
-  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 
 .members-table td {

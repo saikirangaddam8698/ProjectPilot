@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useSprintStore } from '@/stores/sprint.store';
 import { useTicketStore } from '@/stores/ticket.store';
+import { useAuthStore } from '@/stores/auth.store';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
@@ -25,7 +26,9 @@ const emit = defineEmits(['click', 'dragstart', 'dragend']);
 
 const sprintStore = useSprintStore();
 const ticketStore = useTicketStore();
+const authStore = useAuthStore();
 
+const canPlanSprint = computed(() => authStore.canManageProject(props.ticket.projectKey));
 const isPending = computed(() => ticketStore.isTicketPending(props.ticket.key));
 
 const availableSprints = computed(() => {
@@ -41,7 +44,7 @@ const sprintOptions = computed(() => [
 ]);
 
 function onDragStart(event) {
-  if (isPending.value) {
+  if (!canPlanSprint.value || isPending.value) {
     event.preventDefault();
     return;
   }
@@ -93,8 +96,8 @@ function getStatusBadgeVariant(status) {
 <template>
   <div
     class="backlog-ticket-row"
-    :class="{ 'is-pending': isPending }"
-    :draggable="!isPending"
+    :class="{ 'is-pending': isPending, 'can-drag': canPlanSprint }"
+    :draggable="canPlanSprint && !isPending"
     tabindex="0"
     role="button"
     :aria-label="`Ticket ${ticket.key}: ${ticket.title}`"
@@ -159,6 +162,7 @@ function getStatusBadgeVariant(status) {
       <BaseSelect
         :model-value="ticket.sprintId || 'backlog'"
         :options="sprintOptions"
+        :disabled="!canPlanSprint"
         size="sm"
         aria-label="Move ticket to sprint or backlog"
         @update:model-value="handleSprintChange"
@@ -176,10 +180,14 @@ function getStatusBadgeVariant(status) {
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   font-size: var(--text-xs);
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
   outline: none;
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.backlog-ticket-row.can-drag {
+  cursor: grab;
 }
 
 .backlog-ticket-row:last-child {

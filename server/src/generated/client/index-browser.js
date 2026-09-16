@@ -193,6 +193,7 @@ exports.Prisma.TicketScalarFieldEnum = {
   storyPoints: 'storyPoints',
   rank: 'rank',
   labels: 'labels',
+  comments: 'comments',
   dueDate: 'dueDate',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

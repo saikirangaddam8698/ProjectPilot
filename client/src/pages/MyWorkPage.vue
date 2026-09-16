@@ -167,10 +167,13 @@ function getStatusBadgeVariant(status) {
 }
 
 .work-section {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .section-header {
@@ -178,7 +181,8 @@ function getStatusBadgeVariant(status) {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 
 .section-title {

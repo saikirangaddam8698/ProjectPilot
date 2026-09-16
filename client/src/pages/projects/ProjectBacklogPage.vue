@@ -12,6 +12,7 @@ import TicketDetailDrawer from '@/components/tickets/TicketDetailDrawer.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import RbacActionWrapper from '@/components/ui/RbacActionWrapper.vue';
 import { showWarning } from '@/utils/swal';
 
 const props = defineProps({
@@ -84,6 +85,14 @@ function handleTicketClick(ticket) {
 }
 
 function handleTicketDrop({ targetSprintId, ticketKey }) {
+  if (!authStore.canManageProject(props.project.key)) {
+    toastMessage.value = 'Access denied — Project Admin or Manager required to plan sprints';
+    setTimeout(() => {
+      toastMessage.value = '';
+    }, 3000);
+    return;
+  }
+
   if (targetSprintId) {
     const targetSprint = sprintStore.getSprintById(targetSprintId);
     ticketStore.assignTicketToSprint(ticketKey, targetSprintId, targetSprint?.name);
@@ -147,28 +156,32 @@ function handleCreateTicketInScope(sprintId) {
       </div>
 
       <div class="toolbar-right">
-        <div :title="!authStore.canManageProject(project.key) ? 'Only Project Managers and Admins can plan sprints' : ''">
-          <BaseButton
-            variant="outline"
-            size="sm"
-            :disabled="!authStore.canManageProject(project.key)"
-            @click="sprintStore.openCreateModal(project.key)"
-          >
-            <template #prefix><AppIcon name="sprints" :size="14" /></template>
-            Plan Sprint
-          </BaseButton>
-        </div>
-        <div :title="authStore.isViewer ? 'Viewers cannot create issues' : ''">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="authStore.isViewer"
-            @click="ticketStore.openCreateModal(project.key)"
-          >
-            <template #prefix><AppIcon name="plus" :size="14" /></template>
-            Create Issue
-          </BaseButton>
-        </div>
+        <RbacActionWrapper action="plan_sprint" :context="{ projectKey: project.key }">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="outline"
+              size="sm"
+              :disabled="disabled"
+              @click="sprintStore.openCreateModal(project.key)"
+            >
+              <template #prefix><AppIcon name="sprints" :size="14" /></template>
+              Plan Sprint
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
+        <RbacActionWrapper action="create_ticket" :context="{ projectKey: project.key }">
+          <template #default="{ disabled }">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="disabled"
+              @click="ticketStore.openCreateModal(project.key)"
+            >
+              <template #prefix><AppIcon name="plus" :size="14" /></template>
+              Create Issue
+            </BaseButton>
+          </template>
+        </RbacActionWrapper>
       </div>
     </div>
 
@@ -258,10 +271,13 @@ function handleCreateTicketInScope(sprintId) {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
   flex-wrap: wrap;
 }
 

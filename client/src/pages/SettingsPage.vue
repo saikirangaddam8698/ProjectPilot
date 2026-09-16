@@ -140,16 +140,21 @@ const { theme, isDark, setTheme } = useTheme();
 }
 
 .settings-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-card);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .card-header {
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--glass-bg-elevated);
+  border-bottom: 1px solid var(--glass-border-subtle);
 }
 
 .header-with-badge {
