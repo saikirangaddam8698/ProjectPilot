@@ -302,6 +302,7 @@ const isDeletingTicket = ref(false);
 
 async function handleSprintChange(val) {
   if (!ticket.value) return;
+  if (!authStore.canManageProject(ticket.value.projectKey)) return;
   const newSprintId = typeof val === 'object' && val?.target ? val.target.value : val;
   if (newSprintId === 'backlog') {
     await ticketStore.removeTicketFromSprint(ticket.value.key);
@@ -713,7 +714,7 @@ onUnmounted(() => {
                     :model-value="ticket.sprintId || 'backlog'"
                     :options="sprintOptions"
                     size="sm"
-                    :disabled="authStore.isViewer"
+                    :disabled="!authStore.canManageProject(ticket.projectKey)"
                     aria-label="Ticket sprint"
                     menu-placement="top"
                     @update:model-value="handleSprintChange"
