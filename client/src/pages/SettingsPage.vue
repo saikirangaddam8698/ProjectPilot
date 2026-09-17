@@ -85,7 +85,7 @@ const { theme, isDark, setTheme } = useTheme();
               <span class="form-sublabel text-muted">Core generative reasoning & tool execution engine</span>
             </div>
             <div class="model-status-wrapper">
-              <span class="model-pill mono font-medium">Gemini 1.5 Pro / Flash</span>
+              <span class="model-pill mono font-medium">Gemini 3.8 Flash</span>
               <BaseBadge variant="success" size="sm" dot>Operational</BaseBadge>
             </div>
           </div>

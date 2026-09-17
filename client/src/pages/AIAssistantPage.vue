@@ -157,7 +157,7 @@ function applyQuickPrompt(prompt) {
             <AppIcon name="ai" :size="20" />
           </div>
           <h2 class="page-title">AI Project Assistant</h2>
-          <BaseBadge variant="purple" size="sm">Gemini 3.6 Flash</BaseBadge>
+          <BaseBadge variant="purple" size="sm">Gemini 3.8 Flash</BaseBadge>
         </div>
         <p class="page-subtitle">
           Grounded, project-aware intelligence powered by Google Gemini and live PostgreSQL data.
@@ -553,16 +553,6 @@ function applyQuickPrompt(prompt) {
         <div class="input-actions-bar">
           <span class="input-hint text-muted">Press Enter ↵ to send</span>
           <div class="input-actions-right">
-            <BaseButton
-              v-if="aiStore.hasMessages"
-              variant="outline"
-              size="sm"
-              :disabled="aiStore.isGenerating"
-              @click="aiStore.clearConversation"
-            >
-              <template #prefix><AppIcon name="trash-2" :size="13" /></template>
-              Clear
-            </BaseButton>
             <BaseButton
               variant="primary"
               size="sm"

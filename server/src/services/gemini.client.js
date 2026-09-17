@@ -69,7 +69,7 @@ export class GeminiClient {
    * @returns {Promise<object>} Normalized response { text, functionCalls, candidateContent, model, usage }
    */
   static async generateContent({ systemInstruction, contents, model = null, tools = null }) {
-    const selectedModel = model || config.ai.geminiModel || 'gemini-3.6-flash';
+    const selectedModel = model || config.ai.geminiModel || 'gemini-3.8-flash';
     const hardeningConfig = config.ai.hardening || {};
     const timeoutMs = Number(hardeningConfig.GEMINI_TIMEOUT_MS) || 6000;
     const maxRetries = Number.isInteger(hardeningConfig.MAX_RETRIES) ? hardeningConfig.MAX_RETRIES : 0;

@@ -30,7 +30,7 @@ export const config = {
   },
   ai: {
     geminiApiKey: process.env.GEMINI_API_KEY || '',
-    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     rateLimitWindowMs: parseInt(process.env.AI_RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000, // 1 min
     rateLimitMax: parseInt(process.env.AI_RATE_LIMIT_MAX, 10) || 100, // 100 requests per min
     hardening: AI_HARDENING_CONFIG
