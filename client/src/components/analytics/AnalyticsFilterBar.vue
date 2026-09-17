@@ -110,6 +110,8 @@ function handleSprintChange(val) {
 
 <style scoped>
 .analytics-filter-bar {
+  position: relative;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -141,6 +143,7 @@ function handleSprintChange(val) {
 }
 
 .select-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
   min-width: 190px;

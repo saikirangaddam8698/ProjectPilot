@@ -259,16 +259,27 @@ onUnmounted(() => {
       <!-- Chat Error Banner -->
       <div v-if="aiStore.error" class="chat-error-banner" role="alert">
         <div class="error-msg-wrap">
-          <AppIcon name="alert-circle" :size="14" />
+          <AppIcon name="alert-circle" :size="14" class="error-icon" />
           <span class="error-text">{{ aiStore.error }}</span>
         </div>
-        <button
-          type="button"
-          class="error-retry-btn"
-          @click="aiStore.retryLastMessage"
-        >
-          Retry
-        </button>
+        <div class="error-actions">
+          <button
+            type="button"
+            class="error-retry-btn"
+            @click="aiStore.retryLastMessage"
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            class="error-dismiss-btn"
+            title="Dismiss error"
+            aria-label="Dismiss error"
+            @click="aiStore.clearError"
+          >
+            <AppIcon name="close" :size="12" />
+          </button>
+        </div>
       </div>
 
       <!-- Messages Scroll Area -->
@@ -591,6 +602,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
   background-color: rgba(239, 68, 68, 0.1);
   border-bottom: 1px solid rgba(239, 68, 68, 0.25);
@@ -604,12 +616,23 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
+  flex: 1;
+}
+
+.error-icon {
+  flex-shrink: 0;
 }
 
 .error-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.error-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .error-retry-btn {
@@ -620,6 +643,29 @@ onUnmounted(() => {
   cursor: pointer;
   text-decoration: underline;
   padding: 0 4px;
+}
+
+.error-retry-btn:hover {
+  color: #ef4444;
+}
+
+.error-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  transition: all 150ms ease;
+}
+
+.error-dismiss-btn:hover {
+  opacity: 1;
+  background-color: rgba(239, 68, 68, 0.2);
 }
 
 /* Messages Body */

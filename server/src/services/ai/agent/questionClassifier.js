@@ -15,6 +15,20 @@
  * Order matters: more specific patterns first.
  */
 const SIMPLE_ROUTES = [
+  // User personal queue / assigned tickets (Simple route, fast path)
+  {
+    patterns: [
+      /\b(my\s+tickets?|tickets?\s+(are\s+)?(in\s+)?my\s+queue|assigned\s+to\s+me|my\s+tasks?|my\s+work|what\s+should\s+i\s+work\s+on|my\s+backlog|in\s+my\s+queue)\b/i,
+      /\bwhat\s+(are\s+)?(the\s+)?tickets?\s+(are\s+)?(in\s+)?my\s+queue\b/i,
+      /\bwhat\s+(are\s+)?my\s+(assigned\s+)?(tickets?|tasks?|items?|work)\b/i,
+      /\bwhat\s+do\s+i\s+have\s+to\s+do\b/i,
+      /\bwhat('?s|\s+is)\s+in\s+my\s+queue\b/i,
+      /\bmy\s+queue\b/i
+    ],
+    tool: 'list_project_tickets',
+    scope: 'user',
+    loadingHint: 'Checking tickets in your queue…'
+  },
   // Sprint factual info: current sprint name/goal/points
   {
     patterns: [
@@ -122,17 +136,38 @@ export class QuestionClassifier {
    * Classify a user question for agent routing.
    *
    * @param {string} message - Raw user message
-   * @returns {{ type: 'simple'|'analytical', tool: string|null, loadingHint: string }}
+   * @param {string} [currentProjectKey] - Active workspace project key (e.g. PILOT)
+   * @returns {{ type: 'simple'|'analytical'|'out_of_project', tool: string|null, scope?: 'user'|'project', loadingHint: string, requestedProject?: string, currentProject?: string }}
    */
-  static classify(message) {
+  static classify(message, currentProjectKey = null) {
     if (!message || typeof message !== 'string') {
-      return { type: 'analytical', tool: null, loadingHint: 'Analyzing your request…' };
+      return { type: 'analytical', tool: null, scope: 'project', loadingHint: 'Analyzing your request…' };
+    }
+
+    const pKey = currentProjectKey ? currentProjectKey.toUpperCase() : null;
+
+    // 0. Detect explicit out-of-project workspace queries
+    if (pKey) {
+      const outOfProjMatch = message.match(/\b(in|from|for|belonging\s+to)\s+(the\s+)?([A-Z]{3,10})\b/i);
+      if (outOfProjMatch) {
+        const requestedProj = outOfProjMatch[3].toUpperCase();
+        if (['PILOT', 'INFRA', 'MOBILE', 'CORE', 'CLOUD'].includes(requestedProj) && requestedProj !== pKey) {
+          return {
+            type: 'out_of_project',
+            tool: null,
+            scope: 'project',
+            requestedProject: requestedProj,
+            currentProject: pKey,
+            loadingHint: 'Checking project boundary…'
+          };
+        }
+      }
     }
 
     // 1. Check analytical overrides first — these always get the full loop
     for (const pattern of ANALYTICAL_OVERRIDES) {
       if (pattern.test(message)) {
-        return { type: 'analytical', tool: null, loadingHint: 'Analyzing project data…' };
+        return { type: 'analytical', tool: null, scope: 'project', loadingHint: 'Analyzing project data…' };
       }
     }
 
@@ -140,13 +175,18 @@ export class QuestionClassifier {
     for (const route of SIMPLE_ROUTES) {
       for (const pattern of route.patterns) {
         if (pattern.test(message)) {
-          return { type: 'simple', tool: route.tool, loadingHint: route.loadingHint };
+          return {
+            type: 'simple',
+            tool: route.tool,
+            scope: route.scope || 'project',
+            loadingHint: route.loadingHint
+          };
         }
       }
     }
 
     // 3. Default: full agent loop
-    return { type: 'analytical', tool: null, loadingHint: 'Analyzing project data…' };
+    return { type: 'analytical', tool: null, scope: 'project', loadingHint: 'Analyzing project data…' };
   }
 
   /**

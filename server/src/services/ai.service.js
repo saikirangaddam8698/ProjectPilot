@@ -24,6 +24,7 @@ import { AiTelemetryService } from './ai/observability/aiTelemetry.service.js';
 import { AiMetrics } from './ai/observability/aiMetrics.js';
 import { config } from '../config/index.js';
 import { ApiError } from '../utils/apiError.js';
+import { logger } from '../utils/logger.js';
 import { ActivitySynthesizer } from './ai/intelligence/activitySynthesizer.js';
 import { QuestionClassifier } from './ai/agent/questionClassifier.js';
 
@@ -96,13 +97,20 @@ function determineFallbackTool(message) {
 /**
  * Deterministically synthesize human-readable answer from tool results if Gemini encounters a transient rate limit on round 2+
  */
-function synthesizeSmartFallback(message, toolExecutions, projectKey) {
+function synthesizeSmartFallback(message, toolExecutions, projectKey, user = null) {
   if (isOutOfDomain(message)) {
     return `I am ProjectPilot's Project Intelligence Assistant. I can only assist with project management, sprint execution, tickets, team activities, and technical documentation for workspace **${projectKey}**.`;
   }
 
   const sections = [];
   const lowerMsg = (message || '').toLowerCase();
+  const isUserScoped =
+    lowerMsg.includes('my queue') ||
+    lowerMsg.includes('my ticket') ||
+    lowerMsg.includes('assigned to me') ||
+    lowerMsg.includes('my task') ||
+    lowerMsg.includes('my work') ||
+    lowerMsg.includes('what should i work on');
 
   for (const exec of toolExecutions) {
     const res = exec.result;
@@ -145,7 +153,24 @@ function synthesizeSmartFallback(message, toolExecutions, projectKey) {
       }
     } else if (exec.name === 'list_project_tickets') {
       const tickets = res.tickets || (Array.isArray(res) ? res : []);
-      if (Array.isArray(tickets) && tickets.length > 0) {
+      const userScoped = isUserScoped || Boolean(exec.args?.assignee);
+
+      if (userScoped) {
+        const userName = user?.name || exec.args?.assignee || 'you';
+        if (!Array.isArray(tickets) || tickets.length === 0) {
+          sections.push(`### Your Queue (**${projectKey}**)\n\nYou currently have **no tickets** assigned to you in workspace **${projectKey}**.\n\nAll active work in this project is either in the unassigned backlog or assigned to other team members.`);
+        } else {
+          let mySummary = `### Tickets in Your Queue (**${projectKey}**)\n\nYou currently have **${tickets.length}** ticket(s) assigned to you in **${projectKey}**:\n\n`;
+          tickets.forEach((t) => {
+            mySummary += `• **${t.key}**: ${t.title} — \`${t.status}\` (${t.priority} priority, Sprint: ${t.sprint || 'Backlog'}, ${t.storyPoints || 0} pts)\n`;
+          });
+          const inProgress = tickets.filter((t) => (t.status || '').toLowerCase() === 'in progress');
+          if (inProgress.length > 0) {
+            mySummary += `\n**Currently in progress:** ${inProgress.map(t => t.key).join(', ')}`;
+          }
+          sections.push(mySummary);
+        }
+      } else if (Array.isArray(tickets) && tickets.length > 0) {
         const inProgress = tickets.filter((t) => (t.status || '').toLowerCase() === 'in progress');
         const done = tickets.filter((t) => (t.status || '').toLowerCase() === 'done');
         const blocked = tickets.filter((t) => (t.status || '').toLowerCase() === 'blocked');
@@ -223,13 +248,17 @@ function synthesizeSmartFallback(message, toolExecutions, projectKey) {
     } else if (exec.name === 'get_project_summary') {
       const summary = res.summary || res;
       if (summary) {
-        const isAtRisk = (summary.blockedTickets && summary.blockedTickets.length > 0) || (summary.activeSprint && (summary.activeSprint.progress === 0 || summary.activeSprint.progress < 25));
+        const isAtRisk = (summary.blockedTickets && summary.blockedTickets.length > 0) || (summary.tickets?.blocked > 0) || (summary.activeSprint && (summary.activeSprint.progress === 0 || summary.activeSprint.progress < 25));
         const statusStr = isAtRisk ? 'At risk' : 'Healthy';
+        const totalTickets = summary.tickets?.total ?? summary.totalTickets ?? summary.ticketCount ?? 0;
+        const memberCount = summary.team?.memberCount ?? summary.memberCount ?? summary.members?.length ?? 0;
+        const sprintName = summary.activeSprint?.name || (summary.sprint?.activeSprint && summary.sprint.activeSprint !== 'None' ? summary.sprint.activeSprint : null);
+        const sprintPct = summary.activeSprint?.progress ?? summary.sprint?.completionPercentage ?? 0;
 
         let execText = `### Executive summary\n\n`;
         execText += `**Overall status:** ${statusStr}\n\n`;
-        execText += `• **Delivery:** ${summary.activeSprint ? `Active sprint "${summary.activeSprint.name}" is currently ${summary.activeSprint.progress ?? 0}% completed.` : 'No active sprint currently in progress.'}\n`;
-        execText += `• **Major changes:** Tracking **${summary.totalTickets || summary.ticketCount || 0}** tickets across **${summary.memberCount || summary.members?.length || 0}** team members.\n`;
+        execText += `• **Delivery:** ${sprintName ? `Active sprint "${sprintName}" is currently ${sprintPct}% completed.` : 'No active sprint currently in progress.'}\n`;
+        execText += `• **Major changes:** Tracking **${totalTickets}** tickets across **${memberCount}** team members.\n`;
         execText += `• **Risks:** ${isAtRisk ? 'High delivery risk due to initial sprint velocity or blocked dependencies.' : 'No critical project blockers detected.'}\n`;
         execText += `• **Recommended attention:** Prioritize unblocking high-priority tickets and align sprint commitments with active team velocity.`;
         sections.push(execText);
@@ -292,7 +321,7 @@ export class AiAgentService {
     const maxConcurrent = hardening.MAX_CONCURRENT_REQUESTS || 10;
     const maxContextChars = hardening.MAX_CONTEXT_CHARACTERS || 24000;
     const maxTotalTools = hardening.MAX_TOTAL_TOOL_CALLS || 10;
-    const agentTimeoutMs = hardening.AGENT_EXECUTION_TIMEOUT_MS || 30000;
+    const agentTimeoutMs = hardening.AGENT_EXECUTION_TIMEOUT_MS || 12000;
 
     // 1. Concurrency Limiter Guard
     if (activeRequestsCount >= maxConcurrent) {
@@ -308,11 +337,23 @@ export class AiAgentService {
       // ── Stage: Auth/RBAC already verified by middleware ──────────────────
       // ── Stage 2: Question Classification ─────────────────────────────────
       const classifyStart = performance.now();
-      const classification = QuestionClassifier.classify(message);
+      const classification = QuestionClassifier.classify(message, pKey);
       logTiming(requestId, 'classification', performance.now() - classifyStart);
 
-      // ── Stage 3: Build agent system instruction ───────────────────────────
-      const systemInstruction = buildAgentInstruction(pKey);
+      // Out-of-project isolation guard (Instant zero-latency response)
+      if (classification.type === 'out_of_project') {
+        const text = `You are currently viewing workspace **${pKey}**. ProjectPilot enforces strict project isolation — I can only access tickets, sprints, and documentation within the active workspace (**${pKey}**). To view items from **${classification.requestedProject}**, please switch to the **${classification.requestedProject}** workspace using the workspace selector at the top.`;
+        return buildAgentResponse({
+          geminiResult: { text, functionCalls: [] },
+          projectKey: pKey,
+          toolExecutions: [],
+          agentRounds: 0,
+          requestId: trace.requestId
+        });
+      }
+
+      // ── Stage 3: Build agent system instruction with user context ─────────
+      const systemInstruction = buildAgentInstruction(pKey, user);
 
       // ── Stage 4: Scope tool declarations (exclude RAG for live-data questions)
       const allDeclarations = [{ functionDeclarations: ToolRegistry.getGeminiFunctionDeclarations() }];
@@ -363,7 +404,13 @@ export class AiAgentService {
         // Agent execution total wall-clock timeout check
         const elapsedMs = performance.now() - overallStartTime;
         if (elapsedMs >= agentTimeoutMs) {
-          throw ApiError.serviceUnavailable(`AI Agent overall execution timed out after ${Math.round(elapsedMs)}ms.`);
+          logger.warn(`[AI-AGENT] Execution time limit reached (${Math.round(elapsedMs)}ms) - synthesizing with gathered evidence`);
+          if (toolExecutions.length > 0) {
+            const fallbackText = synthesizeSmartFallback(message, toolExecutions, pKey, user);
+            finalGeminiResult = { text: fallbackText, functionCalls: [] };
+            break;
+          }
+          throw ApiError.serviceUnavailable('AI Agent overall execution timed out. Please try again.');
         }
 
         round++;
@@ -528,7 +575,7 @@ export class AiAgentService {
       }
 
       if (!finalGeminiResult || (!finalGeminiResult.text && toolExecutions.length === 0)) {
-        throw ApiError.internal('Agent failed to generate a response from Gemini AI.');
+        throw ApiError.internal('Unable to generate AI response. Please try again.');
       }
 
       // Build sanitized response (runs AiEvaluator inside agentResponse)
@@ -573,13 +620,21 @@ export class AiAgentService {
   }) {
     const { tool: toolName } = classification;
 
+    const isUserScoped = classification.scope === 'user' ||
+      /\b(my\s+tickets?|my\s+queue|assigned\s+to\s+me|my\s+tasks?|my\s+work)\b/i.test(message);
+
+    const toolArgs = { projectKey: pKey };
+    if (isUserScoped && user) {
+      toolArgs.assignee = user.name || user.email;
+    }
+
     // Execute DB tool directly (ToolExecutor enforces RBAC)
     const toolStart = performance.now();
     let toolResult;
     try {
       toolResult = await ToolExecutor.execute({
         name: toolName,
-        args: { projectKey: pKey },
+        args: toolArgs,
         user,
         fallbackProjectKey: pKey
       });
@@ -598,8 +653,16 @@ export class AiAgentService {
     // Build an inline synthesis prompt — tool results are injected as context,
     // Gemini is asked only to synthesize (no function calling in this call).
     const toolResultStr = JSON.stringify(toolResult, null, 2);
-    const synthesisInstruction = `${systemInstruction}
+    let userContextNote = '';
+    if (user) {
+      userContextNote = `\nAuthenticated User: **${user.name}** (${user.email}, Role: ${user.role}).\n`;
+      if (isUserScoped) {
+        userContextNote += `The user asked about THEIR personal queue/tickets. Focus your answer on the tickets assigned to ${user.name}. If the returned ticket list is empty, state clearly that their queue is currently clear in workspace ${pKey}.\n`;
+      }
+    }
 
+    const synthesisInstruction = `${systemInstruction}
+${userContextNote}
 ## LIVE PROJECT DATA (already fetched from database)
 
 The following real-time data was retrieved directly from the project database using the "${toolName}" tool.
@@ -626,10 +689,10 @@ ${toolResultStr}
         // No tools array — synthesis-only call
       });
     } catch (geminiErr) {
-      // If Gemini fails, fall back to the static synthesizer
-      const toolExecution = [{ name: toolName, args: { projectKey: pKey }, result: toolResult, round: 1 }];
+      // If Gemini fails or takes too long, fall back to the static synthesizer
+      const toolExecution = [{ name: toolName, args: toolArgs, result: toolResult, round: 1 }];
       geminiResult = {
-        text: synthesizeSmartFallback(message, toolExecution, pKey),
+        text: synthesizeSmartFallback(message, toolExecution, pKey, user),
         functionCalls: []
       };
     }
@@ -638,7 +701,7 @@ ${toolResultStr}
     trace.geminiLatencyMs += Math.round(geminiDuration);
     logTiming(requestId, 'fast-path-gemini-synthesis-done', geminiDuration);
 
-    const toolExecutions = [{ name: toolName, args: { projectKey: pKey }, result: toolResult, round: 1 }];
+    const toolExecutions = [{ name: toolName, args: toolArgs, result: toolResult, round: 1 }];
 
     AiTelemetryService.recordToolExecution(trace, {
       toolName,

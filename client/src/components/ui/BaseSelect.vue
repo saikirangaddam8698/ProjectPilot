@@ -234,6 +234,10 @@ onBeforeUnmount(() => {
   vertical-align: middle;
 }
 
+.base-select-wrapper.is-open {
+  z-index: 50;
+}
+
 .base-select-trigger {
   width: 100%;
   display: flex;

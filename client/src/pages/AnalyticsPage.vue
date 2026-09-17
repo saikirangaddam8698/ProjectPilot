@@ -199,6 +199,8 @@ function resetFilters() {
 }
 
 .health-summary-banner {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -266,6 +268,8 @@ function resetFilters() {
 }
 
 .kpi-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);

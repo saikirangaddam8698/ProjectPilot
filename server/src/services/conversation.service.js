@@ -84,12 +84,21 @@ export class ConversationService {
 
     // If initialMessage is provided, send it immediately
     if (initialMessage && initialMessage.trim()) {
-      assistantResponse = await this.sendMessage({
-        projectKey: project.key,
-        conversationId: conversation.id,
-        user,
-        message: initialMessage.trim()
-      });
+      try {
+        assistantResponse = await this.sendMessage({
+          projectKey: project.key,
+          conversationId: conversation.id,
+          user,
+          message: initialMessage.trim()
+        });
+      } catch (err) {
+        // If message processing failed (e.g. timeout), roll back the conversation record
+        // so retrying does not create duplicate zombie chats in the list!
+        try {
+          await ConversationRepository.deleteConversation(conversation.id);
+        } catch (_) {}
+        throw err;
+      }
     }
 
     const updatedConv = await ConversationRepository.findConversationById({

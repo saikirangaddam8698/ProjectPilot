@@ -6,6 +6,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { aiApi } from '@/services/api/ai.api';
+import { formatAiError } from '@/utils/aiErrorUtils';
 
 const ACTIVITY_PHASES = [
   'Analyzing your request…',
@@ -25,6 +26,7 @@ export const useAiStore = defineStore('ai', () => {
   const isGenerating = ref(false);
   const isLoadingConversations = ref(false);
   const isLoadingConversation = ref(false);
+  const deletingConversationId = ref(null);
   const error = ref(null);
   const agentActivity = ref(null);
 
@@ -97,6 +99,9 @@ export const useAiStore = defineStore('ai', () => {
       const cached = conversationsByProject.value[pKey] || [];
       if (selectedProjectKey.value.toUpperCase() === pKey) {
         conversations.value = cached;
+        if (!activeConversationId.value && cached.length > 0) {
+          selectConversation(cached[0].id);
+        }
       }
       return cached;
     }
@@ -116,6 +121,9 @@ export const useAiStore = defineStore('ai', () => {
         historyLoadedByProject.value[pKey] = true;
         if (selectedProjectKey.value.toUpperCase() === pKey) {
           conversations.value = convList;
+          if (!activeConversationId.value && convList.length > 0) {
+            selectConversation(convList[0].id);
+          }
         }
         return convList;
       } catch (err) {
@@ -165,7 +173,7 @@ export const useAiStore = defineStore('ai', () => {
         return data;
       }
     } catch (err) {
-      error.value = err.message || 'Failed to create conversation.';
+      error.value = formatAiError(err);
     }
     return null;
   }
@@ -187,7 +195,7 @@ export const useAiStore = defineStore('ai', () => {
       const data = response?.data || response || {};
       messages.value = data.messages || [];
     } catch (err) {
-      error.value = err.message || 'Failed to load conversation messages.';
+      error.value = formatAiError(err);
     } finally {
       isLoadingConversation.value = false;
     }
@@ -197,7 +205,8 @@ export const useAiStore = defineStore('ai', () => {
    * Delete a conversation
    */
   async function deleteConversation(conversationId) {
-    if (!conversationId) return;
+    if (!conversationId || deletingConversationId.value === conversationId) return;
+    deletingConversationId.value = conversationId;
     try {
       await aiApi.deleteConversation(selectedProjectKey.value, conversationId);
       conversations.value = conversations.value.filter((c) => c.id !== conversationId);
@@ -210,8 +219,10 @@ export const useAiStore = defineStore('ai', () => {
       }
       return true;
     } catch (err) {
-      error.value = err.message || 'Failed to delete conversation.';
+      error.value = formatAiError(err);
       return false;
+    } finally {
+      deletingConversationId.value = null;
     }
   }
 
@@ -265,8 +276,12 @@ export const useAiStore = defineStore('ai', () => {
             };
             conversations.value.unshift(newConv);
             const pKey = selectedProjectKey.value.toUpperCase();
-            if (!conversationsByProject.value[pKey]) conversationsByProject.value[pKey] = [];
-            conversationsByProject.value[pKey].unshift(newConv);
+            if (!conversationsByProject.value[pKey]) {
+              conversationsByProject.value[pKey] = [];
+            }
+            if (conversations.value !== conversationsByProject.value[pKey]) {
+              conversationsByProject.value[pKey].unshift(newConv);
+            }
           }
           return true;
         } else {
@@ -323,8 +338,7 @@ export const useAiStore = defineStore('ai', () => {
       }
       return true;
     } catch (err) {
-      error.value = err.message || 'Failed to generate AI response. Please try again.';
-      // If failed on new conversation with only the temp message, remove it or keep for retry
+      error.value = formatAiError(err);
       return false;
     } finally {
       isGenerating.value = false;
@@ -332,9 +346,17 @@ export const useAiStore = defineStore('ai', () => {
     }
   }
 
+  function clearError() {
+    error.value = null;
+  }
+
   async function retryLastMessage() {
     const lastUserMsg = [...messages.value].reverse().find((m) => m.role === 'user');
     if (lastUserMsg) {
+      // Remove trailing unconfirmed temp message so we don't duplicate it in the UI
+      if (messages.value.length > 0 && messages.value[messages.value.length - 1].id?.startsWith('temp-user-')) {
+        messages.value.pop();
+      }
       await sendMessage(lastUserMsg.content);
     }
   }
@@ -350,12 +372,14 @@ export const useAiStore = defineStore('ai', () => {
     isGenerating,
     isLoadingConversations,
     isLoadingConversation,
+    deletingConversationId,
     error,
     agentActivity,
     hasMessages,
     lastMessage,
     setProject,
     clearConversation,
+    clearError,
     fetchConversations,
     createNewConversation,
     selectConversation,

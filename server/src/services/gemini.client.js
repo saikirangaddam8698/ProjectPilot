@@ -6,6 +6,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/index.js';
 import { ApiError } from '../utils/apiError.js';
+import { logger } from '../utils/logger.js';
 
 let mockClient = null;
 
@@ -45,7 +46,8 @@ export class GeminiClient {
     let timer;
     const timeoutPromise = new Promise((_, reject) => {
       timer = setTimeout(() => {
-        reject(ApiError.serviceUnavailable(`Gemini API request timed out after ${timeoutMs}ms`));
+        logger.warn(`[GeminiClient] API request timed out after ${timeoutMs}ms`);
+        reject(ApiError.serviceUnavailable('Gemini API request timed out. Please try again.'));
       }, timeoutMs);
     });
 
@@ -69,7 +71,7 @@ export class GeminiClient {
   static async generateContent({ systemInstruction, contents, model = null, tools = null }) {
     const selectedModel = model || config.ai.geminiModel || 'gemini-3.6-flash';
     const hardeningConfig = config.ai.hardening || {};
-    const timeoutMs = Number(hardeningConfig.GEMINI_TIMEOUT_MS) || 7000;
+    const timeoutMs = Number(hardeningConfig.GEMINI_TIMEOUT_MS) || 6000;
     const maxRetries = Number.isInteger(hardeningConfig.MAX_RETRIES) ? hardeningConfig.MAX_RETRIES : 0;
     const baseDelayMs = hardeningConfig.RETRY_DELAY_MS || 300;
 
@@ -169,21 +171,25 @@ export class GeminiClient {
         }
 
         if (status === 400 || message.includes('INVALID_ARGUMENT')) {
-          throw ApiError.badRequest(`Invalid request to Gemini AI: ${message}`);
+          logger.warn(`[GeminiClient] Invalid request argument: ${message}`);
+          throw ApiError.badRequest('Invalid request to Gemini AI. Please try again.');
         }
 
         if (message.includes('API key not valid') || message.includes('API_KEY_INVALID')) {
+          logger.error(`[GeminiClient] API key invalid: ${message}`);
           throw ApiError.serviceUnavailable('Invalid Gemini API Key configured on server.');
         }
 
         if (message.includes('timed out')) {
-          throw ApiError.serviceUnavailable(`Gemini API call timed out: ${message}`);
+          logger.warn(`[GeminiClient] Call timed out: ${message}`);
+          throw ApiError.serviceUnavailable('Gemini API call timed out. Please try again.');
         }
 
-        throw ApiError.internal(`AI Generation error: ${message}`);
+        logger.error(`[GeminiClient] AI Generation error: ${message}`);
+        throw ApiError.internal('Unable to generate AI response. Please try again.');
       }
     }
 
-    throw lastError || ApiError.internal('Gemini API call failed after retries.');
+    throw lastError || ApiError.internal('AI service call failed after retries. Please try again.');
   }
 }

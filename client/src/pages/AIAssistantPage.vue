@@ -250,19 +250,32 @@ function applyQuickPrompt(prompt) {
               v-for="conv in aiStore.conversations"
               :key="conv.id"
               class="conv-list-item"
-              :class="{ active: aiStore.activeConversationId === conv.id }"
-              @click="aiStore.selectConversation(conv.id)"
+              :class="{
+                active: aiStore.activeConversationId === conv.id,
+                'is-deleting': aiStore.deletingConversationId === conv.id
+              }"
+              @click="aiStore.deletingConversationId !== conv.id && aiStore.selectConversation(conv.id)"
             >
               <div class="conv-item-text">
                 <span class="conv-item-title">{{ conv.title }}</span>
-                <span class="conv-item-date">{{ formatDate(conv.lastMessageAt) }}</span>
+                <span class="conv-item-date">
+                  <template v-if="aiStore.deletingConversationId === conv.id">
+                    <span class="deleting-text">Deleting…</span>
+                  </template>
+                  <template v-else>
+                    {{ formatDate(conv.lastMessageAt) }}
+                  </template>
+                </span>
               </div>
               <button
                 class="conv-item-delete"
-                title="Delete Conversation"
+                :class="{ 'is-loading': aiStore.deletingConversationId === conv.id }"
+                :title="aiStore.deletingConversationId === conv.id ? 'Deleting conversation…' : 'Delete Conversation'"
+                :disabled="aiStore.deletingConversationId === conv.id"
                 @click.stop="aiStore.deleteConversation(conv.id)"
               >
-                <AppIcon name="trash-2" :size="12" />
+                <span v-if="aiStore.deletingConversationId === conv.id" class="delete-spinner" aria-label="Deleting"></span>
+                <AppIcon v-else name="trash-2" :size="12" />
               </button>
             </div>
           </div>
@@ -274,12 +287,23 @@ function applyQuickPrompt(prompt) {
       <!-- Error Banner -->
       <div v-if="aiStore.error" class="ai-error-banner" role="alert">
         <div class="error-left">
-          <AppIcon name="alert-circle" :size="16" />
-          <span>{{ aiStore.error }}</span>
+          <AppIcon name="alert-circle" :size="16" class="error-icon" />
+          <span class="error-text">{{ aiStore.error }}</span>
         </div>
-        <BaseButton variant="ghost" size="xs" @click="aiStore.retryLastMessage">
-          Retry
-        </BaseButton>
+        <div class="error-right-actions">
+          <BaseButton variant="ghost" size="xs" @click="aiStore.retryLastMessage">
+            Retry
+          </BaseButton>
+          <button
+            type="button"
+            class="error-dismiss-btn"
+            title="Dismiss error"
+            aria-label="Dismiss error"
+            @click="aiStore.clearError"
+          >
+            <AppIcon name="close" :size="14" />
+          </button>
+        </div>
       </div>
 
       <!-- Messages Thread Area -->
@@ -528,7 +552,8 @@ function applyQuickPrompt(prompt) {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 1200px;
+  max-width: 100%;
+  padding: 0 var(--space-6);
   margin: 0 auto;
   width: 100%;
   height: calc(100vh - 120px);
@@ -645,17 +670,56 @@ function applyQuickPrompt(prompt) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
   background-color: rgba(239, 68, 68, 0.1);
   border-bottom: 1px solid var(--color-danger-500);
   color: var(--color-danger-500);
   font-size: var(--text-xs);
+  flex-shrink: 0;
 }
 
 .error-left {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+.error-text {
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.error-right-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.error-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-danger-500);
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  transition: all var(--transition-fast);
+}
+
+.error-dismiss-btn:hover {
+  opacity: 1;
+  background-color: rgba(239, 68, 68, 0.15);
 }
 
 /* Messages Area */
@@ -1527,15 +1591,68 @@ function applyQuickPrompt(prompt) {
   border-radius: 4px;
   opacity: 0;
   transition: opacity 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .conv-list-item:hover .conv-item-delete {
   opacity: 1;
 }
 
-.conv-item-delete:hover {
+.conv-item-delete:hover:not(:disabled) {
   color: var(--color-danger-500, #ef4444);
   background: rgba(239, 68, 68, 0.1);
+}
+
+.conv-list-item.is-deleting {
+  opacity: 0.65;
+  cursor: wait;
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+  animation: pulse-deleting 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-deleting {
+  0% { opacity: 0.75; }
+  100% { opacity: 0.45; }
+}
+
+.deleting-text {
+  color: var(--color-danger-500, #ef4444);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.conv-list-item.is-deleting .conv-item-delete,
+.conv-item-delete.is-loading,
+.conv-item-delete:disabled {
+  opacity: 1 !important;
+  cursor: wait;
+  color: var(--color-danger-500, #ef4444);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.delete-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  border-top-color: var(--color-danger-500, #ef4444);
+  border-radius: 50%;
+  animation: delete-spin 0.6s linear infinite;
+  box-sizing: border-box;
+}
+
+@keyframes delete-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 640px) {
