@@ -56,3 +56,5 @@ export function validateEnv() {
   }
   return { valid: true, warnings };
 }
+
+export default config;

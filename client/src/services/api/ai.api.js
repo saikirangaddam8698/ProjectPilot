@@ -38,5 +38,15 @@ export const aiApi = {
   /**
    * Send message within a persistent conversation
    */
-  sendConversationMessage: (projectKey, conversationId, data) => http.post(`/projects/${projectKey}/conversations/${conversationId}/messages`, data)
+  sendConversationMessage: (projectKey, conversationId, data) => http.post(`/projects/${projectKey}/conversations/${conversationId}/messages`, data),
+
+  /**
+   * Get AI engine configuration and selectable models
+   */
+  getConfig: () => http.get('/ai/config'),
+
+  /**
+   * Update active Gemini model configuration
+   */
+  updateConfig: (data) => http.patch('/ai/config', data)
 };

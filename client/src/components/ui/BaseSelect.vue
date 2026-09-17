@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
 }
 
 .base-select-wrapper.is-open {
-  z-index: 50;
+  z-index: 1000;
 }
 
 .base-select-trigger {

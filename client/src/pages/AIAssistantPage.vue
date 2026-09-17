@@ -143,9 +143,11 @@ function applyQuickPrompt(prompt) {
   handleSend();
 }
 
+onMounted(() => {
+  aiStore.fetchConfig();
+});
 
 </script>
-
 
 <template>
   <div class="ai-page-container">
@@ -157,7 +159,7 @@ function applyQuickPrompt(prompt) {
             <AppIcon name="ai" :size="20" />
           </div>
           <h2 class="page-title">AI Project Assistant</h2>
-          <BaseBadge variant="purple" size="sm">Gemini 3.8 Flash</BaseBadge>
+          <BaseBadge variant="purple" size="sm">{{ aiStore.activeModelLabel || 'Gemini 3.8 Flash' }}</BaseBadge>
         </div>
         <p class="page-subtitle">
           Grounded, project-aware intelligence powered by Google Gemini and live PostgreSQL data.

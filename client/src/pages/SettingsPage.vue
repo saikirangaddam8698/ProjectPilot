@@ -1,11 +1,52 @@
 <script setup>
+import { ref, computed, onMounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
+import { useAiStore } from '@/stores/ai.store';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseBadge from '@/components/ui/BaseBadge.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
 import BaseInput from '@/components/ui/BaseInput.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const { theme, isDark, setTheme } = useTheme();
+const aiStore = useAiStore();
+
+const selectedModel = ref(aiStore.activeModel || 'gemini-3.8-flash');
+const toastMessage = ref('');
+const isSaving = ref(false);
+
+onMounted(async () => {
+  await aiStore.fetchConfig();
+  if (aiStore.activeModel) {
+    selectedModel.value = aiStore.activeModel;
+  }
+});
+
+const modelOptions = computed(() => {
+  return aiStore.availableModels.map((m) => ({
+    value: m.id,
+    label: m.label || m.name
+  }));
+});
+
+async function handleSaveSettings() {
+  isSaving.value = true;
+  try {
+    await aiStore.updateModel(selectedModel.value);
+    const chosen = aiStore.availableModels.find((m) => m.id === selectedModel.value);
+    toastMessage.value = `AI model set to ${chosen?.name || selectedModel.value}`;
+    setTimeout(() => {
+      toastMessage.value = '';
+    }, 3500);
+  } catch (err) {
+    toastMessage.value = 'Failed to update AI model. Please try again.';
+    setTimeout(() => {
+      toastMessage.value = '';
+    }, 3500);
+  } finally {
+    isSaving.value = false;
+  }
+}
 </script>
 
 <template>
@@ -15,7 +56,13 @@ const { theme, isDark, setTheme } = useTheme();
         <h2 class="page-title">Workspace Settings</h2>
         <p class="page-subtitle">Configure workspace preferences, AI models, and theme appearance.</p>
       </div>
-      <BaseButton variant="primary" size="sm">
+      <BaseButton
+        variant="primary"
+        size="sm"
+        :loading="isSaving"
+        @click="handleSaveSettings"
+      >
+        <template #prefix><AppIcon name="check" :size="14" /></template>
         Save Changes
       </BaseButton>
     </div>
@@ -85,7 +132,15 @@ const { theme, isDark, setTheme } = useTheme();
               <span class="form-sublabel text-muted">Core generative reasoning & tool execution engine</span>
             </div>
             <div class="model-status-wrapper">
-              <span class="model-pill mono font-medium">Gemini 3.8 Flash</span>
+              <div class="model-select-box">
+                <BaseSelect
+                  v-model="selectedModel"
+                  :options="modelOptions"
+                  size="sm"
+                  menu-placement="top"
+                  aria-label="Select Gemini Model"
+                />
+              </div>
               <BaseBadge variant="success" size="sm" dot>Operational</BaseBadge>
             </div>
           </div>
@@ -102,6 +157,16 @@ const { theme, isDark, setTheme } = useTheme();
         </div>
       </div>
     </div>
+
+    <!-- Feedback Toast -->
+    <Transition name="toast">
+      <div v-if="toastMessage" class="feedback-toast" role="status" aria-live="polite">
+        <div class="toast-icon-wrap">
+          <AppIcon name="check" :size="14" />
+        </div>
+        <span class="toast-text">{{ toastMessage }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -148,13 +213,16 @@ const { theme, isDark, setTheme } = useTheme();
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .card-header {
   padding: var(--space-4) var(--space-5);
   background-color: var(--glass-bg-elevated);
   border-bottom: 1px solid var(--glass-border-subtle);
+  border-top-left-radius: calc(var(--radius-lg) - 1px);
+  border-top-right-radius: calc(var(--radius-lg) - 1px);
 }
 
 .header-with-badge {
@@ -180,6 +248,7 @@ const { theme, isDark, setTheme } = useTheme();
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  overflow: visible;
 }
 
 /* Theme Options */
@@ -311,6 +380,14 @@ const { theme, isDark, setTheme } = useTheme();
   gap: var(--space-3);
   flex-wrap: wrap;
   justify-content: flex-end;
+  position: relative;
+  z-index: 50;
+}
+
+.model-select-box {
+  min-width: 320px;
+  position: relative;
+  z-index: 60;
 }
 
 .model-pill {
@@ -320,5 +397,48 @@ const { theme, isDark, setTheme } = useTheme();
   border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
   padding: 4px 10px;
   border-radius: var(--radius-md, 7px);
+}
+
+.feedback-toast {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface-elevated, #171B21);
+  border: 1px solid var(--border-default, #2A313D);
+  border-radius: var(--radius-lg, 10px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.toast-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.toast-text {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all var(--transition-fast, 150ms) ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
 }
 </style>

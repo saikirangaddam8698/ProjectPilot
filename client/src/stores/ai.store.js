@@ -30,6 +30,17 @@ export const useAiStore = defineStore('ai', () => {
   const isDeletingAll = ref(false);
   const error = ref(null);
   const agentActivity = ref(null);
+  const activeModel = ref('gemini-3.8-flash');
+  const availableModels = ref([
+    { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', label: 'Gemini 3.8 Flash (Latest & Recommended)' },
+    { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', label: 'Gemini 3.7 Flash' },
+    { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', label: 'Gemini 3.6 Flash' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', label: 'Gemini 2.5 Flash' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', label: 'Gemini 2.5 Pro (High Reasoning)' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', label: 'Gemini 1.5 Flash (Legacy)' }
+  ]);
+  const isLoadingConfig = ref(false);
+  const isUpdatingConfig = ref(false);
 
   // ── Getters ────────────────────────────────────────────
   const hasMessages = computed(() => messages.value.length > 0);
@@ -37,6 +48,15 @@ export const useAiStore = defineStore('ai', () => {
   const activeConversation = computed(() =>
     conversations.value.find((c) => c.id === activeConversationId.value) || null
   );
+  const activeModelLabel = computed(() => {
+    const found = availableModels.value.find((m) => m.id === activeModel.value);
+    if (found) return found.name;
+    if (!activeModel.value) return 'Gemini 3.8 Flash';
+    return activeModel.value
+      .split('-')
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(' ');
+  });
 
   // ── Activity Cycling ───────────────────────────────────
   let activityTimer = null;
@@ -385,6 +405,43 @@ export const useAiStore = defineStore('ai', () => {
     }
   }
 
+  // ── Engine Configuration ──────────────────────────────────
+  async function fetchConfig() {
+    isLoadingConfig.value = true;
+    try {
+      const res = await aiApi.getConfig();
+      if (res?.data) {
+        if (res.data.activeModel) activeModel.value = res.data.activeModel;
+        if (Array.isArray(res.data.availableModels) && res.data.availableModels.length > 0) {
+          availableModels.value = res.data.availableModels;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load AI config:', err);
+    } finally {
+      isLoadingConfig.value = false;
+    }
+  }
+
+  async function updateModel(newModel) {
+    if (!newModel) return false;
+    isUpdatingConfig.value = true;
+    try {
+      const res = await aiApi.updateConfig({ model: newModel });
+      if (res?.data?.activeModel) {
+        activeModel.value = res.data.activeModel;
+      } else {
+        activeModel.value = newModel;
+      }
+      return true;
+    } catch (err) {
+      console.error('Failed to update AI model:', err);
+      throw err;
+    } finally {
+      isUpdatingConfig.value = false;
+    }
+  }
+
   return {
     historyLoadedByProject,
     conversationsByProject,
@@ -402,6 +459,13 @@ export const useAiStore = defineStore('ai', () => {
     agentActivity,
     hasMessages,
     lastMessage,
+    activeModel,
+    availableModels,
+    activeModelLabel,
+    isLoadingConfig,
+    isUpdatingConfig,
+    fetchConfig,
+    updateModel,
     setProject,
     clearConversation,
     clearError,

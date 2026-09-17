@@ -33,4 +33,16 @@ router.post(
 router.get('/metrics', asyncHandler(AiController.getMetrics));
 router.get('/evaluation', asyncHandler(AiController.getMetrics));
 
+/**
+ * GET /api/v1/ai/config
+ * Returns active Gemini model & available selectable versions
+ */
+router.get('/config', asyncHandler(AiController.getConfig));
+
+/**
+ * PATCH /api/v1/ai/config
+ * Updates active Gemini model configuration
+ */
+router.patch('/config', asyncHandler(AiController.updateConfig));
+
 export default router;
