@@ -172,6 +172,20 @@ export class ConversationService {
   }
 
   /**
+   * Delete all conversations for a project
+   */
+  static async deleteAllConversations({ projectKey, user }) {
+    const project = await this.resolveProjectAndVerifyAccess(projectKey, user);
+
+    const result = await ConversationRepository.deleteAllConversations({
+      projectId: project.id,
+      userId: user?.id
+    });
+
+    return { success: true, count: result.count };
+  }
+
+  /**
    * Send a message within an existing conversation
    */
   static async sendMessage({ projectKey, conversationId, user, message, requestId }) {

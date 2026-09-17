@@ -27,6 +27,7 @@ export const useAiStore = defineStore('ai', () => {
   const isLoadingConversations = ref(false);
   const isLoadingConversation = ref(false);
   const deletingConversationId = ref(null);
+  const isDeletingAll = ref(false);
   const error = ref(null);
   const agentActivity = ref(null);
 
@@ -227,6 +228,29 @@ export const useAiStore = defineStore('ai', () => {
   }
 
   /**
+   * Delete all conversations for current project
+   */
+  async function deleteAllConversations(projectKey = selectedProjectKey.value) {
+    if (!projectKey || isDeletingAll.value) return false;
+    const pKey = projectKey.toUpperCase();
+    isDeletingAll.value = true;
+    try {
+      await aiApi.deleteAllConversations(pKey);
+      conversations.value = [];
+      if (conversationsByProject.value[pKey]) {
+        conversationsByProject.value[pKey] = [];
+      }
+      clearConversation();
+      return true;
+    } catch (err) {
+      error.value = formatAiError(err);
+      return false;
+    } finally {
+      isDeletingAll.value = false;
+    }
+  }
+
+  /**
    * Send a chat message (optimistic UI update, creates persistent conversation if none active)
    */
   async function sendMessage(text) {
@@ -373,6 +397,7 @@ export const useAiStore = defineStore('ai', () => {
     isLoadingConversations,
     isLoadingConversation,
     deletingConversationId,
+    isDeletingAll,
     error,
     agentActivity,
     hasMessages,
@@ -384,6 +409,7 @@ export const useAiStore = defineStore('ai', () => {
     createNewConversation,
     selectConversation,
     deleteConversation,
+    deleteAllConversations,
     sendMessage,
     retryLastMessage
   };

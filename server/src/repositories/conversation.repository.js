@@ -97,6 +97,20 @@ export class ConversationRepository {
   }
 
   /**
+   * Delete all conversations for a project (strictly isolated by owner userId)
+   */
+  static async deleteAllConversations({ projectId, userId }) {
+    const where = { projectId };
+    if (userId) {
+      where.createdById = userId;
+    }
+
+    return prisma.conversation.deleteMany({
+      where
+    });
+  }
+
+  /**
    * Create a message within a conversation
    */
   static async createMessage({ conversationId, role, content, metadata }) {

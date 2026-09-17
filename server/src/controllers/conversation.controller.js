@@ -89,6 +89,25 @@ export class ConversationController {
   }
 
   /**
+   * DELETE /api/v1/projects/:projectKey/conversations
+   */
+  static async deleteAllConversations(req, res) {
+    const { projectKey } = req.params;
+    const user = req.user;
+
+    const data = await ConversationService.deleteAllConversations({
+      projectKey,
+      user
+    });
+
+    return ApiResponse.success(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: 'All conversations deleted',
+      data
+    });
+  }
+
+  /**
    * POST /api/v1/projects/:projectKey/conversations/:conversationId/messages
    */
   static async sendMessage(req, res) {

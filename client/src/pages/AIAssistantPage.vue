@@ -8,6 +8,7 @@ import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+import BaseConfirmModal from '@/components/ui/BaseConfirmModal.vue';
 import ChatThreadSkeleton from '@/components/skeletons/ChatThreadSkeleton.vue';
 import { formatMessageContent } from '@/utils/formatMessage';
 
@@ -87,9 +88,15 @@ watch(
 );
 
 const isSidebarCollapsed = ref(false);
+const isClearAllModalOpen = ref(false);
 
 function handleNewChat() {
   aiStore.clearConversation();
+}
+
+async function handleConfirmClearAll() {
+  await aiStore.deleteAllConversations();
+  isClearAllModalOpen.value = false;
 }
 
 function formatDate(dateStr) {
@@ -171,16 +178,6 @@ function applyQuickPrompt(prompt) {
             />
           </div>
         </div>
-
-        <BaseButton
-          v-if="aiStore.hasMessages"
-          variant="outline"
-          size="sm"
-          @click="aiStore.clearConversation"
-        >
-          <template #prefix><AppIcon name="trash-2" :size="14" /></template>
-          Clear Chat
-        </BaseButton>
       </div>
     </div>
 
@@ -203,6 +200,7 @@ function applyQuickPrompt(prompt) {
     <div class="ai-workspace-layout">
       <!-- Conversation History Sidebar -->
       <div class="conv-sidebar" :class="{ 'is-collapsed': isSidebarCollapsed }">
+        <!-- New Chat Row -->
         <div class="sidebar-action-row" :class="{ 'is-collapsed': isSidebarCollapsed }">
           <BaseButton
             v-if="!isSidebarCollapsed"
@@ -228,6 +226,30 @@ function applyQuickPrompt(prompt) {
             @click="isSidebarCollapsed = !isSidebarCollapsed"
           >
             <AppIcon :name="isSidebarCollapsed ? 'chevron-right' : 'chevron-left'" :size="14" />
+          </button>
+        </div>
+
+        <!-- Clear All Chats Button (below New Chat) -->
+        <div class="sidebar-clear-row" :class="{ 'is-collapsed': isSidebarCollapsed }">
+          <button
+            v-if="!isSidebarCollapsed"
+            type="button"
+            class="sidebar-clear-all-btn"
+            :disabled="aiStore.conversations.length === 0 || aiStore.isDeletingAll"
+            @click="isClearAllModalOpen = true"
+          >
+            <AppIcon name="trash-2" :size="13" />
+            <span>Clear All Chats</span>
+          </button>
+          <button
+            v-if="isSidebarCollapsed"
+            type="button"
+            class="sidebar-icon-bin-btn"
+            :disabled="aiStore.conversations.length === 0 || aiStore.isDeletingAll"
+            title="Clear All Chats"
+            @click="isClearAllModalOpen = true"
+          >
+            <AppIcon name="trash-2" :size="15" />
           </button>
         </div>
 
@@ -530,20 +552,44 @@ function applyQuickPrompt(prompt) {
 
         <div class="input-actions-bar">
           <span class="input-hint text-muted">Press Enter ↵ to send</span>
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="!promptInput.trim() || aiStore.isGenerating"
-            :loading="aiStore.isGenerating"
-            @click="handleSend"
-          >
-            <template #prefix><AppIcon name="send" :size="14" /></template>
-            Send
-          </BaseButton>
+          <div class="input-actions-right">
+            <BaseButton
+              v-if="aiStore.hasMessages"
+              variant="outline"
+              size="sm"
+              :disabled="aiStore.isGenerating"
+              @click="aiStore.clearConversation"
+            >
+              <template #prefix><AppIcon name="trash-2" :size="13" /></template>
+              Clear
+            </BaseButton>
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :disabled="!promptInput.trim() || aiStore.isGenerating"
+              :loading="aiStore.isGenerating"
+              @click="handleSend"
+            >
+              <template #prefix><AppIcon name="send" :size="14" /></template>
+              Send
+            </BaseButton>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Confirm Clear All Chats Modal -->
+  <BaseConfirmModal
+    v-model="isClearAllModalOpen"
+    title="Clear All Conversations"
+    :message="`Are you sure you want to delete all saved conversations for ${currentProject?.name || 'this project'}? This action cannot be undone.`"
+    confirmText="Clear All Chats"
+    confirmVariant="danger"
+    :loading="aiStore.isDeletingAll"
+    @confirm="handleConfirmClearAll"
+    @cancel="isClearAllModalOpen = false"
+  />
 </div>
 </template>
 
@@ -1163,6 +1209,12 @@ function applyQuickPrompt(prompt) {
   justify-content: space-between;
 }
 
+.input-actions-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .input-hint {
   font-size: 11px;
 }
@@ -1495,6 +1547,68 @@ function applyQuickPrompt(prompt) {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
   border-color: var(--color-brand-500, #6366f1);
+}
+
+.sidebar-clear-row {
+  margin-bottom: 12px;
+}
+
+.sidebar-clear-row.is-collapsed {
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-clear-all-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px dashed var(--color-border-subtle, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-muted, #94a3b8);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-clear-all-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--color-danger-500, #ef4444);
+}
+
+.sidebar-clear-all-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sidebar-icon-bin-btn {
+  background: transparent;
+  border: 1px dashed var(--color-border-subtle, rgba(255, 255, 255, 0.12));
+  color: var(--color-text-muted, #94a3b8);
+  border-radius: var(--radius-md, 6px);
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.sidebar-icon-bin-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--color-danger-500, #ef4444);
+}
+
+.sidebar-icon-bin-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .sidebar-scroll-area {

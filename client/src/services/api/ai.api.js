@@ -31,6 +31,11 @@ export const aiApi = {
   deleteConversation: (projectKey, conversationId) => http.delete(`/projects/${projectKey}/conversations/${conversationId}`),
 
   /**
+   * Delete all conversations for a project
+   */
+  deleteAllConversations: (projectKey) => http.delete(`/projects/${projectKey}/conversations`),
+
+  /**
    * Send message within a persistent conversation
    */
   sendConversationMessage: (projectKey, conversationId, data) => http.post(`/projects/${projectKey}/conversations/${conversationId}/messages`, data)

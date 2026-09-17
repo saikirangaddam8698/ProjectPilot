@@ -623,7 +623,7 @@ export class AiAgentService {
     const isUserScoped = classification.scope === 'user' ||
       /\b(my\s+tickets?|my\s+queue|assigned\s+to\s+me|my\s+tasks?|my\s+work)\b/i.test(message);
 
-    const toolArgs = { projectKey: pKey };
+    const toolArgs = { projectKey: pKey, ...(classification.args || {}) };
     if (isUserScoped && user) {
       toolArgs.assignee = user.name || user.email;
     }
@@ -656,8 +656,11 @@ export class AiAgentService {
     let userContextNote = '';
     if (user) {
       userContextNote = `\nAuthenticated User: **${user.name}** (${user.email}, Role: ${user.role}).\n`;
+      if (Array.isArray(user.projectKeys) && user.projectKeys.length > 0) {
+        userContextNote += `User Assigned Projects: **${user.projectKeys.join(', ')}**.\n`;
+      }
       if (isUserScoped) {
-        userContextNote += `The user asked about THEIR personal queue/tickets. Focus your answer on the tickets assigned to ${user.name}. If the returned ticket list is empty, state clearly that their queue is currently clear in workspace ${pKey}.\n`;
+        userContextNote += `The user asked about THEIR personal queue/tickets in workspace ${pKey}. Focus your answer on the tickets assigned to ${user.name}. If the returned ticket list is empty, state clearly that their queue is currently clear in workspace ${pKey}.\n`;
       }
     }
 

@@ -20,11 +20,12 @@ router.use(authenticate);
 router.use(requireProjectAccess());
 router.use(aiRateLimiter);
 
-// List conversations & Create new conversation
+// List conversations, Create new conversation, & Delete all conversations
 router
   .route('/')
   .get(asyncHandler(ConversationController.listConversations))
-  .post(validate(createConversationSchema), asyncHandler(ConversationController.createConversation));
+  .post(validate(createConversationSchema), asyncHandler(ConversationController.createConversation))
+  .delete(asyncHandler(ConversationController.deleteAllConversations));
 
 // Get single conversation details & Delete conversation
 router
