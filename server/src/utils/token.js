@@ -18,7 +18,7 @@ export function getCookieOptions() {
   return {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: 'lax',
+    sameSite: config.isProduction ? 'none' : 'lax',
     maxAge: config.auth.cookieMaxAge,
     path: '/'
   };
@@ -28,7 +28,7 @@ export function getClearCookieOptions() {
   return {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: 'lax',
+    sameSite: config.isProduction ? 'none' : 'lax',
     path: '/'
   };
 }

@@ -1,7 +1,8 @@
 /**
  * ProjectPilot Centralized HTTP API Client
  */
-const BASE_URL = '/api/v1';
+const rawBase = import.meta.env.VITE_API_URL || '/api/v1';
+const BASE_URL = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 
 export class ApiClientError extends Error {
   constructor(message, { code = 'API_ERROR', status = 500, details = null } = {}) {

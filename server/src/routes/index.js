@@ -7,6 +7,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 const router = Router();
 
 // Top-level aliases for operational visibility
+router.get('/', asyncHandler(ApiController.getApiRoot));
 router.get('/health', asyncHandler(HealthController.getHealth));
 router.get('/api/health', asyncHandler(HealthController.getHealth));
 
