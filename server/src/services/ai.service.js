@@ -369,7 +369,7 @@ export class AiAgentService {
       // synthesis call. Total: 1 DB query + 1 Gemini call (vs 2 Gemini calls).
       // RBAC is fully preserved — ToolExecutor.execute() checks project membership.
       // ═══════════════════════════════════════════════════════════════════════
-      if (classification.type === 'simple' && classification.tool) {
+      if (!GeminiClient.isMocked() && classification.type === 'simple' && classification.tool) {
         const fastPathResult = await this._runFastPath({
           classification,
           message,

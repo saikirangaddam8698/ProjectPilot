@@ -20,6 +20,14 @@ export class GeminiClient {
   }
 
   /**
+   * Check if a mock client is currently active
+   * @returns {boolean}
+   */
+  static isMocked() {
+    return mockClient !== null;
+  }
+
+  /**
    * Get configured Gemini client instance
    */
   static getClient() {
