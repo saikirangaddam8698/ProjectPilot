@@ -30,11 +30,14 @@ async function request(endpoint, { method = 'GET', body = null, params = null, h
     }
   }
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('projectpilot_token') : null;
+
   const fetchOptions = {
     method,
     credentials: 'include', // Automatically send and receive HTTP-only cookies
     headers: {
       'Accept': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...headers
     }
   };
@@ -60,6 +63,9 @@ async function request(endpoint, { method = 'GET', body = null, params = null, h
       // Notify application if session has expired (401 Unauthorized on non-login endpoints)
       if (response.status === 401 && !endpoint.includes('/auth/login')) {
         if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('projectpilot_token');
+          } catch {}
           window.dispatchEvent(new CustomEvent('projectpilot:session-expired', {
             detail: { message: errorMessage, endpoint }
           }));

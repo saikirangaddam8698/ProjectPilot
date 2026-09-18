@@ -39,6 +39,9 @@ export const useAuthStore = defineStore('auth', () => {
     clearSessionTimer();
     user.value = null;
     error.value = null;
+    try {
+      localStorage.removeItem('projectpilot_token');
+    } catch {}
     showSessionExpiredModal.value = true;
   }
 
@@ -136,6 +139,11 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = result?.user || null;
       isInitialized.value = true;
       showSessionExpiredModal.value = false;
+      if (result?.token) {
+        try {
+          localStorage.setItem('projectpilot_token', result.token);
+        } catch {}
+      }
       if (user.value) {
         startSessionTimer();
         try {
@@ -164,6 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = false;
       showSessionExpiredModal.value = false;
       try {
+        localStorage.removeItem('projectpilot_token');
         localStorage.setItem('projectpilot_sidebar_collapsed', 'false');
       } catch {}
     }
@@ -181,12 +190,18 @@ export const useAuthStore = defineStore('auth', () => {
         startSessionTimer();
       } else {
         clearSessionTimer();
+        try {
+          localStorage.removeItem('projectpilot_token');
+        } catch {}
       }
       return !!user.value;
     } catch {
       clearSessionTimer();
       user.value = null;
       isInitialized.value = true;
+      try {
+        localStorage.removeItem('projectpilot_token');
+      } catch {}
       return false;
     } finally {
       isLoading.value = false;
